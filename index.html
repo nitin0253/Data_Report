@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Metabase Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+<h2>Dashboard</h2>
+<canvas id="chart"></canvas>
+
+<script>
+const csvUrl = "https://metabase.spyne.ai/public/question/21760ff0-3e2b-43c2-a6f4-51c4dac4077f.csv";
+
+async function loadData() {
+  const res = await fetch(csvUrl);
+  const text = await res.text();
+
+  const rows = text.split("\n").slice(1);
+
+  const labels = [];
+  const values = [];
+
+  rows.forEach(row => {
+    const [label, value] = row.split(",");
+    labels.push(label);
+    values.push(Number(value));
+  });
+
+  new Chart(document.getElementById("chart"), {
+    type: "line",
+    data: {
+      labels,
+      datasets: [{
+        label: "Data",
+        data: values
+      }]
+    }
+  });
+}
+
+loadData();
+</script>
+
+</body>
+</html>
