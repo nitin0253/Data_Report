@@ -19,8 +19,8 @@ export default async function handler(req, res) {
       let obj = {};
       cols.forEach((c,i)=> obj[c.trim()] = vals[i]);
 
-      obj.created = new Date(obj.Created_ON.replace(",", ""));
-      obj.updated = new Date(obj.Updated_ON.replace(",", ""));
+      obj.created = parseDateSafe(obj.Created_ON);
+      obj.updated = parseDateSafe(obj.Updated_ON);
 
       return obj;
     });
