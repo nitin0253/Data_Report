@@ -45,23 +45,18 @@
   html { height: 100%; }
   body {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    background: var(--bg);
-    color: var(--ink);
-    -webkit-font-smoothing: antialiased;
-    font-size: 14px;
-    min-height: 100%;
+    background: var(--bg); color: var(--ink);
+    -webkit-font-smoothing: antialiased; font-size: 14px; min-height: 100%;
     transition: background 0.25s, color 0.25s;
   }
-  .display { font-family: 'Bricolage Grotesque', serif; letter-spacing: -0.02em; }
   .mono { font-family: 'JetBrains Mono', monospace; font-variant-numeric: tabular-nums; }
 
   #sticky-top { position: sticky; top: 0; z-index: 100; }
 
   header {
-    background: var(--surface);
-    border-bottom: 1px solid var(--line);
-    padding: 16px 28px;
-    display: flex; align-items: center; justify-content: space-between; gap: 16px;
+    background: var(--surface); border-bottom: 1px solid var(--line);
+    padding: 16px 28px; display: flex; align-items: center;
+    justify-content: space-between; gap: 16px;
     transition: background 0.25s, border-color 0.25s;
   }
   header .brand { display: flex; align-items: baseline; gap: 14px; min-width: 0; }
@@ -75,14 +70,12 @@
   }
   header .actions { display: flex; align-items: center; gap: 14px; }
   .sync-info { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted); }
-
   .autosync-badge {
     font-family: 'JetBrains Mono', monospace; font-size: 10px;
     color: var(--muted); background: var(--bg); border: 1px solid var(--line);
     border-radius: 999px; padding: 3px 10px; white-space: nowrap;
     transition: background 0.25s, border-color 0.25s;
   }
-
   button.sync {
     background: var(--ink); color: var(--surface); border: none;
     padding: 9px 16px; border-radius: 6px; font: 500 13px 'Inter';
@@ -92,10 +85,8 @@
   button.sync[disabled] { opacity: 0.45; cursor: wait; }
 
   .filters {
-    background: var(--surface);
-    border-bottom: 1px solid var(--line);
-    padding: 14px 28px;
-    display: flex; flex-wrap: wrap; gap: 14px; align-items: end;
+    background: var(--surface); border-bottom: 1px solid var(--line);
+    padding: 14px 28px; display: flex; flex-wrap: wrap; gap: 14px; align-items: end;
     transition: background 0.25s, border-color 0.25s;
     box-shadow: 0 2px 10px var(--shadow);
   }
@@ -119,6 +110,7 @@
 
   main { padding: 22px 28px 80px; max-width: 1500px; margin: 0 auto; }
 
+  /* ── KPIs: now 4 cards in a row ── */
   .kpis {
     display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 20px;
   }
@@ -150,8 +142,7 @@
   .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
   .panel {
     background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
-    padding: 18px; min-width: 0;
-    transition: background 0.25s, border-color 0.25s;
+    padding: 18px; min-width: 0; transition: background 0.25s, border-color 0.25s;
   }
   .panel h3 {
     margin: 0; font-family: 'Bricolage Grotesque', serif; font-size: 16px;
@@ -210,12 +201,11 @@
     text-transform: uppercase; letter-spacing: 0.04em;
     border: 1px solid var(--line); background: var(--bg); color: var(--ink-2);
   }
-  .pill.done     { background: rgba(31,122,82,0.1);  color: var(--green); border-color: rgba(31,122,82,0.3); }
-  .pill.rejected { background: rgba(179,38,30,0.1);  color: var(--red);   border-color: rgba(179,38,30,0.3); }
-  .pill.pending  { background: rgba(178,122,0,0.1);  color: var(--amber); border-color: rgba(178,122,0,0.3); }
+  .pill.delivered { background: rgba(31,122,82,0.1);  color: var(--green); border-color: rgba(31,122,82,0.3); }
+  .pill.rejected  { background: rgba(179,38,30,0.1);  color: var(--red);   border-color: rgba(179,38,30,0.3); }
+  .pill.pending   { background: rgba(178,122,0,0.1);  color: var(--amber); border-color: rgba(178,122,0,0.3); }
 
   .empty { padding: 60px 20px; text-align: center; color: var(--muted); font-size: 13px; }
-
   .err {
     background: rgba(179,38,30,0.07); border: 1px solid rgba(179,38,30,0.25); color: var(--red);
     padding: 12px 16px; border-radius: 8px; font-size: 13px; margin-bottom: 16px;
@@ -268,7 +258,7 @@
     <header>
       <div class="brand">
         <h1>Ops Dashboard</h1>
-        <span class="tag">QC · Throughput</span>
+        <span class="tag">QC · Throughput · Status</span>
       </div>
       <div class="actions">
         <span class="autosync-badge" id="autoSyncBadge">Next sync in —</span>
@@ -305,41 +295,42 @@
   <main>
     <div id="errBox"></div>
 
+    <!-- 4 KPI cards: Received · Delivered · Rejected · Pending -->
     <section class="kpis">
       <div class="kpi accent">
         <span class="kpi-bar"></span>
-        <div class="kpi-label">Received Today</div>
+        <div class="kpi-label">Total Received</div>
         <div class="kpi-value" id="kpiReceived">—</div>
-        <div class="kpi-sub">created today</div>
+        <div class="kpi-sub">all records in view</div>
       </div>
       <div class="kpi green">
         <span class="kpi-bar"></span>
-        <div class="kpi-label">Delivered (Today's)</div>
-        <div class="kpi-value" id="kpiDeliveredCreatedToday">—</div>
-        <div class="kpi-sub">created &amp; delivered today</div>
-      </div>
-      <div class="kpi green">
-        <span class="kpi-bar"></span>
-        <div class="kpi-label">Delivered Today (All)</div>
-        <div class="kpi-value" id="kpiDeliveredToday">—</div>
-        <div class="kpi-sub" id="kpiDeliveredSub">closed today, any backlog</div>
+        <div class="kpi-label">Delivered</div>
+        <div class="kpi-value" id="kpiDelivered">—</div>
+        <div class="kpi-sub">crm_status=qc_done &amp; verified</div>
       </div>
       <div class="kpi red">
         <span class="kpi-bar"></span>
         <div class="kpi-label">Rejected</div>
         <div class="kpi-value" id="kpiRejected">—</div>
-        <div class="kpi-sub" id="kpiRejectedSub">in current view</div>
+        <div class="kpi-sub">crm_status=qc_done &amp; rejected</div>
+      </div>
+      <div class="kpi amber">
+        <span class="kpi-bar"></span>
+        <div class="kpi-label">Pending</div>
+        <div class="kpi-value" id="kpiPending">—</div>
+        <div class="kpi-sub">crm_status ≠ qc_done</div>
       </div>
     </section>
 
     <section class="grid">
       <div class="panel">
-        <h3>Month-on-month received</h3>
+        <h3>Month-on-month</h3>
         <div class="panel-sub">received · delivered · rejected per month</div>
         <div class="chart-wrap"><canvas id="chartMonthly"></canvas></div>
-        <div class="chart-legend" id="monthlyLegend">
+        <div class="chart-legend">
           <div class="chart-legend-item">
-            <div class="chart-legend-dot" style="background:#0b0b0c" id="legendDotReceived"></div>
+            <div class="chart-legend-dot" id="legendDotReceived" style="background:#0b0b0c"></div>
             <span>Received</span>
           </div>
           <div class="chart-legend-item">
@@ -386,6 +377,7 @@
               <th>QC User</th>
               <th>Status</th>
               <th>CRM Status</th>
+              <th>Verified Status</th>
               <th>Video ID</th>
               <th>VIN</th>
               <th>SKU ID</th>
@@ -399,7 +391,6 @@
   </main>
 
 <script>
-// ── Globals ────────────────────────────────────────────────────
 const $ = (id) => document.getElementById(id);
 const charts = {};
 
@@ -443,38 +434,33 @@ function applyTheme(dark) {
   if (localData) rerender();
   localStorage.setItem('opsDashTheme', dark ? 'dark' : 'light');
 }
-
 $('themeBtn').addEventListener('click', () => applyTheme(!isDark));
 
-// ── Local data store & auto-sync ───────────────────────────────
-let localData = null;
-let autoSyncTimer = null;
+// ── Auto-sync ──────────────────────────────────────────────────
+let localData      = null;
+let autoSyncTimer  = null;
 let countdownTimer = null;
-let nextSyncAt = null;
+let nextSyncAt     = null;
 const AUTO_SYNC_MS = 10 * 60 * 1000;
 
 function startCountdown() {
   if (countdownTimer) clearInterval(countdownTimer);
   nextSyncAt = Date.now() + AUTO_SYNC_MS;
   countdownTimer = setInterval(() => {
-    const remaining = nextSyncAt - Date.now();
-    if (remaining <= 0) { $('autoSyncBadge').textContent = 'Syncing…'; return; }
-    const m = Math.floor(remaining / 60000);
-    const s = Math.floor((remaining % 60000) / 1000);
+    const rem = nextSyncAt - Date.now();
+    if (rem <= 0) { $('autoSyncBadge').textContent = 'Syncing…'; return; }
+    const m = Math.floor(rem / 60000);
+    const s = Math.floor((rem % 60000) / 1000);
     $('autoSyncBadge').textContent = `Next sync in ${m}:${String(s).padStart(2,'0')}`;
   }, 1000);
 }
-
 function scheduleAutoSync() {
   if (autoSyncTimer) clearTimeout(autoSyncTimer);
   startCountdown();
-  autoSyncTimer = setTimeout(() => {
-    fetchFromServer();
-    scheduleAutoSync();
-  }, AUTO_SYNC_MS);
+  autoSyncTimer = setTimeout(() => { fetchFromServer(); scheduleAutoSync(); }, AUTO_SYNC_MS);
 }
 
-// ── Fetch from server ─────────────────────────────────────────
+// ── Fetch ─────────────────────────────────────────────────────
 async function fetchFromServer() {
   const btn = $('syncBtn');
   btn.disabled = true; btn.textContent = 'Syncing…';
@@ -484,20 +470,13 @@ async function fetchFromServer() {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Request failed');
 
-    // ── Guard: ensure monthly has the right shape ──────────────
+    // Safety guards
     if (!data.charts) data.charts = {};
-    if (!data.charts.monthly || typeof data.charts.monthly.received !== 'object') {
+    if (!data.charts.monthly || typeof data.charts.monthly.received !== 'object')
       data.charts.monthly = { received: {}, delivered: {}, rejected: {} };
-    }
-    if (!data.charts.enterprise || typeof data.charts.enterprise !== 'object') {
-      data.charts.enterprise = {};
-    }
-    if (!data.charts.qc || typeof data.charts.qc !== 'object') {
-      data.charts.qc = {};
-    }
-    if (!data.charts.status || typeof data.charts.status !== 'object') {
-      data.charts.status = {};
-    }
+    if (!data.charts.enterprise || typeof data.charts.enterprise !== 'object') data.charts.enterprise = {};
+    if (!data.charts.qc         || typeof data.charts.qc         !== 'object') data.charts.qc = {};
+    if (!data.charts.status     || typeof data.charts.status     !== 'object') data.charts.status = {};
     if (!data.kpis) data.kpis = {};
     if (!data.raw)  data.raw  = [];
 
@@ -514,14 +493,24 @@ async function fetchFromServer() {
   }
 }
 
+// ── Client-side status helpers (mirror server logic) ──────────
+const isDelivered = (r) =>
+  (r.crm_status || '').toLowerCase() === 'qc_done' &&
+  (r.verified_status || '').toLowerCase() === 'verified';
+const isRejected = (r) =>
+  (r.crm_status || '').toLowerCase() === 'qc_done' &&
+  (r.verified_status || '').toLowerCase() === 'rejected';
+const isPending = (r) =>
+  (r.crm_status || '').toLowerCase() !== 'qc_done';
+
 // ── Client-side filter ─────────────────────────────────────────
 function getFilteredData() {
   if (!localData) return null;
   const ent   = $('enterprise').value;
   const usr   = $('user').value;
   const stat  = $('status').value;
-  const start = $('start').value ? new Date($('start').value)               : null;
-  const end   = $('end').value   ? new Date($('end').value + 'T23:59:59')   : null;
+  const start = $('start').value ? new Date($('start').value)             : null;
+  const end   = $('end').value   ? new Date($('end').value + 'T23:59:59') : null;
 
   if (ent === 'all' && usr === 'all' && stat === 'all' && !start && !end) return localData;
 
@@ -536,35 +525,42 @@ function getFilteredData() {
     }
     return true;
   });
-
   return buildDerivedData(raw, localData);
 }
 
-// ── Build computed data from filtered rows ─────────────────────
+// ── Build derived data from filtered rows ──────────────────────
 function buildDerivedData(rows, base) {
-  const todayStr = new Date().toISOString().slice(0, 10);
+  let totalReceived  = rows.length;
+  let totalDelivered = 0;
+  let totalRejected  = 0;
+  let totalPending   = 0;
 
-  const isToday     = (s) => s && String(s).slice(0, 10) === todayStr;
-  const isDelivered = (s) => ['done','delivered','completed','complete'].includes(String(s||'').toLowerCase());
-  const isRejected  = (s) => ['rejected','reject','qc_rejected'].includes(String(s||'').toLowerCase());
-
-  const receivedToday                  = rows.filter(r => isToday(r.Created_ON)).length;
-  const deliveredTodayFromTodayCreated = rows.filter(r => isToday(r.Created_ON) && isDelivered(r.status)).length;
-  const deliveredToday                 = rows.filter(r => isToday(r.Updated_ON) && isDelivered(r.status)).length;
-  const rejectedCount                  = rows.filter(r => isRejected(r.status)).length;
-  const rejectedToday                  = rows.filter(r => isToday(r.Updated_ON) && isRejected(r.status)).length;
-  const totalDelivered                 = rows.filter(r => isDelivered(r.status)).length;
-
-  // Monthly breakdown
   const monthlyMap = {};
+  const statusMap  = {};
+  const entMap     = {};
+  const qcMap      = {};
+
   rows.forEach(r => {
+    if (isDelivered(r))     totalDelivered++;
+    else if (isRejected(r)) totalRejected++;
+    else if (isPending(r))  totalPending++;
+
+    // Status mix (use crm+verified combo as label)
+    const label = isPending(r) ? 'Pending' : isDelivered(r) ? 'Delivered' : 'Rejected';
+    statusMap[label] = (statusMap[label] || 0) + 1;
+
+    if (r.Ent_Name)    entMap[r.Ent_Name]   = (entMap[r.Ent_Name]   || 0) + 1;
+    if (r.qc_email_id) qcMap[r.qc_email_id] = (qcMap[r.qc_email_id] || 0) + 1;
+
+    // Monthly
     if (!r.Created_ON) return;
     const key = String(r.Created_ON).slice(0, 7);
     if (!monthlyMap[key]) monthlyMap[key] = { received: 0, delivered: 0, rejected: 0 };
     monthlyMap[key].received++;
-    if (isDelivered(r.status)) monthlyMap[key].delivered++;
-    if (isRejected(r.status))  monthlyMap[key].rejected++;
+    if (isDelivered(r))     monthlyMap[key].delivered++;
+    else if (isRejected(r)) monthlyMap[key].rejected++;
   });
+
   const sortedMonths = Object.keys(monthlyMap).sort();
   const monthly = {
     received:  Object.fromEntries(sortedMonths.map(k => [k, monthlyMap[k].received])),
@@ -572,33 +568,15 @@ function buildDerivedData(rows, base) {
     rejected:  Object.fromEntries(sortedMonths.map(k => [k, monthlyMap[k].rejected])),
   };
 
-  // Status mix
-  const statusMap = {};
-  rows.forEach(r => {
-    const s = r.status || 'unknown';
-    statusMap[s] = (statusMap[s] || 0) + 1;
-  });
-
-  // Enterprise top 10
-  const entMap = {};
-  rows.forEach(r => { if (r.Ent_Name) entMap[r.Ent_Name] = (entMap[r.Ent_Name] || 0) + 1; });
   const entTop = Object.fromEntries(
     Object.entries(entMap).sort((a,b) => b[1]-a[1]).slice(0,10).reverse()
   );
-
-  // QC top 10
-  const qcMap = {};
-  rows.forEach(r => { if (r.qc_email_id) qcMap[r.qc_email_id] = (qcMap[r.qc_email_id] || 0) + 1; });
   const qcTop = Object.fromEntries(
     Object.entries(qcMap).sort((a,b) => b[1]-a[1]).slice(0,10).reverse()
   );
 
   return {
-    kpis: {
-      receivedToday, deliveredTodayFromTodayCreated, deliveredToday,
-      rejectedCount, rejectedToday, totalDelivered,
-      totalRecords: rows.length,
-    },
+    kpis: { totalReceived, totalDelivered, totalRejected, totalPending, totalRecords: rows.length },
     charts: { monthly, status: statusMap, enterprise: entTop, qc: qcTop },
     filters: base ? base.filters : {},
     raw: rows.slice(0, 200),
@@ -606,7 +584,6 @@ function buildDerivedData(rows, base) {
   };
 }
 
-// ── Rerender ──────────────────────────────────────────────────
 function rerender() {
   const data = getFilteredData();
   if (!data) return;
@@ -626,17 +603,14 @@ function fmtDate(s) {
     ' ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 function escapeHtml(s) {
-  return String(s ?? '').replace(/[&<>"']/g, c => ({
-    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
-  }[c]));
+  return String(s ?? '').replace(/[&<>"']/g, c =>
+    ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])
+  );
 }
-function statusPill(status) {
-  if (!status) return '<span class="pill">—</span>';
-  const s = String(status).toLowerCase();
-  let cls = 'pending';
-  if (['done','delivered','completed','complete'].includes(s)) cls = 'done';
-  else if (['rejected','reject','qc_rejected'].includes(s))   cls = 'rejected';
-  return `<span class="pill ${cls}">${escapeHtml(status)}</span>`;
+function verifiedPill(r) {
+  if (isDelivered(r)) return `<span class="pill delivered">Delivered</span>`;
+  if (isRejected(r))  return `<span class="pill rejected">Rejected</span>`;
+  return `<span class="pill pending">Pending</span>`;
 }
 function fillSelect(sel, items) {
   if (!items || !items.length) return;
@@ -647,18 +621,15 @@ function fillSelect(sel, items) {
   else sel.value = 'all';
 }
 
-// ── Chart helpers ─────────────────────────────────────────────
+// ── Charts ─────────────────────────────────────────────────────
 Chart.defaults.font.family = "'Inter', -apple-system, sans-serif";
-
 function destroy(id) { if (charts[id]) { charts[id].destroy(); delete charts[id]; } }
 
 function multiLineChart(canvas, monthly) {
-  // Guard: ensure monthly has the expected shape
   if (!monthly || typeof monthly.received !== 'object' || monthly.received === null) return null;
   const PAL    = getPal();
   const months = Object.keys(monthly.received);
   if (!months.length) return null;
-
   return new Chart(canvas, {
     type: 'line',
     plugins: [ChartDataLabels],
@@ -668,44 +639,32 @@ function multiLineChart(canvas, monthly) {
         {
           label: 'Received',
           data: months.map(m => monthly.received[m]  || 0),
-          borderColor: PAL.ink,
-          backgroundColor: 'rgba(11,11,12,0.06)',
-          borderWidth: 1.8, tension: 0.28,
-          pointRadius: 3, pointHoverRadius: 5,
+          borderColor: PAL.ink, backgroundColor: 'rgba(11,11,12,0.06)',
+          borderWidth: 1.8, tension: 0.28, pointRadius: 3, pointHoverRadius: 5,
           pointBackgroundColor: PAL.ink, fill: false,
-          datalabels: {
-            align: 'top', anchor: 'end', color: PAL.ink,
+          datalabels: { align: 'top', anchor: 'end', color: PAL.ink,
             font: { family: "'JetBrains Mono', monospace", size: 10 },
-            formatter: v => v > 0 ? v : '',
-          },
+            formatter: v => v > 0 ? v : '' },
         },
         {
           label: 'Delivered',
           data: months.map(m => monthly.delivered[m] || 0),
-          borderColor: PAL.green,
-          backgroundColor: 'rgba(31,122,82,0.0)',
-          borderWidth: 1.8, tension: 0.28,
-          pointRadius: 3, pointHoverRadius: 5,
+          borderColor: PAL.green, backgroundColor: 'rgba(31,122,82,0.0)',
+          borderWidth: 1.8, tension: 0.28, pointRadius: 3, pointHoverRadius: 5,
           pointBackgroundColor: PAL.green, fill: false,
-          datalabels: {
-            align: 'bottom', anchor: 'end', color: PAL.green,
+          datalabels: { align: 'bottom', anchor: 'end', color: PAL.green,
             font: { family: "'JetBrains Mono', monospace", size: 10 },
-            formatter: v => v > 0 ? v : '',
-          },
+            formatter: v => v > 0 ? v : '' },
         },
         {
           label: 'Rejected',
           data: months.map(m => monthly.rejected[m]  || 0),
-          borderColor: PAL.red,
-          backgroundColor: 'rgba(179,38,30,0.0)',
-          borderWidth: 1.8, tension: 0.28,
-          pointRadius: 3, pointHoverRadius: 5,
+          borderColor: PAL.red, backgroundColor: 'rgba(179,38,30,0.0)',
+          borderWidth: 1.8, tension: 0.28, pointRadius: 3, pointHoverRadius: 5,
           pointBackgroundColor: PAL.red, fill: false,
-          datalabels: {
-            align: 'right', anchor: 'center', color: PAL.red,
+          datalabels: { align: 'right', anchor: 'center', color: PAL.red,
             font: { family: "'JetBrains Mono', monospace", size: 10 },
-            formatter: v => v > 0 ? v : '',
-          },
+            formatter: v => v > 0 ? v : '' },
         },
       ],
     },
@@ -717,27 +676,19 @@ function multiLineChart(canvas, monthly) {
         datalabels: { display: true },
       },
       scales: {
-        x: {
-          grid: { color: PAL.line, drawTicks: false },
-          ticks: { font: { size: 11 }, color: PAL.muted },
-        },
-        y: {
-          grid: { color: PAL.line }, beginAtZero: true,
-          ticks: { font: { size: 11 }, color: PAL.muted },
-        },
+        x: { grid: { color: PAL.line, drawTicks: false }, ticks: { font: { size: 11 }, color: PAL.muted } },
+        y: { grid: { color: PAL.line }, beginAtZero: true, ticks: { font: { size: 11 }, color: PAL.muted } },
       },
     },
   });
 }
 
 function barChart(canvas, map, opts = {}) {
-  // Guard: ensure map is a valid object
   if (!map || typeof map !== 'object') return null;
   const PAL    = getPal();
   const labels = Object.keys(map);
   const values = Object.values(map);
   if (!labels.length) return null;
-
   return new Chart(canvas, {
     type: 'bar',
     plugins: [ChartDataLabels],
@@ -759,8 +710,7 @@ function barChart(canvas, map, opts = {}) {
       responsive: true, maintainAspectRatio: false,
       indexAxis: opts.horizontal ? 'y' : 'x',
       plugins: {
-        legend: { display: false },
-        tooltip: { displayColors: false },
+        legend: { display: false }, tooltip: { displayColors: false },
         datalabels: { display: true },
       },
       onClick: (_, items) => {
@@ -768,38 +718,30 @@ function barChart(canvas, map, opts = {}) {
         opts.onPick(labels[items[0].index]);
       },
       scales: {
-        x: {
-          grid: { color: PAL.line, display: !opts.horizontal },
-          ticks: { font: { size: 11 }, color: PAL.muted },
-          beginAtZero: opts.horizontal,
-        },
-        y: {
-          grid: { color: PAL.line, display: opts.horizontal },
-          ticks: { font: { size: 11 }, color: PAL.muted, autoSkip: false },
-          beginAtZero: !opts.horizontal,
-        },
+        x: { grid: { color: PAL.line, display: !opts.horizontal },
+             ticks: { font: { size: 11 }, color: PAL.muted }, beginAtZero: opts.horizontal },
+        y: { grid: { color: PAL.line, display: opts.horizontal },
+             ticks: { font: { size: 11 }, color: PAL.muted, autoSkip: false },
+             beginAtZero: !opts.horizontal },
       },
     },
   });
 }
 
 function doughnutChart(canvas, map) {
-  // Guard: ensure map is a valid object
   if (!map || typeof map !== 'object') return null;
   const PAL    = getPal();
   const labels = Object.keys(map);
   const values = Object.values(map);
   if (!labels.length) return null;
-
   const colors = labels.map((l, i) => {
     const k = String(l).toLowerCase();
-    if (['done','delivered','completed','complete'].includes(k)) return PAL.green;
-    if (['rejected','reject','qc_rejected'].includes(k))        return PAL.red;
-    if (['pending','in_progress','in progress','assigned'].includes(k)) return PAL.amber;
+    if (k === 'delivered') return PAL.green;
+    if (k === 'rejected')  return PAL.red;
+    if (k === 'pending')   return PAL.amber;
     const series = [PAL.ink, PAL.accent, '#5b21b6','#0e7490','#7c2d12','#365314','#9f1239'];
     return series[i % series.length];
   });
-
   return new Chart(canvas, {
     type: 'doughnut',
     plugins: [ChartDataLabels],
@@ -807,10 +749,8 @@ function doughnutChart(canvas, map) {
     options: {
       responsive: true, maintainAspectRatio: false, cutout: '64%',
       plugins: {
-        legend: {
-          position: 'right',
-          labels: { boxWidth: 10, boxHeight: 10, font: { size: 12 }, padding: 10, color: PAL.muted },
-        },
+        legend: { position: 'right',
+          labels: { boxWidth: 10, boxHeight: 10, font: { size: 12 }, padding: 10, color: PAL.muted } },
         tooltip: { displayColors: false },
         datalabels: { display: false },
       },
@@ -822,12 +762,10 @@ function doughnutChart(canvas, map) {
 function paint(data) {
   const PAL = getPal();
 
-  $('kpiReceived').textContent              = fmt(data.kpis.receivedToday);
-  $('kpiDeliveredCreatedToday').textContent = fmt(data.kpis.deliveredTodayFromTodayCreated);
-  $('kpiDeliveredToday').textContent        = fmt(data.kpis.deliveredToday);
-  $('kpiRejected').textContent              = fmt(data.kpis.rejectedCount);
-  $('kpiRejectedSub').textContent           = `${fmt(data.kpis.rejectedToday)} today`;
-  $('kpiDeliveredSub').textContent          = `total delivered: ${fmt(data.kpis.totalDelivered)}`;
+  $('kpiReceived').textContent  = fmt(data.kpis.totalReceived);
+  $('kpiDelivered').textContent = fmt(data.kpis.totalDelivered);
+  $('kpiRejected').textContent  = fmt(data.kpis.totalRejected);
+  $('kpiPending').textContent   = fmt(data.kpis.totalPending);
 
   const dot = $('legendDotReceived');
   if (dot) dot.style.background = PAL.ink;
@@ -851,14 +789,15 @@ function paint(data) {
   const rows = data.raw || [];
   $('tableCount').textContent = `${fmt(rows.length)} of ${fmt(data.kpis.totalRecords)}`;
   $('tableBody').innerHTML = rows.length === 0
-    ? `<tr><td colspan="9" class="empty">No records match these filters.</td></tr>`
+    ? `<tr><td colspan="10" class="empty">No records match these filters.</td></tr>`
     : rows.map(r => `
         <tr>
           <td class="mono">${escapeHtml(fmtDate(r.Created_ON))}</td>
           <td>${escapeHtml(r.Ent_Name      || '—')}</td>
           <td>${escapeHtml(r.qc_email_id   || '—')}</td>
-          <td>${statusPill(r.status)}</td>
+          <td>${escapeHtml(r.status        || '—')}</td>
           <td>${escapeHtml(r.crm_status    || '—')}</td>
+          <td>${verifiedPill(r)}</td>
           <td class="mono">${escapeHtml(r.video_id || '—')}</td>
           <td class="mono">${escapeHtml(r.vin      || '—')}</td>
           <td class="mono">${escapeHtml(r.sku_id   || '—')}</td>
@@ -875,21 +814,13 @@ function reset() {
   $('end').value        = '';
   rerender();
 }
-
-['enterprise','user','status','start','end'].forEach(id => {
-  $(id).addEventListener('change', rerender);
-});
-
-$('syncBtn').addEventListener('click', () => {
-  fetchFromServer();
-  scheduleAutoSync();
-});
+['enterprise','user','status','start','end'].forEach(id => $(id).addEventListener('change', rerender));
+$('syncBtn').addEventListener('click', () => { fetchFromServer(); scheduleAutoSync(); });
 $('resetBtn').addEventListener('click', reset);
 
 // ── Init ───────────────────────────────────────────────────────
 const savedTheme = localStorage.getItem('opsDashTheme');
 if (savedTheme === 'dark') applyTheme(true);
-
 fetchFromServer();
 scheduleAutoSync();
 </script>
