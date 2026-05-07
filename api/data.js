@@ -64,9 +64,9 @@ async function loadCache() {
   const text = await resp.text();
   const rows = parseCSV(text);
   cache = rows.map(r => {
-    // Normalize the two key fields — handle "crm_status", "verified_status", etc.
-    r._crm      = (r["crm_status"]      || r["crm status"]      || "").toLowerCase().trim();
-    r._verified = (r["verified_status"] || r["verified_status"] || r["verified"] || "").toLowerCase().trim();
+    // CRM column is "CRM_Status" (mixed case) in this Metabase CSV
+    r._crm      = (r["CRM_Status"] || r["crm_status"] || r["crm status"] || "").toLowerCase().trim();
+    r._verified = (r["verified_status"] || r["verified status"] || r["verified"] || "").toLowerCase().trim();
 
     // Write back clean display values
     r.crm_status      = r._crm;
@@ -166,17 +166,17 @@ export default async function handler(req, res) {
         .sort((a, b) => (b.created?.getTime() || 0) - (a.created?.getTime() || 0))
         .slice(0, 500)
         .map(d => ({
-          Ent_Name:        d.Ent_Name,
-          status:          d.status,
-          crm_status:      d._crm,
-          verified_status: d._verified,
-          qc_email_id:     d.qc_email_id,
-          video_id:        d.video_id,
-          vin:             d.vin,
-          sku_id:          d.sku_id,
-          Created_ON:      d.Created_ON,
-          Updated_ON:      d.Updated_ON,
-        })),
+        Ent_Name:        d.Ent_Name,
+        status:          d.status,
+        crm_status:      d._crm,           // now correctly sourced from CRM_Status
+        verified_status: d._verified,
+        qc_email_id:     d.qc_email_id,
+        video_id:        d.Video_ID,       // note: capital V and ID in this CSV
+        vin:             d.VIN,            // capital VIN
+        sku_id:          d.Sku_ID,         // capital S
+        Created_ON:      d.Created_ON,
+        Updated_ON:      d.Updated_ON,
+})),
       lastSynced: new Date(lastFetch).toISOString(),
     });
   } catch (err) {
