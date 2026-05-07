@@ -15,6 +15,13 @@ body { margin:0; font-family:Inter; background:#f1f5f9; }
   justify-content:space-between;
 }
 
+.filters {
+  background:white;
+  padding:12px 20px;
+  display:flex;
+  gap:10px;
+}
+
 .container { padding:20px; }
 
 .kpis {
@@ -29,8 +36,6 @@ body { margin:0; font-family:Inter; background:#f1f5f9; }
   border-radius:12px;
 }
 
-.card p { font-size:24px; font-weight:bold; }
-
 .grid {
   margin-top:20px;
   display:grid;
@@ -38,15 +43,19 @@ body { margin:0; font-family:Inter; background:#f1f5f9; }
   gap:20px;
 }
 
-.subgrid {
-  display:grid;
-  gap:20px;
-}
-
 canvas {
   background:white;
   padding:12px;
   border-radius:12px;
+}
+
+.table {
+  margin-top:20px;
+  background:white;
+  padding:10px;
+  border-radius:10px;
+  max-height:300px;
+  overflow:auto;
 }
 </style>
 </head>
@@ -56,6 +65,12 @@ canvas {
 <div class="header">
   <h2>🚀 Ops Dashboard</h2>
   <button onclick="loadData()">Sync</button>
+</div>
+
+<div class="filters">
+  <select id="enterprise"></select>
+  <input type="date" id="start">
+  <input type="date" id="end">
 </div>
 
 <div class="container">
@@ -69,13 +84,10 @@ canvas {
 
 <div class="grid">
   <canvas id="monthly"></canvas>
-
-  <div class="subgrid">
-    <canvas id="ent"></canvas>
-    <canvas id="qc"></canvas>
-    <canvas id="status"></canvas>
-  </div>
+  <canvas id="ent"></canvas>
 </div>
+
+<div class="table" id="table"></div>
 
 </div>
 
@@ -83,7 +95,9 @@ canvas {
 let charts = {};
 
 async function loadData() {
-  const res = await fetch("/api/data");
+  const url = `/api/data?enterprise=${enterprise.value}&start=${start.value}&end=${end.value}`;
+
+  const res = await fetch(url);
   const data = await res.json();
 
   r.innerText = data.kpis.receivedToday;
@@ -91,10 +105,14 @@ async function loadData() {
   t.innerText = data.kpis.totalDelivered;
   tat.innerText = data.kpis.avgTat;
 
+  enterprise.innerHTML =
+    `<option value="all">All</option>` +
+    data.enterpriseList.map(e=>`<option>${e}</option>`).join("");
+
   render("monthly", data.charts.monthly, "line");
   render("ent", data.charts.enterprise);
-  render("qc", data.charts.qc);
-  render("status", data.charts.status, "doughnut");
+
+  renderTable(data.raw);
 }
 
 function render(id, map, type="bar") {
@@ -102,11 +120,36 @@ function render(id, map, type="bar") {
 
   charts[id] = new Chart(document.getElementById(id), {
     type,
-    data: {
-      labels: Object.keys(map),
-      datasets: [{ data: Object.values(map) }]
+    data:{
+      labels:Object.keys(map),
+      datasets:[{data:Object.values(map)}]
+    },
+    options:{
+      onClick:(e, items)=>{
+        if(items.length){
+          const label = charts[id].data.labels[items[0].index];
+          drill(label);
+        }
+      }
     }
   });
+}
+
+function renderTable(rows){
+  table.innerHTML = `
+    <table width="100%">
+      <tr><th>Enterprise</th><th>Status</th><th>QC</th></tr>
+      ${rows.map(r=>`
+        <tr>
+          <td>${r.Ent_Name}</td>
+          <td>${r.status}</td>
+          <td>${r.qc_email_id}</td>
+        </tr>`).join("")}
+    </table>`;
+}
+
+function drill(label){
+  alert("Drilldown for: " + label);
 }
 
 loadData();
