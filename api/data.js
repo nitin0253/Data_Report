@@ -1,11 +1,10 @@
-// pages/api/data.js  (Next.js API route)
+// pages/api/data.js
 let cache = null;
 let lastFetch = 0;
-const CACHE_TIME = 60 * 1000; // 1 min
+const CACHE_TIME = 60 * 1000;
 const METABASE_URL =
   "https://metabase.spyne.ai/public/question/21760ff0-3e2b-43c2-a6f4-51c4dac4077f.csv";
 
-// ---- robust CSV parsing ----
 function parseCSVRow(row) {
   const out = [];
   let cur = "";
@@ -45,17 +44,17 @@ function safeDate(str) {
 
 const isoMonth = (d) => (d ? d.toISOString().slice(0, 7) : null);
 
-// ── Status helpers based on crm_status + verified_status ──────
+// ── Status helpers ─────────────────────────────────────────────
+// CSV column is literally "verified_status" (with a space)
+// crm_status and verified_status are both lowercased on ingest (see loadCache)
 function isDelivered(r) {
-  return (r.crm_status || "").toLowerCase() === "qc_done" &&
-         (r.verified_status || "").toLowerCase() === "verified";
+  return r._crm === "qc_done" && r._verified === "verified";
 }
 function isRejected(r) {
-  return (r.crm_status || "").toLowerCase() === "qc_done" &&
-         (r.verified_status || "").toLowerCase() === "rejected";
+  return r._crm === "qc_done" && r._verified === "rejected";
 }
 function isPending(r) {
-  return (r.crm_status || "").toLowerCase() !== "qc_done";
+  return r._crm !== "qc_done";
 }
 
 async function loadCache() {
@@ -65,6 +64,14 @@ async function loadCache() {
   const text = await resp.text();
   const rows = parseCSV(text);
   cache = rows.map(r => {
+    // Normalize the two key fields — handle "crm_status", "verified_status", etc.
+    r._crm      = (r["crm_status"]      || r["crm status"]      || "").toLowerCase().trim();
+    r._verified = (r["verified_status"] || r["verified_status"] || r["verified"] || "").toLowerCase().trim();
+
+    // Write back clean display values
+    r.crm_status      = r._crm;
+    r.verified_status = r._verified;
+
     r.created = safeDate(r.Created_ON);
     r.updated = safeDate(r.Updated_ON);
     return r;
@@ -76,14 +83,23 @@ async function loadCache() {
 export default async function handler(req, res) {
   try {
     const all = await loadCache();
+
+    // Debug helper — visit /api/data?debug=1 to confirm column values
+    if (req.query.debug === "1") {
+      const sample = all.slice(0, 5);
+      return res.status(200).json({
+        all_columns:      Object.keys(sample[0] || {}),
+        crm_samples:      sample.map(r => r._crm),
+        verified_samples: sample.map(r => r._verified),
+      });
+    }
+
     const { start, end, enterprise, user, status: statusFilter } = req.query;
 
-    // Dropdowns from full dataset
     const enterpriseList = [...new Set(all.map(d => d.Ent_Name).filter(Boolean))].sort();
     const userList       = [...new Set(all.map(d => d.qc_email_id).filter(Boolean))].sort();
     const statusList     = [...new Set(all.map(d => d.status).filter(Boolean))].sort();
 
-    // Apply filters
     let data = all;
     if (enterprise && enterprise !== "all")     data = data.filter(d => d.Ent_Name === enterprise);
     if (user && user !== "all")                 data = data.filter(d => d.qc_email_id === user);
@@ -98,7 +114,6 @@ export default async function handler(req, res) {
       data = data.filter(d => d.created && d.created <= e);
     }
 
-    // ── KPI counts ────────────────────────────────────────────
     let totalReceived  = 0;
     let totalDelivered = 0;
     let totalRejected  = 0;
@@ -107,7 +122,7 @@ export default async function handler(req, res) {
     const entMap    = {};
     const qcMap     = {};
     const statusMap = {};
-    const monthMap  = {}; // { "YYYY-MM": { received, delivered, rejected } }
+    const monthMap  = {};
 
     for (const d of data) {
       totalReceived++;
@@ -120,7 +135,6 @@ export default async function handler(req, res) {
       if (d.qc_email_id) qcMap[d.qc_email_id] = (qcMap[d.qc_email_id] || 0) + 1;
       if (d.status)      statusMap[d.status]  = (statusMap[d.status]  || 0) + 1;
 
-      // Monthly breakdown
       const m = isoMonth(d.created);
       if (m) {
         if (!monthMap[m]) monthMap[m] = { received: 0, delivered: 0, rejected: 0 };
@@ -130,15 +144,12 @@ export default async function handler(req, res) {
       }
     }
 
-    // Top enterprises / QC users
     const topEnt = Object.fromEntries(
       Object.entries(entMap).sort((a, b) => b[1] - a[1]).slice(0, 12)
     );
     const topQc = Object.fromEntries(
       Object.entries(qcMap).sort((a, b) => b[1] - a[1]).slice(0, 15)
     );
-
-    // Monthly shape: { received: {YYYY-MM: n}, delivered: {…}, rejected: {…} }
     const sortedMonthKeys = Object.keys(monthMap).sort();
     const monthlySorted = {
       received:  Object.fromEntries(sortedMonthKeys.map(k => [k, monthMap[k].received])),
@@ -147,20 +158,9 @@ export default async function handler(req, res) {
     };
 
     return res.status(200).json({
-      kpis: {
-        totalReceived,
-        totalDelivered,
-        totalRejected,
-        totalPending,
-        totalRecords: data.length,
-      },
+      kpis: { totalReceived, totalDelivered, totalRejected, totalPending, totalRecords: data.length },
       filters: { enterpriseList, userList, statusList },
-      charts: {
-        enterprise: topEnt,
-        qc:         topQc,
-        status:     statusMap,
-        monthly:    monthlySorted,
-      },
+      charts: { enterprise: topEnt, qc: topQc, status: statusMap, monthly: monthlySorted },
       raw: data
         .slice()
         .sort((a, b) => (b.created?.getTime() || 0) - (a.created?.getTime() || 0))
@@ -168,8 +168,8 @@ export default async function handler(req, res) {
         .map(d => ({
           Ent_Name:        d.Ent_Name,
           status:          d.status,
-          crm_status:      d.crm_status,
-          verified_status: d.verified_status,
+          crm_status:      d._crm,
+          verified_status: d._verified,
           qc_email_id:     d.qc_email_id,
           video_id:        d.video_id,
           vin:             d.vin,
