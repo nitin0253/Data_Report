@@ -1,9 +1,7 @@
 // pages/api/data.js  (Next.js API route)
-
 let cache = null;
 let lastFetch = 0;
 const CACHE_TIME = 60 * 1000; // 1 min
-
 const METABASE_URL =
   "https://metabase.spyne.ai/public/question/21760ff0-3e2b-43c2-a6f4-51c4dac4077f.csv";
 
@@ -41,15 +39,14 @@ function parseCSV(text) {
 
 function safeDate(str) {
   if (!str) return null;
-  // Metabase CSVs typically emit ISO; new Date() handles that fine.
   const d = new Date(str);
   return isNaN(d.getTime()) ? null : d;
 }
 
-const isoDay = (d) => (d ? d.toISOString().slice(0, 10) : null);
-const isoMonth = (d) => (d ? d.toISOString().slice(0, 7) : null);
+const isoDay   = (d) => (d ? d.toISOString().slice(0, 10) : null);
+const isoMonth = (d) => (d ? d.toISOString().slice(0, 7)  : null);
 
-const DONE_STATUSES = new Set(["done", "delivered", "completed", "complete"]);
+const DONE_STATUSES     = new Set(["done", "delivered", "completed", "complete"]);
 const REJECTED_STATUSES = new Set(["rejected", "reject", "qc_rejected"]);
 
 async function loadCache() {
@@ -80,7 +77,7 @@ export default async function handler(req, res) {
     // Apply filters
     let data = all;
     if (enterprise && enterprise !== "all")    data = data.filter(d => d.Ent_Name === enterprise);
-    if (user && user !== "all")                 data = data.filter(d => d.qc_email_id === user);
+    if (user && user !== "all")                data = data.filter(d => d.qc_email_id === user);
     if (statusFilter && statusFilter !== "all") data = data.filter(d => d.status === statusFilter);
     if (start) {
       const s = new Date(start);
@@ -88,27 +85,29 @@ export default async function handler(req, res) {
     }
     if (end) {
       const e = new Date(end);
-      e.setHours(23, 59, 59, 999); // inclusive of full end day
+      e.setHours(23, 59, 59, 999);
       data = data.filter(d => d.created && d.created <= e);
     }
 
     const today = new Date().toISOString().slice(0, 10);
 
-    let receivedToday = 0;
-    let deliveredToday = 0;                  // closed today, regardless of when created
-    let deliveredTodayFromTodayCreated = 0;  // created today AND closed today
-    let totalDelivered = 0;
-    let rejectedCount = 0;
-    let rejectedToday = 0;
-    let pendingCount = 0;
+    let receivedToday                    = 0;
+    let deliveredToday                   = 0;
+    let deliveredTodayFromTodayCreated   = 0;
+    let totalDelivered                   = 0;
+    let rejectedCount                    = 0;
+    let rejectedToday                    = 0;
+    let pendingCount                     = 0;
 
-    const entMap = {}, qcMap = {}, statusMap = {}, monthMap = {}, dailyMap = {};
-    const tatArr = [];
+    const entMap    = {};
+    const qcMap     = {};
+    const statusMap = {};
+    const monthMap  = {}; // { "YYYY-MM": { received, delivered, rejected } }
 
     for (const d of data) {
       const cDay = isoDay(d.created);
       const uDay = isoDay(d.updated);
-      const s = (d.status || "").toLowerCase();
+      const s    = (d.status || "").toLowerCase();
 
       if (cDay === today) receivedToday++;
 
@@ -123,33 +122,35 @@ export default async function handler(req, res) {
         pendingCount++;
       }
 
-      if (d.Ent_Name)     entMap[d.Ent_Name]     = (entMap[d.Ent_Name] || 0) + 1;
-      if (d.qc_email_id)  qcMap[d.qc_email_id]   = (qcMap[d.qc_email_id] || 0) + 1;
-      if (d.status)       statusMap[d.status]    = (statusMap[d.status] || 0) + 1;
+      if (d.Ent_Name)    entMap[d.Ent_Name]    = (entMap[d.Ent_Name]    || 0) + 1;
+      if (d.qc_email_id) qcMap[d.qc_email_id]  = (qcMap[d.qc_email_id]  || 0) + 1;
+      if (d.status)      statusMap[d.status]   = (statusMap[d.status]   || 0) + 1;
 
+      // ── Monthly breakdown (received / delivered / rejected) ──
       const m = isoMonth(d.created);
-      if (m)              monthMap[m]            = (monthMap[m] || 0) + 1;
-      if (cDay)           dailyMap[cDay]         = (dailyMap[cDay] || 0) + 1;
-
-      if (d.created && d.updated && d.updated >= d.created) {
-        tatArr.push((d.updated - d.created) / 60000); // minutes
+      if (m) {
+        if (!monthMap[m]) monthMap[m] = { received: 0, delivered: 0, rejected: 0 };
+        monthMap[m].received++;
+        if (DONE_STATUSES.has(s))     monthMap[m].delivered++;
+        if (REJECTED_STATUSES.has(s)) monthMap[m].rejected++;
       }
     }
 
-    const avgTat = tatArr.length
-      ? tatArr.reduce((a, b) => a + b, 0) / tatArr.length
-      : 0;
-
-    // Keep payload reasonable: top N for high-cardinality dimensions, sorted months.
+    // Top enterprises / QC users
     const topEnt = Object.fromEntries(
       Object.entries(entMap).sort((a, b) => b[1] - a[1]).slice(0, 12)
     );
     const topQc = Object.fromEntries(
       Object.entries(qcMap).sort((a, b) => b[1] - a[1]).slice(0, 15)
     );
-    const monthlySorted = Object.fromEntries(
-      Object.entries(monthMap).sort((a, b) => a[0].localeCompare(b[0]))
-    );
+
+    // Monthly — shape: { received: {YYYY-MM: n}, delivered: {…}, rejected: {…} }
+    const sortedMonthKeys = Object.keys(monthMap).sort();
+    const monthlySorted = {
+      received:  Object.fromEntries(sortedMonthKeys.map(k => [k, monthMap[k].received])),
+      delivered: Object.fromEntries(sortedMonthKeys.map(k => [k, monthMap[k].delivered])),
+      rejected:  Object.fromEntries(sortedMonthKeys.map(k => [k, monthMap[k].rejected])),
+    };
 
     return res.status(200).json({
       kpis: {
@@ -161,25 +162,28 @@ export default async function handler(req, res) {
         rejectedToday,
         pendingCount,
         totalRecords: data.length,
-        avgTat: avgTat.toFixed(1),
       },
       filters: { enterpriseList, userList, statusList },
       charts: {
         enterprise: topEnt,
-        qc: topQc,
-        status: statusMap,
-        monthly: monthlySorted,
+        qc:         topQc,
+        status:     statusMap,
+        monthly:    monthlySorted,
       },
       raw: data
         .slice()
         .sort((a, b) => (b.created?.getTime() || 0) - (a.created?.getTime() || 0))
         .slice(0, 500)
         .map(d => ({
-          Ent_Name: d.Ent_Name,
-          status: d.status,
+          Ent_Name:    d.Ent_Name,
+          status:      d.status,
+          crm_status:  d.crm_status,
           qc_email_id: d.qc_email_id,
-          Created_ON: d.Created_ON,
-          Updated_ON: d.Updated_ON,
+          video_id:    d.video_id,
+          vin:         d.vin,
+          sku_id:      d.sku_id,
+          Created_ON:  d.Created_ON,
+          Updated_ON:  d.Updated_ON,
         })),
       lastSynced: new Date(lastFetch).toISOString(),
     });
