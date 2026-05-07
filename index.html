@@ -1,16 +1,31 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Video Dashboard</title>
+  <title>Ops Dashboard</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
-    body {
-      font-family: Arial;
-      padding: 20px;
-      background: #f5f6fa;
+    body { font-family: Arial; padding: 20px; background: #f5f6fa; }
+    h2 { margin-bottom: 10px; }
+
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
     }
 
-    h2 { margin-bottom: 20px; }
+    .sync-box {
+      text-align: right;
+    }
+
+    button {
+      padding: 8px 14px;
+      border: none;
+      background: #4CAF50;
+      color: white;
+      border-radius: 6px;
+      cursor: pointer;
+    }
 
     .filters {
       display: flex;
@@ -32,23 +47,33 @@
       box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     }
 
-    .card h3 {
-      margin: 0;
-      font-size: 16px;
-      color: #555;
+    .card h3 { margin: 0; font-size: 14px; color: #666; }
+    .card p { font-size: 26px; margin: 10px 0 0; font-weight: bold; }
+
+    .charts {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
     }
 
-    .card p {
-      font-size: 28px;
-      margin: 10px 0 0;
-      font-weight: bold;
+    canvas {
+      background: white;
+      padding: 10px;
+      border-radius: 10px;
     }
   </style>
 </head>
 
 <body>
 
-<h2>📊 Video Dashboard</h2>
+<div class="top-bar">
+  <h2>📊 Ops Dashboard</h2>
+
+  <div class="sync-box">
+    <button onclick="syncData()">🔄 Sync</button>
+    <div id="lastSync">Last Sync: --</div>
+  </div>
+</div>
 
 <div class="filters">
   <select id="enterpriseFilter">
@@ -60,27 +85,47 @@
 
 <div class="card-container">
   <div class="card">
-    <h3>Received Today</h3>
+    <h3>📥 Received Today</h3>
     <p id="receivedCount">0</p>
   </div>
 
   <div class="card">
-    <h3>Delivered Today</h3>
+    <h3>🎬 Delivered Today</h3>
     <p id="deliveredToday">0</p>
   </div>
 
   <div class="card">
-    <h3>Total Delivered</h3>
+    <h3>📊 Total Delivered</h3>
     <p id="totalDelivered">0</p>
   </div>
 </div>
 
-<canvas id="chart"></canvas>
+<div class="charts">
+  <canvas id="enterpriseChart"></canvas>
+  <canvas id="qcChart"></canvas>
+  <canvas id="statusChart"></canvas>
+  <canvas id="tatChart"></canvas>
+</div>
 
 <script>
 const csvUrl = "/api/data";
-
 let rawData = [];
+
+function parseDate(dateStr) {
+  if (!dateStr) return null;
+  return new Date(dateStr.replace(",", ""));
+}
+
+function formatDate(date) {
+  return date.toISOString().slice(0, 10);
+}
+
+async function syncData() {
+  document.getElementById("lastSync").innerText = "Syncing...";
+  await loadData();
+  document.getElementById("lastSync").innerText =
+    "Last Sync: " + new Date().toLocaleString();
+}
 
 async function loadData() {
   const res = await fetch(csvUrl);
@@ -101,9 +146,10 @@ async function loadData() {
 }
 
 function setupFilters() {
-  const enterprises = [...new Set(rawData.map(r => r.enterprise_name))];
-
+  const enterprises = [...new Set(rawData.map(r => r.Ent_Name))];
   const dropdown = document.getElementById("enterpriseFilter");
+
+  dropdown.innerHTML = '<option value="all">All Enterprises</option>';
 
   enterprises.forEach(ent => {
     const opt = document.createElement("option");
@@ -112,61 +158,113 @@ function setupFilters() {
     dropdown.appendChild(opt);
   });
 
-  dropdown.addEventListener("change", updateDashboard);
-  document.getElementById("dateFilter").addEventListener("change", updateDashboard);
+  dropdown.onchange = updateDashboard;
+  document.getElementById("dateFilter").onchange = updateDashboard;
 }
 
 function updateDashboard() {
-  const selectedEnterprise = document.getElementById("enterpriseFilter").value;
-  const selectedDate = document.getElementById("dateFilter").value;
+  const ent = document.getElementById("enterpriseFilter").value;
+  const date = document.getElementById("dateFilter").value;
 
   let data = rawData;
 
-  if (selectedEnterprise !== "all") {
-    data = data.filter(d => d.enterprise_name === selectedEnterprise);
+  if (ent !== "all") {
+    data = data.filter(d => d.Ent_Name === ent);
   }
 
-  if (selectedDate) {
-    data = data.filter(d => d.created_at?.includes(selectedDate));
+  if (date) {
+    data = data.filter(d => {
+      const created = parseDate(d.Created_ON);
+      return created && formatDate(created) === date;
+    });
   }
 
-  const today = new Date().toISOString().slice(0,10);
+  const today = formatDate(new Date());
 
-  const receivedToday = data.filter(d => d.created_at?.includes(today)).length;
+  const receivedToday = data.filter(d => {
+    const c = parseDate(d.Created_ON);
+    return c && formatDate(c) === today;
+  }).length;
 
-  const deliveredToday = data.filter(d =>
-    d.status === "Delivered" &&
-    d.updated_at?.includes(today)
-  ).length;
+  const deliveredToday = data.filter(d => {
+    const u = parseDate(d.Updated_ON);
+    return d.status === "done" && u && formatDate(u) === today;
+  }).length;
 
-  const totalDelivered = data.filter(d => d.status === "Delivered").length;
+  const totalDelivered = data.filter(d => d.status === "done").length;
 
   document.getElementById("receivedCount").innerText = receivedToday;
   document.getElementById("deliveredToday").innerText = deliveredToday;
   document.getElementById("totalDelivered").innerText = totalDelivered;
 
-  renderChart(data);
+  renderCharts(data);
 }
 
-function renderChart(data) {
-  const countByEnterprise = {};
+function renderCharts(data) {
 
+  // Enterprise chart
+  const entMap = {};
   data.forEach(d => {
-    const ent = d.enterprise_name || "Unknown";
-    countByEnterprise[ent] = (countByEnterprise[ent] || 0) + 1;
+    entMap[d.Ent_Name] = (entMap[d.Ent_Name] || 0) + 1;
   });
 
-  const labels = Object.keys(countByEnterprise);
-  const values = Object.values(countByEnterprise);
-
-  new Chart(document.getElementById("chart"), {
+  new Chart(document.getElementById("enterpriseChart"), {
     type: "bar",
     data: {
-      labels,
-      datasets: [{
-        label: "Videos Count",
-        data: values
-      }]
+      labels: Object.keys(entMap),
+      datasets: [{ label: "By Enterprise", data: Object.values(entMap) }]
+    }
+  });
+
+  // QC Performance
+  const qcMap = {};
+  data.forEach(d => {
+    const qc = d.qc_email_id || "Unknown";
+    qcMap[qc] = (qcMap[qc] || 0) + 1;
+  });
+
+  new Chart(document.getElementById("qcChart"), {
+    type: "bar",
+    data: {
+      labels: Object.keys(qcMap),
+      datasets: [{ label: "QC Output", data: Object.values(qcMap) }]
+    }
+  });
+
+  // Status breakdown
+  const statusMap = {};
+  data.forEach(d => {
+    statusMap[d.status] = (statusMap[d.status] || 0) + 1;
+  });
+
+  new Chart(document.getElementById("statusChart"), {
+    type: "pie",
+    data: {
+      labels: Object.keys(statusMap),
+      datasets: [{ data: Object.values(statusMap) }]
+    }
+  });
+
+  // TAT (avg minutes)
+  const tat = [];
+
+  data.forEach(d => {
+    const c = parseDate(d.Created_ON);
+    const u = parseDate(d.Updated_ON);
+    if (c && u) {
+      tat.push((u - c) / 60000);
+    }
+  });
+
+  const avgTat = tat.length
+    ? tat.reduce((a, b) => a + b, 0) / tat.length
+    : 0;
+
+  new Chart(document.getElementById("tatChart"), {
+    type: "bar",
+    data: {
+      labels: ["Avg TAT (mins)"],
+      datasets: [{ data: [avgTat.toFixed(1)] }]
     }
   });
 }
