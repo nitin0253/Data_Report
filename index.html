@@ -5,32 +5,24 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
-body {
-  margin:0;
-  font-family: Inter, sans-serif;
-  background:#f1f5f9;
-}
+body { margin:0; font-family:Inter; background:#f1f5f9; }
 
 .header {
-  background: linear-gradient(90deg,#111827,#1f2937);
+  background:#111827;
   color:white;
-  padding:18px 24px;
+  padding:16px 24px;
   display:flex;
   justify-content:space-between;
-  align-items:center;
 }
 
 .filters {
   display:flex;
-  gap:12px;
-  padding:12px 24px;
+  gap:10px;
+  padding:10px 20px;
   background:white;
-  box-shadow:0 2px 6px rgba(0,0,0,0.05);
 }
 
-.container {
-  padding:20px;
-}
+.container { padding:20px; }
 
 .kpis {
   display:grid;
@@ -41,48 +33,16 @@ body {
 .card {
   background:white;
   padding:16px;
-  border-radius:12px;
-  box-shadow:0 4px 10px rgba(0,0,0,0.05);
+  border-radius:10px;
 }
 
-.card h4 {
-  font-size:13px;
-  color:#64748b;
-  margin:0;
-}
+.card p { font-size:22px; font-weight:bold; }
 
-.card p {
-  font-size:26px;
-  margin-top:6px;
-  font-weight:600;
-}
-
-.grid {
+.charts {
   margin-top:20px;
-  display:grid;
-  grid-template-columns:2fr 1fr;
-  gap:20px;
-}
-
-.subgrid {
   display:grid;
   grid-template-columns:1fr 1fr;
   gap:20px;
-}
-
-canvas {
-  background:white;
-  padding:14px;
-  border-radius:12px;
-}
-
-button {
-  background:#3b82f6;
-  color:white;
-  border:none;
-  padding:8px 14px;
-  border-radius:8px;
-  cursor:pointer;
 }
 </style>
 </head>
@@ -99,27 +59,20 @@ button {
 
 <div class="filters">
   <select id="enterprise"></select>
-  <input type="date" id="start">
-  <input type="date" id="end">
 </div>
 
 <div class="container">
 
 <div class="kpis">
-  <div class="card"><h4>Received Today</h4><p id="r">-</p></div>
-  <div class="card"><h4>Delivered Today</h4><p id="d">-</p></div>
-  <div class="card"><h4>Total Delivered</h4><p id="t">-</p></div>
-  <div class="card"><h4>Avg TAT</h4><p id="tat">-</p></div>
+  <div class="card">Received <p id="r">...</p></div>
+  <div class="card">Delivered Today <p id="d">...</p></div>
+  <div class="card">Total Delivered <p id="t">...</p></div>
+  <div class="card">Avg TAT <p id="tat">...</p></div>
 </div>
 
-<div class="grid">
-  <canvas id="monthly"></canvas>
-
-  <div class="subgrid">
-    <canvas id="ent"></canvas>
-    <canvas id="qc"></canvas>
-    <canvas id="status"></canvas>
-  </div>
+<div class="charts">
+  <canvas id="ent"></canvas>
+  <canvas id="status"></canvas>
 </div>
 
 </div>
@@ -128,64 +81,62 @@ button {
 let raw = [];
 let charts = {};
 
-function parseDateSafe(str) {
-  if (!str) return null;
-
+async function loadData() {
   try {
-    const cleaned = str.replace(",", "").replace(",", "");
-    return new Date(cleaned);
-  } catch {
-    return null;
+    document.body.style.opacity = 0.5;
+
+    const res = await fetch("/api/data");
+
+    if (!res.ok) throw new Error("API failed");
+
+    raw = await res.json();
+
+    if (!raw.length) throw new Error("No data");
+
+    setupFilters();
+    update();
+
+    sync.innerText = "Last Sync: " + new Date().toLocaleTimeString();
+
+  } catch (e) {
+    alert("Error loading data: " + e.message);
+  } finally {
+    document.body.style.opacity = 1;
   }
 }
 
-async function loadData() {
-  document.body.style.opacity = 0.6;
-
-  const res = await fetch("/api/data");
-  raw = await res.json();
-
-  setupFilters();
-  update();
-
-  sync.innerText = "Last Sync: " + new Date().toLocaleTimeString();
-  document.body.style.opacity = 1;
-}
-
 function setupFilters() {
-  const ents = ["all", ...new Set(raw.map(d=>d.Ent_Name))];
-  enterprise.innerHTML = ents.map(e=>`<option>${e}</option>`);
+  const ents = ["all", ...new Set(raw.map(d => d.Ent_Name))];
 
+  enterprise.innerHTML = ents.map(e => `<option>${e}</option>`).join("");
   enterprise.onchange = update;
-  start.onchange = update;
-  end.onchange = update;
-}
-
-function filterData() {
-  return raw.filter(d => {
-    if (enterprise.value !== "all" && d.Ent_Name !== enterprise.value) return false;
-
-    if (start.value && new Date(d.created) < new Date(start.value)) return false;
-    if (end.value && new Date(d.created) > new Date(end.value)) return false;
-
-    return true;
-  });
 }
 
 function update() {
-  const data = filterData();
+  const data = raw.filter(d =>
+    enterprise.value === "all" || d.Ent_Name === enterprise.value
+  );
+
   const today = new Date().toISOString().slice(0,10);
 
-  const received = data.filter(d => d.created?.toISOString().slice(0,10) === today).length;
+  const received = data.filter(d =>
+    d.created?.toISOString().slice(0,10) === today
+  ).length;
 
   const delivered = data.filter(d =>
     d.status === "done" &&
-    d.updated?.toISOString().slice(0,10) === today).length;
+    d.updated?.toISOString().slice(0,10) === today
+  ).length;
 
   const total = data.filter(d => d.status === "done").length;
 
-  const tatArr = data.map(d => (d.updated - d.created)/60000);
-  const avgTat = tatArr.reduce((a,b)=>a+b,0)/tatArr.length || 0;
+  const tatArr = data
+    .filter(d => d.updated && d.created)
+    .map(d => (d.updated - d.created)/60000);
+
+  const avgTat = tatArr.length
+    ? tatArr.reduce((a,b)=>a+b,0)/tatArr.length
+    : 0;
 
   r.innerText = received;
   d.innerText = delivered;
@@ -196,43 +147,22 @@ function update() {
 }
 
 function renderCharts(data) {
-  Object.values(charts).forEach(c=>c.destroy());
+  Object.values(charts).forEach(c => c.destroy());
 
-  // Monthly trend
-  const monthMap = {};
-  data.forEach(d=>{
-    const m = d.created?.toISOString().slice(0,7);
-    if (m) monthMap[m]=(monthMap[m]||0)+1;
-  });
-
-  charts.monthly = new Chart(monthly, {
-    type:"line",
-    data:{labels:Object.keys(monthMap), datasets:[{label:"Monthly Volume", data:Object.values(monthMap)}]}
-  });
-
-  // Enterprise
   const entMap = {};
-  data.forEach(d=> entMap[d.Ent_Name]=(entMap[d.Ent_Name]||0)+1);
+  const statusMap = {};
 
-  charts.ent = new Chart(ent,{
+  data.forEach(d => {
+    entMap[d.Ent_Name] = (entMap[d.Ent_Name] || 0) + 1;
+    statusMap[d.status] = (statusMap[d.status] || 0) + 1;
+  });
+
+  charts.ent = new Chart(ent, {
     type:"bar",
     data:{labels:Object.keys(entMap), datasets:[{data:Object.values(entMap)}]}
   });
 
-  // QC
-  const qcMap = {};
-  data.forEach(d=> qcMap[d.qc_email_id]=(qcMap[d.qc_email_id]||0)+1);
-
-  charts.qc = new Chart(qc,{
-    type:"bar",
-    data:{labels:Object.keys(qcMap), datasets:[{data:Object.values(qcMap)}]}
-  });
-
-  // Status
-  const statusMap = {};
-  data.forEach(d=> statusMap[d.status]=(statusMap[d.status]||0)+1);
-
-  charts.status = new Chart(status,{
+  charts.status = new Chart(status, {
     type:"doughnut",
     data:{labels:Object.keys(statusMap), datasets:[{data:Object.values(statusMap)}]}
   });
