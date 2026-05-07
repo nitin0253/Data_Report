@@ -1,38 +1,170 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Metabase Dashboard</title>
+  <title>Video Dashboard</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      font-family: Arial;
+      padding: 20px;
+      background: #f5f6fa;
+    }
+
+    h2 { margin-bottom: 20px; }
+
+    .filters {
+      display: flex;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+
+    .card-container {
+      display: flex;
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+
+    .card {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      flex: 1;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .card h3 {
+      margin: 0;
+      font-size: 16px;
+      color: #555;
+    }
+
+    .card p {
+      font-size: 28px;
+      margin: 10px 0 0;
+      font-weight: bold;
+    }
+  </style>
 </head>
+
 <body>
 
-<h2>Dashboard</h2>
+<h2>📊 Video Dashboard</h2>
+
+<div class="filters">
+  <select id="enterpriseFilter">
+    <option value="all">All Enterprises</option>
+  </select>
+
+  <input type="date" id="dateFilter">
+</div>
+
+<div class="card-container">
+  <div class="card">
+    <h3>Received Today</h3>
+    <p id="receivedCount">0</p>
+  </div>
+
+  <div class="card">
+    <h3>Delivered Today</h3>
+    <p id="deliveredToday">0</p>
+  </div>
+
+  <div class="card">
+    <h3>Total Delivered</h3>
+    <p id="totalDelivered">0</p>
+  </div>
+</div>
+
 <canvas id="chart"></canvas>
 
 <script>
 const csvUrl = "/api/data";
 
+let rawData = [];
+
 async function loadData() {
   const res = await fetch(csvUrl);
   const text = await res.text();
 
-  const rows = text.split("\n").slice(1);
+  const rows = text.trim().split("\n");
+  const headers = rows[0].split(",");
 
-  const labels = [];
-  const values = [];
-
-  rows.forEach(row => {
-    const [label, value] = row.split(",");
-    labels.push(label);
-    values.push(Number(value));
+  rawData = rows.slice(1).map(row => {
+    const cols = row.split(",");
+    let obj = {};
+    headers.forEach((h, i) => obj[h.trim()] = cols[i]);
+    return obj;
   });
 
+  setupFilters();
+  updateDashboard();
+}
+
+function setupFilters() {
+  const enterprises = [...new Set(rawData.map(r => r.enterprise_name))];
+
+  const dropdown = document.getElementById("enterpriseFilter");
+
+  enterprises.forEach(ent => {
+    const opt = document.createElement("option");
+    opt.value = ent;
+    opt.text = ent;
+    dropdown.appendChild(opt);
+  });
+
+  dropdown.addEventListener("change", updateDashboard);
+  document.getElementById("dateFilter").addEventListener("change", updateDashboard);
+}
+
+function updateDashboard() {
+  const selectedEnterprise = document.getElementById("enterpriseFilter").value;
+  const selectedDate = document.getElementById("dateFilter").value;
+
+  let data = rawData;
+
+  if (selectedEnterprise !== "all") {
+    data = data.filter(d => d.enterprise_name === selectedEnterprise);
+  }
+
+  if (selectedDate) {
+    data = data.filter(d => d.created_at?.includes(selectedDate));
+  }
+
+  const today = new Date().toISOString().slice(0,10);
+
+  const receivedToday = data.filter(d => d.created_at?.includes(today)).length;
+
+  const deliveredToday = data.filter(d =>
+    d.status === "Delivered" &&
+    d.updated_at?.includes(today)
+  ).length;
+
+  const totalDelivered = data.filter(d => d.status === "Delivered").length;
+
+  document.getElementById("receivedCount").innerText = receivedToday;
+  document.getElementById("deliveredToday").innerText = deliveredToday;
+  document.getElementById("totalDelivered").innerText = totalDelivered;
+
+  renderChart(data);
+}
+
+function renderChart(data) {
+  const countByEnterprise = {};
+
+  data.forEach(d => {
+    const ent = d.enterprise_name || "Unknown";
+    countByEnterprise[ent] = (countByEnterprise[ent] || 0) + 1;
+  });
+
+  const labels = Object.keys(countByEnterprise);
+  const values = Object.values(countByEnterprise);
+
   new Chart(document.getElementById("chart"), {
-    type: "line",
+    type: "bar",
     data: {
       labels,
       datasets: [{
-        label: "Data",
+        label: "Videos Count",
         data: values
       }]
     }
