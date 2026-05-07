@@ -89,7 +89,7 @@ async function loadData() {
 
     if (!res.ok) throw new Error("API failed");
 
-    raw = await res.json();
+    raw = (await res.json()).map(d => ({   ...d,   created: d.created ? new Date(d.created) : null,   updated: d.updated ? new Date(d.updated) : null }));
 
     if (!raw.length) throw new Error("No data");
 
