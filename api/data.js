@@ -5,7 +5,7 @@ const CACHE_TIME = 60 * 1000; // 1 min
 const METABASE_URL =
   "https://metabase.spyne.ai/public/question/21760ff0-3e2b-43c2-a6f4-51c4dac4077f.csv";
 
-// ---- robust CSV parsing (handles quoted fields, commas in values, escaped quotes) ----
+// ---- robust CSV parsing ----
 function parseCSVRow(row) {
   const out = [];
   let cur = "";
@@ -43,11 +43,20 @@ function safeDate(str) {
   return isNaN(d.getTime()) ? null : d;
 }
 
-const isoDay   = (d) => (d ? d.toISOString().slice(0, 10) : null);
-const isoMonth = (d) => (d ? d.toISOString().slice(0, 7)  : null);
+const isoMonth = (d) => (d ? d.toISOString().slice(0, 7) : null);
 
-const DONE_STATUSES     = new Set(["done", "delivered", "completed", "complete"]);
-const REJECTED_STATUSES = new Set(["rejected", "reject", "qc_rejected"]);
+// ── Status helpers based on crm_status + verified_status ──────
+function isDelivered(r) {
+  return (r.crm_status || "").toLowerCase() === "qc_done" &&
+         (r.verified_status || "").toLowerCase() === "verified";
+}
+function isRejected(r) {
+  return (r.crm_status || "").toLowerCase() === "qc_done" &&
+         (r.verified_status || "").toLowerCase() === "rejected";
+}
+function isPending(r) {
+  return (r.crm_status || "").toLowerCase() !== "qc_done";
+}
 
 async function loadCache() {
   if (cache && Date.now() - lastFetch < CACHE_TIME) return cache;
@@ -69,15 +78,15 @@ export default async function handler(req, res) {
     const all = await loadCache();
     const { start, end, enterprise, user, status: statusFilter } = req.query;
 
-    // Build filter dropdowns from FULL dataset so they don't shrink as user filters.
+    // Dropdowns from full dataset
     const enterpriseList = [...new Set(all.map(d => d.Ent_Name).filter(Boolean))].sort();
     const userList       = [...new Set(all.map(d => d.qc_email_id).filter(Boolean))].sort();
     const statusList     = [...new Set(all.map(d => d.status).filter(Boolean))].sort();
 
     // Apply filters
     let data = all;
-    if (enterprise && enterprise !== "all")    data = data.filter(d => d.Ent_Name === enterprise);
-    if (user && user !== "all")                data = data.filter(d => d.qc_email_id === user);
+    if (enterprise && enterprise !== "all")     data = data.filter(d => d.Ent_Name === enterprise);
+    if (user && user !== "all")                 data = data.filter(d => d.qc_email_id === user);
     if (statusFilter && statusFilter !== "all") data = data.filter(d => d.status === statusFilter);
     if (start) {
       const s = new Date(start);
@@ -89,15 +98,11 @@ export default async function handler(req, res) {
       data = data.filter(d => d.created && d.created <= e);
     }
 
-    const today = new Date().toISOString().slice(0, 10);
-
-    let receivedToday                    = 0;
-    let deliveredToday                   = 0;
-    let deliveredTodayFromTodayCreated   = 0;
-    let totalDelivered                   = 0;
-    let rejectedCount                    = 0;
-    let rejectedToday                    = 0;
-    let pendingCount                     = 0;
+    // ── KPI counts ────────────────────────────────────────────
+    let totalReceived  = 0;
+    let totalDelivered = 0;
+    let totalRejected  = 0;
+    let totalPending   = 0;
 
     const entMap    = {};
     const qcMap     = {};
@@ -105,34 +110,23 @@ export default async function handler(req, res) {
     const monthMap  = {}; // { "YYYY-MM": { received, delivered, rejected } }
 
     for (const d of data) {
-      const cDay = isoDay(d.created);
-      const uDay = isoDay(d.updated);
-      const s    = (d.status || "").toLowerCase();
+      totalReceived++;
 
-      if (cDay === today) receivedToday++;
+      if (isDelivered(d))     totalDelivered++;
+      else if (isRejected(d)) totalRejected++;
+      else if (isPending(d))  totalPending++;
 
-      if (DONE_STATUSES.has(s)) {
-        totalDelivered++;
-        if (uDay === today) deliveredToday++;
-        if (cDay === today && uDay === today) deliveredTodayFromTodayCreated++;
-      } else if (REJECTED_STATUSES.has(s)) {
-        rejectedCount++;
-        if (uDay === today) rejectedToday++;
-      } else {
-        pendingCount++;
-      }
+      if (d.Ent_Name)    entMap[d.Ent_Name]   = (entMap[d.Ent_Name]   || 0) + 1;
+      if (d.qc_email_id) qcMap[d.qc_email_id] = (qcMap[d.qc_email_id] || 0) + 1;
+      if (d.status)      statusMap[d.status]  = (statusMap[d.status]  || 0) + 1;
 
-      if (d.Ent_Name)    entMap[d.Ent_Name]    = (entMap[d.Ent_Name]    || 0) + 1;
-      if (d.qc_email_id) qcMap[d.qc_email_id]  = (qcMap[d.qc_email_id]  || 0) + 1;
-      if (d.status)      statusMap[d.status]   = (statusMap[d.status]   || 0) + 1;
-
-      // ── Monthly breakdown (received / delivered / rejected) ──
+      // Monthly breakdown
       const m = isoMonth(d.created);
       if (m) {
         if (!monthMap[m]) monthMap[m] = { received: 0, delivered: 0, rejected: 0 };
         monthMap[m].received++;
-        if (DONE_STATUSES.has(s))     monthMap[m].delivered++;
-        if (REJECTED_STATUSES.has(s)) monthMap[m].rejected++;
+        if (isDelivered(d))     monthMap[m].delivered++;
+        else if (isRejected(d)) monthMap[m].rejected++;
       }
     }
 
@@ -144,7 +138,7 @@ export default async function handler(req, res) {
       Object.entries(qcMap).sort((a, b) => b[1] - a[1]).slice(0, 15)
     );
 
-    // Monthly — shape: { received: {YYYY-MM: n}, delivered: {…}, rejected: {…} }
+    // Monthly shape: { received: {YYYY-MM: n}, delivered: {…}, rejected: {…} }
     const sortedMonthKeys = Object.keys(monthMap).sort();
     const monthlySorted = {
       received:  Object.fromEntries(sortedMonthKeys.map(k => [k, monthMap[k].received])),
@@ -154,13 +148,10 @@ export default async function handler(req, res) {
 
     return res.status(200).json({
       kpis: {
-        receivedToday,
-        deliveredToday,
-        deliveredTodayFromTodayCreated,
+        totalReceived,
         totalDelivered,
-        rejectedCount,
-        rejectedToday,
-        pendingCount,
+        totalRejected,
+        totalPending,
         totalRecords: data.length,
       },
       filters: { enterpriseList, userList, statusList },
@@ -175,15 +166,16 @@ export default async function handler(req, res) {
         .sort((a, b) => (b.created?.getTime() || 0) - (a.created?.getTime() || 0))
         .slice(0, 500)
         .map(d => ({
-          Ent_Name:    d.Ent_Name,
-          status:      d.status,
-          crm_status:  d.crm_status,
-          qc_email_id: d.qc_email_id,
-          video_id:    d.video_id,
-          vin:         d.vin,
-          sku_id:      d.sku_id,
-          Created_ON:  d.Created_ON,
-          Updated_ON:  d.Updated_ON,
+          Ent_Name:        d.Ent_Name,
+          status:          d.status,
+          crm_status:      d.crm_status,
+          verified_status: d.verified_status,
+          qc_email_id:     d.qc_email_id,
+          video_id:        d.video_id,
+          vin:             d.vin,
+          sku_id:          d.sku_id,
+          Created_ON:      d.Created_ON,
+          Updated_ON:      d.Updated_ON,
         })),
       lastSynced: new Date(lastFetch).toISOString(),
     });
