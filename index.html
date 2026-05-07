@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
 <meta charset="UTF-8" />
 <title>Ops Dashboard</title>
@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700&family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
 <style>
   :root {
     --bg: #f6f5f1;
@@ -20,18 +21,47 @@
     --green: #1f7a52;
     --amber: #b27a00;
     --red: #b3261e;
+    --theme-btn-bg: #0b0b0c;
+    --theme-btn-fg: #ffffff;
+    --shadow: rgba(0,0,0,0.06);
   }
+  [data-theme="dark"] {
+    --bg: #111113;
+    --surface: #1c1c1f;
+    --ink: #f0efe9;
+    --ink-2: #b0b0b8;
+    --muted: #606068;
+    --line: #2a2a2f;
+    --accent: #4a7fd4;
+    --green: #2faa72;
+    --amber: #d4960a;
+    --red: #e05450;
+    --theme-btn-bg: #f0efe9;
+    --theme-btn-fg: #111113;
+    --shadow: rgba(0,0,0,0.3);
+  }
+
   * { box-sizing: border-box; }
-  html, body { margin: 0; padding: 0; }
+  html { height: 100%; }
   body {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     background: var(--bg);
     color: var(--ink);
     -webkit-font-smoothing: antialiased;
     font-size: 14px;
+    min-height: 100%;
+    transition: background 0.25s, color 0.25s;
   }
   .display { font-family: 'Bricolage Grotesque', serif; letter-spacing: -0.02em; }
   .mono { font-family: 'JetBrains Mono', monospace; font-variant-numeric: tabular-nums; }
+
+  /* ── Layout shell ─────────────────────────────────────────── */
+  /* Header + filters are sticky; main scrolls */
+  #sticky-top {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
 
   /* Header */
   header {
@@ -39,6 +69,7 @@
     border-bottom: 1px solid var(--line);
     padding: 16px 28px;
     display: flex; align-items: center; justify-content: space-between; gap: 16px;
+    transition: background 0.25s, border-color 0.25s;
   }
   header .brand { display: flex; align-items: baseline; gap: 14px; min-width: 0; }
   header h1 {
@@ -51,13 +82,22 @@
   }
   header .actions { display: flex; align-items: center; gap: 14px; }
   .sync-info { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted); }
+
+  /* Auto-sync countdown badge */
+  .autosync-badge {
+    font-family: 'JetBrains Mono', monospace; font-size: 10px;
+    color: var(--muted); background: var(--bg); border: 1px solid var(--line);
+    border-radius: 999px; padding: 3px 10px; white-space: nowrap;
+    transition: background 0.25s, border-color 0.25s;
+  }
+
   button.sync {
     background: var(--ink); color: var(--surface); border: none;
     padding: 9px 16px; border-radius: 6px; font: 500 13px 'Inter';
-    cursor: pointer; transition: opacity 0.15s;
+    cursor: pointer; transition: opacity 0.15s, background 0.25s, color 0.25s;
   }
-  button.sync:hover { opacity: 0.85; }
-  button.sync[disabled] { opacity: 0.5; cursor: wait; }
+  button.sync:hover { opacity: 0.82; }
+  button.sync[disabled] { opacity: 0.45; cursor: wait; }
 
   /* Filters */
   .filters {
@@ -65,6 +105,8 @@
     border-bottom: 1px solid var(--line);
     padding: 14px 28px;
     display: flex; flex-wrap: wrap; gap: 14px; align-items: end;
+    transition: background 0.25s, border-color 0.25s;
+    box-shadow: 0 2px 10px var(--shadow);
   }
   .filter { display: flex; flex-direction: column; gap: 5px; min-width: 170px; }
   .filter label {
@@ -74,25 +116,26 @@
   .filter select, .filter input {
     background: var(--surface); border: 1px solid var(--line); border-radius: 6px;
     padding: 8px 10px; font: 400 13px 'Inter'; color: var(--ink);
-    outline: none; transition: border-color 0.15s;
+    outline: none; transition: border-color 0.15s, background 0.25s, color 0.25s;
   }
   .filter select:focus, .filter input:focus { border-color: var(--ink); }
   button.reset {
     background: transparent; border: 1px solid var(--line); padding: 8px 14px;
     border-radius: 6px; font-size: 13px; cursor: pointer; color: var(--ink-2);
-    height: 36px;
+    height: 36px; transition: background 0.15s, border-color 0.25s, color 0.25s;
   }
   button.reset:hover { background: var(--bg); }
 
-  main { padding: 22px 28px 60px; max-width: 1500px; margin: 0 auto; }
+  main { padding: 22px 28px 80px; max-width: 1500px; margin: 0 auto; }
 
-  /* KPI Cards */
+  /* KPI Cards — 4 columns now (TAT removed) */
   .kpis {
-    display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; margin-bottom: 20px;
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 20px;
   }
   .kpi {
     background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
     padding: 18px; position: relative; overflow: hidden;
+    transition: background 0.25s, border-color 0.25s;
   }
   .kpi-bar { position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--ink); }
   .kpi.green .kpi-bar  { background: var(--green); }
@@ -119,6 +162,7 @@
   .panel {
     background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
     padding: 18px; min-width: 0;
+    transition: background 0.25s, border-color 0.25s;
   }
   .panel h3 {
     margin: 0; font-family: 'Bricolage Grotesque', serif; font-size: 16px;
@@ -131,10 +175,23 @@
   }
   .chart-wrap { position: relative; height: 280px; }
 
+  /* Chart legend (manual, below monthly chart) */
+  .chart-legend {
+    display: flex; gap: 16px; margin-top: 10px; flex-wrap: wrap;
+  }
+  .chart-legend-item {
+    display: flex; align-items: center; gap: 6px;
+    font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted);
+  }
+  .chart-legend-dot {
+    width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0;
+  }
+
   /* Table */
   .table-wrap {
     background: var(--surface); border: 1px solid var(--line);
     border-radius: 12px; overflow: hidden;
+    transition: background 0.25s, border-color 0.25s;
   }
   .table-head {
     padding: 16px 18px 12px; border-bottom: 1px solid var(--line);
@@ -151,14 +208,16 @@
   table { width: 100%; border-collapse: collapse; font-size: 13px; }
   thead { position: sticky; top: 0; background: var(--surface); z-index: 1; }
   th {
-    text-align: left; padding: 11px 18px;
+    text-align: left; padding: 11px 14px;
     font-family: 'JetBrains Mono', monospace; font-size: 10px;
     text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted);
     font-weight: 500; border-bottom: 1px solid var(--line);
+    white-space: nowrap;
   }
   td {
-    padding: 12px 18px; border-bottom: 1px solid var(--line); color: var(--ink-2);
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 280px;
+    padding: 11px 14px; border-bottom: 1px solid var(--line); color: var(--ink-2);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px;
+    transition: background 0.15s;
   }
   tr:last-child td { border-bottom: none; }
   tr:hover td { background: var(--bg); }
@@ -169,67 +228,105 @@
     text-transform: uppercase; letter-spacing: 0.04em;
     border: 1px solid var(--line); background: var(--bg); color: var(--ink-2);
   }
-  .pill.done     { background: rgba(31,122,82,0.08);  color: var(--green); border-color: rgba(31,122,82,0.25); }
-  .pill.rejected { background: rgba(179,38,30,0.08);  color: var(--red);   border-color: rgba(179,38,30,0.25); }
-  .pill.pending  { background: rgba(178,122,0,0.08);  color: var(--amber); border-color: rgba(178,122,0,0.25); }
+  .pill.done     { background: rgba(31,122,82,0.1);  color: var(--green); border-color: rgba(31,122,82,0.3); }
+  .pill.rejected { background: rgba(179,38,30,0.1);  color: var(--red);   border-color: rgba(179,38,30,0.3); }
+  .pill.pending  { background: rgba(178,122,0,0.1);  color: var(--amber); border-color: rgba(178,122,0,0.3); }
 
   .empty { padding: 60px 20px; text-align: center; color: var(--muted); font-size: 13px; }
 
   .err {
-    background: #fff4f3; border: 1px solid rgba(179,38,30,0.25); color: var(--red);
+    background: rgba(179,38,30,0.07); border: 1px solid rgba(179,38,30,0.25); color: var(--red);
     padding: 12px 16px; border-radius: 8px; font-size: 13px; margin-bottom: 16px;
   }
 
+  /* ── Theme Toggle — bottom-left fixed ───────────────────── */
+  .theme-toggle {
+    position: fixed; bottom: 24px; left: 24px; z-index: 200;
+    background: var(--theme-btn-bg); color: var(--theme-btn-fg);
+    border: none; border-radius: 999px; padding: 10px 16px;
+    font: 500 12px 'JetBrains Mono', monospace;
+    cursor: pointer; display: flex; align-items: center; gap: 8px;
+    box-shadow: 0 4px 18px var(--shadow);
+    transition: background 0.25s, color 0.25s, box-shadow 0.25s, transform 0.15s;
+    letter-spacing: 0.04em;
+  }
+  .theme-toggle:hover { transform: translateY(-2px); box-shadow: 0 6px 22px var(--shadow); }
+  .theme-toggle:active { transform: translateY(0); }
+  .theme-toggle svg { width: 14px; height: 14px; flex-shrink: 0; }
+
   @media (max-width: 1100px) {
-    .kpis   { grid-template-columns: repeat(2, 1fr); }
+    .kpis { grid-template-columns: repeat(2, 1fr); }
     .grid, .grid-2 { grid-template-columns: 1fr; }
   }
   @media (max-width: 600px) {
     header, .filters, main { padding-left: 16px; padding-right: 16px; }
     .kpis { grid-template-columns: 1fr 1fr; gap: 10px; }
     .kpi-value { font-size: 28px; }
+    .theme-toggle { bottom: 16px; left: 16px; }
   }
 </style>
 </head>
 <body>
-  <header>
-    <div class="brand">
-      <h1>Ops Dashboard</h1>
-      <span class="tag">QC · Throughput · TAT</span>
-    </div>
-    <div class="actions">
-      <span class="sync-info" id="syncInfo">—</span>
-      <button class="sync" id="syncBtn">Sync</button>
-    </div>
-  </header>
 
-  <div class="filters">
-    <div class="filter">
-      <label>Enterprise</label>
-      <select id="enterprise"><option value="all">All</option></select>
+  <!-- Theme toggle -->
+  <button class="theme-toggle" id="themeBtn" aria-label="Toggle theme">
+    <svg id="themeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="5"/>
+      <line x1="12" y1="1" x2="12" y2="3"/>
+      <line x1="12" y1="21" x2="12" y2="23"/>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+      <line x1="1" y1="12" x2="3" y2="12"/>
+      <line x1="21" y1="12" x2="23" y2="12"/>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+    </svg>
+    <span id="themeLabel">Dark</span>
+  </button>
+
+  <!-- Sticky header + filters -->
+  <div id="sticky-top">
+    <header>
+      <div class="brand">
+        <h1>Ops Dashboard</h1>
+        <span class="tag">QC · Throughput · TAT</span>
+      </div>
+      <div class="actions">
+        <span class="autosync-badge" id="autoSyncBadge">Next sync in —</span>
+        <span class="sync-info" id="syncInfo">—</span>
+        <button class="sync" id="syncBtn">Sync</button>
+      </div>
+    </header>
+
+    <div class="filters">
+      <div class="filter">
+        <label>Enterprise</label>
+        <select id="enterprise"><option value="all">All</option></select>
+      </div>
+      <div class="filter">
+        <label>User (QC)</label>
+        <select id="user"><option value="all">All</option></select>
+      </div>
+      <div class="filter">
+        <label>Status</label>
+        <select id="status"><option value="all">All</option></select>
+      </div>
+      <div class="filter">
+        <label>Start date</label>
+        <input type="date" id="start">
+      </div>
+      <div class="filter">
+        <label>End date</label>
+        <input type="date" id="end">
+      </div>
+      <button class="reset" id="resetBtn">Reset</button>
     </div>
-    <div class="filter">
-      <label>User (QC)</label>
-      <select id="user"><option value="all">All</option></select>
-    </div>
-    <div class="filter">
-      <label>Status</label>
-      <select id="status"><option value="all">All</option></select>
-    </div>
-    <div class="filter">
-      <label>Start date</label>
-      <input type="date" id="start">
-    </div>
-    <div class="filter">
-      <label>End date</label>
-      <input type="date" id="end">
-    </div>
-    <button class="reset" id="resetBtn">Reset</button>
   </div>
 
   <main>
     <div id="errBox"></div>
 
+    <!-- KPIs: 4 cards (TAT removed) -->
     <section class="kpis">
       <div class="kpi accent">
         <span class="kpi-bar"></span>
@@ -255,19 +352,27 @@
         <div class="kpi-value" id="kpiRejected">—</div>
         <div class="kpi-sub" id="kpiRejectedSub">in current view</div>
       </div>
-      <div class="kpi amber">
-        <span class="kpi-bar"></span>
-        <div class="kpi-label">Avg TAT</div>
-        <div class="kpi-value" id="kpiTat">—</div>
-        <div class="kpi-sub">create → deliver</div>
-      </div>
     </section>
 
     <section class="grid">
       <div class="panel">
         <h3>Month-on-month received</h3>
-        <div class="panel-sub">jobs created per month</div>
+        <div class="panel-sub">received · delivered · rejected per month</div>
         <div class="chart-wrap"><canvas id="chartMonthly"></canvas></div>
+        <div class="chart-legend" id="monthlyLegend">
+          <div class="chart-legend-item">
+            <div class="chart-legend-dot" style="background:#0b0b0c" id="legendDotReceived"></div>
+            <span>Received</span>
+          </div>
+          <div class="chart-legend-item">
+            <div class="chart-legend-dot" style="background:#1f7a52"></div>
+            <span>Delivered</span>
+          </div>
+          <div class="chart-legend-item">
+            <div class="chart-legend-dot" style="background:#b3261e"></div>
+            <span>Rejected</span>
+          </div>
+        </div>
       </div>
       <div class="panel">
         <h3>Status mix</h3>
@@ -300,8 +405,12 @@
             <tr>
               <th>Created</th>
               <th>Enterprise</th>
-              <th>QC user</th>
+              <th>QC User</th>
               <th>Status</th>
+              <th>CRM Status</th>
+              <th>Video ID</th>
+              <th>VIN</th>
+              <th>SKU ID</th>
               <th>Updated</th>
             </tr>
           </thead>
@@ -312,31 +421,219 @@
   </main>
 
 <script>
+// ── Globals ────────────────────────────────────────────────────
 const $ = (id) => document.getElementById(id);
 const charts = {};
 
-const PAL = {
-  ink: '#0b0b0c', muted: '#8a8a90', line: '#e8e6df',
-  accent: '#1f3f72', green: '#1f7a52', amber: '#b27a00', red: '#b3261e',
-  series: ['#0b0b0c','#1f3f72','#1f7a52','#b27a00','#b3261e','#5b21b6','#0e7490','#7c2d12','#365314','#9f1239'],
-};
+// ── Theme ─────────────────────────────────────────────────────
+let isDark = false;
 
-Chart.defaults.font.family = "'Inter', -apple-system, sans-serif";
-Chart.defaults.color = PAL.muted;
-Chart.defaults.borderColor = PAL.line;
+function getPal() {
+  const s = getComputedStyle(document.documentElement);
+  return {
+    ink:    s.getPropertyValue('--ink').trim()    || '#0b0b0c',
+    muted:  s.getPropertyValue('--muted').trim()  || '#8a8a90',
+    line:   s.getPropertyValue('--line').trim()   || '#e8e6df',
+    accent: s.getPropertyValue('--accent').trim() || '#1f3f72',
+    green:  s.getPropertyValue('--green').trim()  || '#1f7a52',
+    amber:  s.getPropertyValue('--amber').trim()  || '#b27a00',
+    red:    s.getPropertyValue('--red').trim()    || '#b3261e',
+  };
+}
 
-function destroy(id) { if (charts[id]) { charts[id].destroy(); delete charts[id]; } }
+function applyTheme(dark) {
+  isDark = dark;
+  document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+  $('themeLabel').textContent = dark ? 'Light' : 'Dark';
+  // Update sun/moon icon
+  if (dark) {
+    $('themeIcon').innerHTML = `<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>`;
+  } else {
+    $('themeIcon').innerHTML = `
+      <circle cx="12" cy="12" r="5"/>
+      <line x1="12" y1="1" x2="12" y2="3"/>
+      <line x1="12" y1="21" x2="12" y2="23"/>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+      <line x1="1" y1="12" x2="3" y2="12"/>
+      <line x1="21" y1="12" x2="23" y2="12"/>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+    `;
+  }
+  // Update legend dot for received
+  const dot = $('legendDotReceived');
+  if (dot) dot.style.background = getPal().ink;
+  // Re-render charts with new palette if data is loaded
+  if (localData) rerender();
+  localStorage.setItem('opsDashTheme', dark ? 'dark' : 'light');
+}
 
+$('themeBtn').addEventListener('click', () => applyTheme(!isDark));
+
+// ── Local data store & auto-sync ───────────────────────────────
+let localData = null;         // full unfiltered data from server
+let autoSyncTimer = null;
+let countdownTimer = null;
+let nextSyncAt = null;
+const AUTO_SYNC_MS = 10 * 60 * 1000;  // 10 minutes
+
+function startCountdown() {
+  if (countdownTimer) clearInterval(countdownTimer);
+  nextSyncAt = Date.now() + AUTO_SYNC_MS;
+  countdownTimer = setInterval(() => {
+    const remaining = nextSyncAt - Date.now();
+    if (remaining <= 0) { $('autoSyncBadge').textContent = 'Syncing…'; return; }
+    const m = Math.floor(remaining / 60000);
+    const s = Math.floor((remaining % 60000) / 1000);
+    $('autoSyncBadge').textContent = `Next sync in ${m}:${String(s).padStart(2,'0')}`;
+  }, 1000);
+}
+
+function scheduleAutoSync() {
+  if (autoSyncTimer) clearTimeout(autoSyncTimer);
+  startCountdown();
+  autoSyncTimer = setTimeout(() => {
+    fetchFromServer();
+    scheduleAutoSync();
+  }, AUTO_SYNC_MS);
+}
+
+// ── Fetch from server (full unfiltered) ───────────────────────
+async function fetchFromServer() {
+  const btn = $('syncBtn');
+  btn.disabled = true; btn.textContent = 'Syncing…';
+  $('errBox').innerHTML = '';
+  try {
+    const res  = await fetch('/api/data');
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Request failed');
+    localData = data;
+    $('syncInfo').textContent = 'Synced ' + new Date().toLocaleTimeString();
+    // Populate filter dropdowns from full unfiltered data
+    fillSelect($('enterprise'), data.filters.enterpriseList);
+    fillSelect($('user'), data.filters.userList);
+    fillSelect($('status'), data.filters.statusList);
+    // Apply current filters against local data
+    rerender();
+  } catch (err) {
+    $('errBox').innerHTML = `<div class="err">Failed to load data: ${escapeHtml(err.message)}</div>`;
+  } finally {
+    btn.disabled = false; btn.textContent = 'Sync';
+  }
+}
+
+// ── Client-side filter ─────────────────────────────────────────
+function getFilteredData() {
+  if (!localData) return null;
+  const ent    = $('enterprise').value;
+  const usr    = $('user').value;
+  const stat   = $('status').value;
+  const start  = $('start').value  ? new Date($('start').value)  : null;
+  const end    = $('end').value    ? new Date($('end').value + 'T23:59:59') : null;
+
+  // If no filters active, return full server-computed data as-is
+  if (ent === 'all' && usr === 'all' && stat === 'all' && !start && !end) return localData;
+
+  // Filter raw rows
+  const raw = (localData.raw || []).filter(r => {
+    if (ent  !== 'all' && r.Ent_Name       !== ent)  return false;
+    if (usr  !== 'all' && r.qc_email_id    !== usr)  return false;
+    if (stat !== 'all' && r.status         !== stat) return false;
+    if (start || end) {
+      const d = new Date(r.Created_ON);
+      if (start && d < start) return false;
+      if (end   && d > end)   return false;
+    }
+    return true;
+  });
+
+  return buildDerivedData(raw, localData);
+}
+
+// ── Build computed data from filtered rows ─────────────────────
+function buildDerivedData(rows, base) {
+  const todayStr = new Date().toISOString().slice(0, 10);
+
+  function isToday(dateStr) {
+    return dateStr && String(dateStr).slice(0, 10) === todayStr;
+  }
+  function isDelivered(s) {
+    return ['done','delivered','completed','complete'].includes(String(s||'').toLowerCase());
+  }
+  function isRejected(s) {
+    return ['rejected','reject','qc_rejected'].includes(String(s||'').toLowerCase());
+  }
+
+  const receivedToday                = rows.filter(r => isToday(r.Created_ON)).length;
+  const deliveredTodayFromTodayCreated = rows.filter(r => isToday(r.Created_ON) && isDelivered(r.status)).length;
+  const deliveredToday               = rows.filter(r => isToday(r.Updated_ON) && isDelivered(r.status)).length;
+  const rejectedCount                = rows.filter(r => isRejected(r.status)).length;
+  const rejectedToday                = rows.filter(r => isToday(r.Updated_ON) && isRejected(r.status)).length;
+  const totalDelivered               = rows.filter(r => isDelivered(r.status)).length;
+
+  // Monthly breakdown: received, delivered, rejected
+  const monthlyMap = {};
+  rows.forEach(r => {
+    if (!r.Created_ON) return;
+    const key = String(r.Created_ON).slice(0, 7); // YYYY-MM
+    if (!monthlyMap[key]) monthlyMap[key] = { received: 0, delivered: 0, rejected: 0 };
+    monthlyMap[key].received++;
+    if (isDelivered(r.status)) monthlyMap[key].delivered++;
+    if (isRejected(r.status))  monthlyMap[key].rejected++;
+  });
+  const sortedMonths = Object.keys(monthlyMap).sort();
+  const monthly = {
+    received:  Object.fromEntries(sortedMonths.map(k => [k, monthlyMap[k].received])),
+    delivered: Object.fromEntries(sortedMonths.map(k => [k, monthlyMap[k].delivered])),
+    rejected:  Object.fromEntries(sortedMonths.map(k => [k, monthlyMap[k].rejected])),
+  };
+
+  // Status mix
+  const statusMap = {};
+  rows.forEach(r => {
+    const s = r.status || 'unknown';
+    statusMap[s] = (statusMap[s] || 0) + 1;
+  });
+
+  // Enterprise top 10
+  const entMap = {};
+  rows.forEach(r => { if (r.Ent_Name) entMap[r.Ent_Name] = (entMap[r.Ent_Name] || 0) + 1; });
+  const entTop = Object.fromEntries(
+    Object.entries(entMap).sort((a,b)=>b[1]-a[1]).slice(0,10).reverse()
+  );
+
+  // QC top 10
+  const qcMap = {};
+  rows.forEach(r => { if (r.qc_email_id) qcMap[r.qc_email_id] = (qcMap[r.qc_email_id] || 0) + 1; });
+  const qcTop = Object.fromEntries(
+    Object.entries(qcMap).sort((a,b)=>b[1]-a[1]).slice(0,10).reverse()
+  );
+
+  return {
+    kpis: {
+      receivedToday, deliveredTodayFromTodayCreated, deliveredToday,
+      rejectedCount, rejectedToday, totalDelivered,
+      totalRecords: rows.length,
+    },
+    charts: { monthly, status: statusMap, enterprise: entTop, qc: qcTop },
+    filters: base ? base.filters : {},
+    raw: rows.slice(0, 200), // limit table rows for perf
+    lastSynced: base ? base.lastSynced : null,
+  };
+}
+
+// ── Rerender from local + filtered ────────────────────────────
+function rerender() {
+  const data = getFilteredData();
+  if (!data) return;
+  paint(data);
+}
+
+// ── Formatters ─────────────────────────────────────────────────
 function fmt(n) {
   if (n === null || n === undefined || isNaN(Number(n))) return '—';
   return Number(n).toLocaleString();
-}
-function fmtTat(min) {
-  const v = parseFloat(min);
-  if (!isFinite(v) || v === 0) return '—';
-  if (v < 60) return v.toFixed(0) + 'm';
-  if (v < 60 * 24) return (v / 60).toFixed(1) + 'h';
-  return (v / 1440).toFixed(1) + 'd';
 }
 function fmtDate(s) {
   if (!s) return '—';
@@ -359,47 +656,109 @@ function statusPill(status) {
   return `<span class="pill ${cls}">${escapeHtml(status)}</span>`;
 }
 function fillSelect(sel, items) {
+  if (!items || !items.length) return;
   const cur = sel.value || 'all';
   sel.innerHTML = '<option value="all">All</option>' +
-    items.map(v => `<option value="${escapeHtml(v)}" ${cur === v ? 'selected' : ''}>${escapeHtml(v)}</option>`).join('');
-  // Restore selection if it still exists; otherwise fall back to "all".
-  if (![...sel.options].some(o => o.value === cur)) sel.value = 'all';
-  else sel.value = cur;
+    items.map(v => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join('');
+  if ([...sel.options].some(o => o.value === cur)) sel.value = cur;
+  else sel.value = 'all';
 }
 
-function lineChart(canvas, map) {
+// ── Chart helpers ─────────────────────────────────────────────
+Chart.defaults.font.family = "'Inter', -apple-system, sans-serif";
+
+function destroy(id) { if (charts[id]) { charts[id].destroy(); delete charts[id]; } }
+
+function multiLineChart(canvas, monthly) {
+  const PAL = getPal();
+  const months = Object.keys(monthly.received);
   return new Chart(canvas, {
     type: 'line',
+    plugins: [ChartDataLabels],
     data: {
-      labels: Object.keys(map),
-      datasets: [{
-        data: Object.values(map),
-        borderColor: PAL.ink,
-        backgroundColor: 'rgba(11,11,12,0.07)',
-        borderWidth: 1.6,
-        tension: 0.28,
-        pointRadius: 3,
-        pointHoverRadius: 5,
-        pointBackgroundColor: PAL.ink,
-        fill: true,
-      }],
+      labels: months,
+      datasets: [
+        {
+          label: 'Received',
+          data: months.map(m => monthly.received[m] || 0),
+          borderColor: PAL.ink,
+          backgroundColor: 'rgba(11,11,12,0.06)',
+          borderWidth: 1.8,
+          tension: 0.28,
+          pointRadius: 3, pointHoverRadius: 5,
+          pointBackgroundColor: PAL.ink,
+          fill: false,
+          datalabels: {
+            align: 'top', anchor: 'end',
+            color: PAL.ink,
+            font: { family: "'JetBrains Mono', monospace", size: 10 },
+            formatter: v => v > 0 ? v : '',
+          },
+        },
+        {
+          label: 'Delivered',
+          data: months.map(m => monthly.delivered[m] || 0),
+          borderColor: PAL.green,
+          backgroundColor: 'rgba(31,122,82,0.0)',
+          borderWidth: 1.8,
+          tension: 0.28,
+          pointRadius: 3, pointHoverRadius: 5,
+          pointBackgroundColor: PAL.green,
+          fill: false,
+          datalabels: {
+            align: 'bottom', anchor: 'end',
+            color: PAL.green,
+            font: { family: "'JetBrains Mono', monospace", size: 10 },
+            formatter: v => v > 0 ? v : '',
+          },
+        },
+        {
+          label: 'Rejected',
+          data: months.map(m => monthly.rejected[m] || 0),
+          borderColor: PAL.red,
+          backgroundColor: 'rgba(179,38,30,0.0)',
+          borderWidth: 1.8,
+          tension: 0.28,
+          pointRadius: 3, pointHoverRadius: 5,
+          pointBackgroundColor: PAL.red,
+          fill: false,
+          datalabels: {
+            align: 'right', anchor: 'center',
+            color: PAL.red,
+            font: { family: "'JetBrains Mono', monospace", size: 10 },
+            formatter: v => v > 0 ? v : '',
+          },
+        },
+      ],
     },
     options: {
       responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { display: false }, tooltip: { displayColors: false } },
+      plugins: {
+        legend: { display: false },
+        tooltip: { displayColors: true, mode: 'index', intersect: false },
+        datalabels: { display: true },
+      },
       scales: {
-        x: { grid: { color: PAL.line, drawTicks: false }, ticks: { font: { size: 11 } } },
-        y: { grid: { color: PAL.line }, beginAtZero: true, ticks: { font: { size: 11 } } },
+        x: {
+          grid: { color: PAL.line, drawTicks: false },
+          ticks: { font: { size: 11 }, color: PAL.muted },
+        },
+        y: {
+          grid: { color: PAL.line }, beginAtZero: true,
+          ticks: { font: { size: 11 }, color: PAL.muted },
+        },
       },
     },
   });
 }
 
 function barChart(canvas, map, opts = {}) {
+  const PAL = getPal();
   const labels = Object.keys(map);
   const values = Object.values(map);
   return new Chart(canvas, {
     type: 'bar',
+    plugins: [ChartDataLabels],
     data: {
       labels,
       datasets: [{
@@ -407,12 +766,24 @@ function barChart(canvas, map, opts = {}) {
         backgroundColor: opts.color || PAL.ink,
         borderRadius: 4,
         maxBarThickness: 22,
+        datalabels: {
+          anchor: opts.horizontal ? 'end' : 'end',
+          align: opts.horizontal ? 'end' : 'top',
+          color: PAL.muted,
+          font: { family: "'JetBrains Mono', monospace", size: 10 },
+          formatter: v => v,
+          display: true,
+        },
       }],
     },
     options: {
       responsive: true, maintainAspectRatio: false,
       indexAxis: opts.horizontal ? 'y' : 'x',
-      plugins: { legend: { display: false }, tooltip: { displayColors: false } },
+      plugins: {
+        legend: { display: false },
+        tooltip: { displayColors: false },
+        datalabels: { display: true },
+      },
       onClick: (_, items) => {
         if (!items.length || !opts.onPick) return;
         opts.onPick(labels[items[0].index]);
@@ -420,11 +791,12 @@ function barChart(canvas, map, opts = {}) {
       scales: {
         x: {
           grid: { color: PAL.line, display: !opts.horizontal },
-          ticks: { font: { size: 11 } }, beginAtZero: opts.horizontal,
+          ticks: { font: { size: 11 }, color: PAL.muted },
+          beginAtZero: opts.horizontal,
         },
         y: {
           grid: { color: PAL.line, display: opts.horizontal },
-          ticks: { font: { size: 11 }, autoSkip: false },
+          ticks: { font: { size: 11 }, color: PAL.muted, autoSkip: false },
           beginAtZero: !opts.horizontal,
         },
       },
@@ -433,6 +805,7 @@ function barChart(canvas, map, opts = {}) {
 }
 
 function doughnutChart(canvas, map) {
+  const PAL = getPal();
   const labels = Object.keys(map);
   const values = Object.values(map);
   const colors = labels.map((l, i) => {
@@ -440,116 +813,106 @@ function doughnutChart(canvas, map) {
     if (['done','delivered','completed','complete'].includes(k)) return PAL.green;
     if (['rejected','reject','qc_rejected'].includes(k)) return PAL.red;
     if (['pending','in_progress','in progress','assigned'].includes(k)) return PAL.amber;
-    return PAL.series[i % PAL.series.length];
+    const series = [PAL.ink, PAL.accent, '#5b21b6','#0e7490','#7c2d12','#365314','#9f1239'];
+    return series[i % series.length];
   });
   return new Chart(canvas, {
     type: 'doughnut',
+    plugins: [ChartDataLabels],
     data: { labels, datasets: [{ data: values, backgroundColor: colors, borderWidth: 0 }] },
     options: {
       responsive: true, maintainAspectRatio: false, cutout: '64%',
       plugins: {
         legend: {
           position: 'right',
-          labels: { boxWidth: 10, boxHeight: 10, font: { size: 12 }, padding: 10 },
+          labels: { boxWidth: 10, boxHeight: 10, font: { size: 12 }, padding: 10, color: PAL.muted },
         },
         tooltip: { displayColors: false },
+        datalabels: { display: false },
       },
     },
   });
 }
 
-function getParams() {
-  const p = new URLSearchParams();
-  if ($('enterprise').value !== 'all') p.set('enterprise', $('enterprise').value);
-  if ($('user').value !== 'all')        p.set('user', $('user').value);
-  if ($('status').value !== 'all')      p.set('status', $('status').value);
-  if ($('start').value)                  p.set('start', $('start').value);
-  if ($('end').value)                    p.set('end', $('end').value);
-  return p;
-}
-
-async function loadData() {
-  const btn = $('syncBtn');
-  btn.disabled = true; btn.textContent = 'Syncing…';
-  $('errBox').innerHTML = '';
-
-  try {
-    const res = await fetch('/api/data?' + getParams().toString());
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Request failed');
-    paint(data);
-  } catch (err) {
-    $('errBox').innerHTML = `<div class="err">Failed to load data: ${escapeHtml(err.message)}</div>`;
-  } finally {
-    btn.disabled = false; btn.textContent = 'Sync';
-  }
-}
-
+// ── Paint ──────────────────────────────────────────────────────
 function paint(data) {
+  const PAL = getPal();
+
   // KPIs
   $('kpiReceived').textContent                 = fmt(data.kpis.receivedToday);
   $('kpiDeliveredCreatedToday').textContent    = fmt(data.kpis.deliveredTodayFromTodayCreated);
   $('kpiDeliveredToday').textContent           = fmt(data.kpis.deliveredToday);
   $('kpiRejected').textContent                 = fmt(data.kpis.rejectedCount);
   $('kpiRejectedSub').textContent              = `${fmt(data.kpis.rejectedToday)} today`;
-  $('kpiTat').textContent                      = fmtTat(data.kpis.avgTat);
   $('kpiDeliveredSub').textContent             = `total delivered: ${fmt(data.kpis.totalDelivered)}`;
 
-  // Filter dropdowns (preserve current selection)
-  fillSelect($('enterprise'), data.filters.enterpriseList);
-  fillSelect($('user'), data.filters.userList);
-  fillSelect($('status'), data.filters.statusList);
+  // Update legend dot colour in case theme changed
+  const dot = $('legendDotReceived');
+  if (dot) dot.style.background = PAL.ink;
 
   // Charts
   destroy('monthly'); destroy('status'); destroy('enterprise'); destroy('qc');
-  charts.monthly    = lineChart($('chartMonthly'), data.charts.monthly);
+  Chart.defaults.color = PAL.muted;
+  Chart.defaults.borderColor = PAL.line;
+
+  charts.monthly    = multiLineChart($('chartMonthly'), data.charts.monthly);
   charts.status     = doughnutChart($('chartStatus'), data.charts.status);
   charts.enterprise = barChart($('chartEnterprise'), data.charts.enterprise, {
     horizontal: true, color: PAL.accent,
-    onPick: (label) => { $('enterprise').value = label; loadData(); },
+    onPick: (label) => { $('enterprise').value = label; rerender(); },
   });
   charts.qc = barChart($('chartQc'), data.charts.qc, {
     horizontal: true, color: PAL.ink,
-    onPick: (label) => { $('user').value = label; loadData(); },
+    onPick: (label) => { $('user').value = label; rerender(); },
   });
 
   // Table
   const rows = data.raw || [];
   $('tableCount').textContent = `${fmt(rows.length)} of ${fmt(data.kpis.totalRecords)}`;
   $('tableBody').innerHTML = rows.length === 0
-    ? `<tr><td colspan="5" class="empty">No records match these filters.</td></tr>`
+    ? `<tr><td colspan="9" class="empty">No records match these filters.</td></tr>`
     : rows.map(r => `
         <tr>
           <td class="mono">${escapeHtml(fmtDate(r.Created_ON))}</td>
           <td>${escapeHtml(r.Ent_Name || '—')}</td>
           <td>${escapeHtml(r.qc_email_id || '—')}</td>
           <td>${statusPill(r.status)}</td>
+          <td>${escapeHtml(r.crm_status || '—')}</td>
+          <td class="mono">${escapeHtml(r.video_id || '—')}</td>
+          <td class="mono">${escapeHtml(r.vin || '—')}</td>
+          <td class="mono">${escapeHtml(r.sku_id || '—')}</td>
           <td class="mono">${escapeHtml(fmtDate(r.Updated_ON))}</td>
         </tr>`).join('');
-
-  // Sync info
-  const syncedAt = data.lastSynced ? new Date(data.lastSynced) : null;
-  $('syncInfo').textContent = syncedAt && !isNaN(syncedAt.getTime())
-    ? 'Synced ' + syncedAt.toLocaleTimeString()
-    : '';
 }
 
+// ── Wiring ─────────────────────────────────────────────────────
 function reset() {
   $('enterprise').value = 'all';
-  $('user').value = 'all';
-  $('status').value = 'all';
-  $('start').value = '';
-  $('end').value = '';
-  loadData();
+  $('user').value       = 'all';
+  $('status').value     = 'all';
+  $('start').value      = '';
+  $('end').value        = '';
+  rerender();
 }
 
 ['enterprise','user','status','start','end'].forEach(id => {
-  $(id).addEventListener('change', loadData);
+  $(id).addEventListener('change', rerender);
 });
-$('syncBtn').addEventListener('click', loadData);
+
+$('syncBtn').addEventListener('click', () => {
+  fetchFromServer();
+  scheduleAutoSync(); // reset countdown
+});
 $('resetBtn').addEventListener('click', reset);
 
-loadData();
+// ── Init ───────────────────────────────────────────────────────
+// Restore theme preference
+const savedTheme = localStorage.getItem('opsDashTheme');
+if (savedTheme === 'dark') applyTheme(true);
+
+// Initial fetch + schedule auto-sync
+fetchFromServer();
+scheduleAutoSync();
 </script>
 </body>
 </html>
