@@ -7,14 +7,14 @@
 <style>
 body {
   margin:0;
-  font-family:Inter;
-  background:#f4f6f9;
+  font-family: Inter, sans-serif;
+  background:#f1f5f9;
 }
 
 .header {
-  background:#1b1c1f;
+  background: linear-gradient(90deg,#111827,#1f2937);
   color:white;
-  padding:16px 24px;
+  padding:18px 24px;
   display:flex;
   justify-content:space-between;
   align-items:center;
@@ -22,9 +22,10 @@ body {
 
 .filters {
   display:flex;
-  gap:10px;
+  gap:12px;
   padding:12px 24px;
   background:white;
+  box-shadow:0 2px 6px rgba(0,0,0,0.05);
 }
 
 .container {
@@ -40,21 +41,49 @@ body {
 .card {
   background:white;
   padding:16px;
-  border-radius:10px;
+  border-radius:12px;
+  box-shadow:0 4px 10px rgba(0,0,0,0.05);
+}
+
+.card h4 {
+  font-size:13px;
+  color:#64748b;
+  margin:0;
 }
 
 .card p {
-  font-size:22px;
-  font-weight:bold;
+  font-size:26px;
+  margin-top:6px;
+  font-weight:600;
 }
 
-.charts {
+.grid {
   margin-top:20px;
+  display:grid;
+  grid-template-columns:2fr 1fr;
+  gap:20px;
+}
+
+.subgrid {
   display:grid;
   grid-template-columns:1fr 1fr;
   gap:20px;
 }
 
+canvas {
+  background:white;
+  padding:14px;
+  border-radius:12px;
+}
+
+button {
+  background:#3b82f6;
+  color:white;
+  border:none;
+  padding:8px 14px;
+  border-radius:8px;
+  cursor:pointer;
+}
 </style>
 </head>
 
@@ -77,16 +106,20 @@ body {
 <div class="container">
 
 <div class="kpis">
-  <div class="card">Received <p id="r">-</p></div>
-  <div class="card">Delivered Today <p id="d">-</p></div>
-  <div class="card">Total Delivered <p id="t">-</p></div>
-  <div class="card">Avg TAT <p id="tat">-</p></div>
+  <div class="card"><h4>Received Today</h4><p id="r">-</p></div>
+  <div class="card"><h4>Delivered Today</h4><p id="d">-</p></div>
+  <div class="card"><h4>Total Delivered</h4><p id="t">-</p></div>
+  <div class="card"><h4>Avg TAT</h4><p id="tat">-</p></div>
 </div>
 
-<div class="charts">
-  <canvas id="ent"></canvas>
-  <canvas id="qc"></canvas>
-  <canvas id="status"></canvas>
+<div class="grid">
+  <canvas id="monthly"></canvas>
+
+  <div class="subgrid">
+    <canvas id="ent"></canvas>
+    <canvas id="qc"></canvas>
+    <canvas id="status"></canvas>
+  </div>
 </div>
 
 </div>
@@ -95,18 +128,22 @@ body {
 let raw = [];
 let charts = {};
 
+function parseDateSafe(str) {
+  if (!str) return null;
+
+  try {
+    const cleaned = str.replace(",", "").replace(",", "");
+    return new Date(cleaned);
+  } catch {
+    return null;
+  }
+}
+
 async function loadData() {
   document.body.style.opacity = 0.6;
 
   const res = await fetch("/api/data");
-  const data = await res.json();
-
-  if (data.error) {
-    alert("API error");
-    return;
-  }
-
-  raw = data;
+  raw = await res.json();
 
   setupFilters();
   update();
@@ -126,14 +163,10 @@ function setupFilters() {
 
 function filterData() {
   return raw.filter(d => {
-    if (enterprise.value !== "all" && d.Ent_Name !== enterprise.value)
-      return false;
+    if (enterprise.value !== "all" && d.Ent_Name !== enterprise.value) return false;
 
-    if (start.value && new Date(d.created) < new Date(start.value))
-      return false;
-
-    if (end.value && new Date(d.created) > new Date(end.value))
-      return false;
+    if (start.value && new Date(d.created) < new Date(start.value)) return false;
+    if (end.value && new Date(d.created) > new Date(end.value)) return false;
 
     return true;
   });
@@ -143,12 +176,11 @@ function update() {
   const data = filterData();
   const today = new Date().toISOString().slice(0,10);
 
-  const received = data.filter(d =>
-    d.created.toISOString().slice(0,10) === today).length;
+  const received = data.filter(d => d.created?.toISOString().slice(0,10) === today).length;
 
   const delivered = data.filter(d =>
     d.status === "done" &&
-    d.updated.toISOString().slice(0,10) === today).length;
+    d.updated?.toISOString().slice(0,10) === today).length;
 
   const total = data.filter(d => d.status === "done").length;
 
@@ -166,25 +198,41 @@ function update() {
 function renderCharts(data) {
   Object.values(charts).forEach(c=>c.destroy());
 
-  const entMap={}, qcMap={}, statusMap={};
-
+  // Monthly trend
+  const monthMap = {};
   data.forEach(d=>{
-    entMap[d.Ent_Name]=(entMap[d.Ent_Name]||0)+1;
-    qcMap[d.qc_email_id]=(qcMap[d.qc_email_id]||0)+1;
-    statusMap[d.status]=(statusMap[d.status]||0)+1;
+    const m = d.created?.toISOString().slice(0,7);
+    if (m) monthMap[m]=(monthMap[m]||0)+1;
   });
 
-  charts.ent = new Chart(ent, {
+  charts.monthly = new Chart(monthly, {
+    type:"line",
+    data:{labels:Object.keys(monthMap), datasets:[{label:"Monthly Volume", data:Object.values(monthMap)}]}
+  });
+
+  // Enterprise
+  const entMap = {};
+  data.forEach(d=> entMap[d.Ent_Name]=(entMap[d.Ent_Name]||0)+1);
+
+  charts.ent = new Chart(ent,{
     type:"bar",
     data:{labels:Object.keys(entMap), datasets:[{data:Object.values(entMap)}]}
   });
 
-  charts.qc = new Chart(qc, {
+  // QC
+  const qcMap = {};
+  data.forEach(d=> qcMap[d.qc_email_id]=(qcMap[d.qc_email_id]||0)+1);
+
+  charts.qc = new Chart(qc,{
     type:"bar",
     data:{labels:Object.keys(qcMap), datasets:[{data:Object.values(qcMap)}]}
   });
 
-  charts.status = new Chart(status, {
+  // Status
+  const statusMap = {};
+  data.forEach(d=> statusMap[d.status]=(statusMap[d.status]||0)+1);
+
+  charts.status = new Chart(status,{
     type:"doughnut",
     data:{labels:Object.keys(statusMap), datasets:[{data:Object.values(statusMap)}]}
   });
