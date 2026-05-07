@@ -1,159 +1,555 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+<meta charset="UTF-8" />
 <title>Ops Dashboard</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700&family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
 <style>
-body { margin:0; font-family:Inter; background:#f1f5f9; }
+  :root {
+    --bg: #f6f5f1;
+    --surface: #ffffff;
+    --ink: #0b0b0c;
+    --ink-2: #404045;
+    --muted: #8a8a90;
+    --line: #e8e6df;
+    --accent: #1f3f72;
+    --green: #1f7a52;
+    --amber: #b27a00;
+    --red: #b3261e;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+    font-size: 14px;
+  }
+  .display { font-family: 'Bricolage Grotesque', serif; letter-spacing: -0.02em; }
+  .mono { font-family: 'JetBrains Mono', monospace; font-variant-numeric: tabular-nums; }
 
-.header {
-  background:#111827;
-  color:white;
-  padding:16px 24px;
-  display:flex;
-  justify-content:space-between;
-}
+  /* Header */
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--line);
+    padding: 16px 28px;
+    display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  }
+  header .brand { display: flex; align-items: baseline; gap: 14px; min-width: 0; }
+  header h1 {
+    margin: 0; font-family: 'Bricolage Grotesque', serif; font-weight: 600;
+    font-size: 22px; letter-spacing: -0.025em;
+  }
+  header .tag {
+    font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 0.08em;
+  }
+  header .actions { display: flex; align-items: center; gap: 14px; }
+  .sync-info { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted); }
+  button.sync {
+    background: var(--ink); color: var(--surface); border: none;
+    padding: 9px 16px; border-radius: 6px; font: 500 13px 'Inter';
+    cursor: pointer; transition: opacity 0.15s;
+  }
+  button.sync:hover { opacity: 0.85; }
+  button.sync[disabled] { opacity: 0.5; cursor: wait; }
 
-.filters {
-  background:white;
-  padding:12px 20px;
-  display:flex;
-  gap:10px;
-}
+  /* Filters */
+  .filters {
+    background: var(--surface);
+    border-bottom: 1px solid var(--line);
+    padding: 14px 28px;
+    display: flex; flex-wrap: wrap; gap: 14px; align-items: end;
+  }
+  .filter { display: flex; flex-direction: column; gap: 5px; min-width: 170px; }
+  .filter label {
+    font-family: 'JetBrains Mono', monospace; font-size: 10px;
+    text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted);
+  }
+  .filter select, .filter input {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 6px;
+    padding: 8px 10px; font: 400 13px 'Inter'; color: var(--ink);
+    outline: none; transition: border-color 0.15s;
+  }
+  .filter select:focus, .filter input:focus { border-color: var(--ink); }
+  button.reset {
+    background: transparent; border: 1px solid var(--line); padding: 8px 14px;
+    border-radius: 6px; font-size: 13px; cursor: pointer; color: var(--ink-2);
+    height: 36px;
+  }
+  button.reset:hover { background: var(--bg); }
 
-.container { padding:20px; }
+  main { padding: 22px 28px 60px; max-width: 1500px; margin: 0 auto; }
 
-.kpis {
-  display:grid;
-  grid-template-columns:repeat(4,1fr);
-  gap:16px;
-}
+  /* KPI Cards */
+  .kpis {
+    display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; margin-bottom: 20px;
+  }
+  .kpi {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+    padding: 18px; position: relative; overflow: hidden;
+  }
+  .kpi-bar { position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--ink); }
+  .kpi.green .kpi-bar  { background: var(--green); }
+  .kpi.amber .kpi-bar  { background: var(--amber); }
+  .kpi.red   .kpi-bar  { background: var(--red); }
+  .kpi.accent .kpi-bar { background: var(--accent); }
+  .kpi-label {
+    font-family: 'JetBrains Mono', monospace; font-size: 10px;
+    text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted);
+  }
+  .kpi-value {
+    font-family: 'Bricolage Grotesque', serif; font-size: 36px; font-weight: 600;
+    letter-spacing: -0.025em; margin-top: 8px; line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+  .kpi-sub {
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    color: var(--muted); margin-top: 8px;
+  }
 
-.card {
-  background:white;
-  padding:16px;
-  border-radius:12px;
-}
+  /* Panels & charts */
+  .grid    { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 16px; }
+  .grid-2  { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  .panel {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+    padding: 18px; min-width: 0;
+  }
+  .panel h3 {
+    margin: 0; font-family: 'Bricolage Grotesque', serif; font-size: 16px;
+    font-weight: 600; letter-spacing: -0.01em;
+  }
+  .panel .panel-sub {
+    font-family: 'JetBrains Mono', monospace; font-size: 10px;
+    text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted);
+    margin-top: 4px; margin-bottom: 14px;
+  }
+  .chart-wrap { position: relative; height: 280px; }
 
-.grid {
-  margin-top:20px;
-  display:grid;
-  grid-template-columns:2fr 1fr;
-  gap:20px;
-}
+  /* Table */
+  .table-wrap {
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: 12px; overflow: hidden;
+  }
+  .table-head {
+    padding: 16px 18px 12px; border-bottom: 1px solid var(--line);
+    display: flex; justify-content: space-between; align-items: baseline;
+  }
+  .table-head h3 {
+    margin: 0; font-family: 'Bricolage Grotesque', serif;
+    font-size: 16px; font-weight: 600; letter-spacing: -0.01em;
+  }
+  .table-head .count {
+    font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted);
+  }
+  .table-scroll { max-height: 440px; overflow-y: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead { position: sticky; top: 0; background: var(--surface); z-index: 1; }
+  th {
+    text-align: left; padding: 11px 18px;
+    font-family: 'JetBrains Mono', monospace; font-size: 10px;
+    text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted);
+    font-weight: 500; border-bottom: 1px solid var(--line);
+  }
+  td {
+    padding: 12px 18px; border-bottom: 1px solid var(--line); color: var(--ink-2);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 280px;
+  }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--bg); }
 
-canvas {
-  background:white;
-  padding:12px;
-  border-radius:12px;
-}
+  .pill {
+    display: inline-block; padding: 2px 9px; border-radius: 999px;
+    font-family: 'JetBrains Mono', monospace; font-size: 10px;
+    text-transform: uppercase; letter-spacing: 0.04em;
+    border: 1px solid var(--line); background: var(--bg); color: var(--ink-2);
+  }
+  .pill.done     { background: rgba(31,122,82,0.08);  color: var(--green); border-color: rgba(31,122,82,0.25); }
+  .pill.rejected { background: rgba(179,38,30,0.08);  color: var(--red);   border-color: rgba(179,38,30,0.25); }
+  .pill.pending  { background: rgba(178,122,0,0.08);  color: var(--amber); border-color: rgba(178,122,0,0.25); }
 
-.table {
-  margin-top:20px;
-  background:white;
-  padding:10px;
-  border-radius:10px;
-  max-height:300px;
-  overflow:auto;
-}
+  .empty { padding: 60px 20px; text-align: center; color: var(--muted); font-size: 13px; }
+
+  .err {
+    background: #fff4f3; border: 1px solid rgba(179,38,30,0.25); color: var(--red);
+    padding: 12px 16px; border-radius: 8px; font-size: 13px; margin-bottom: 16px;
+  }
+
+  @media (max-width: 1100px) {
+    .kpis   { grid-template-columns: repeat(2, 1fr); }
+    .grid, .grid-2 { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 600px) {
+    header, .filters, main { padding-left: 16px; padding-right: 16px; }
+    .kpis { grid-template-columns: 1fr 1fr; gap: 10px; }
+    .kpi-value { font-size: 28px; }
+  }
 </style>
 </head>
-
 <body>
+  <header>
+    <div class="brand">
+      <h1>Ops Dashboard</h1>
+      <span class="tag">QC · Throughput · TAT</span>
+    </div>
+    <div class="actions">
+      <span class="sync-info" id="syncInfo">—</span>
+      <button class="sync" id="syncBtn">Sync</button>
+    </div>
+  </header>
 
-<div class="header">
-  <h2>🚀 Ops Dashboard</h2>
-  <button onclick="loadData()">Sync</button>
-</div>
+  <div class="filters">
+    <div class="filter">
+      <label>Enterprise</label>
+      <select id="enterprise"><option value="all">All</option></select>
+    </div>
+    <div class="filter">
+      <label>User (QC)</label>
+      <select id="user"><option value="all">All</option></select>
+    </div>
+    <div class="filter">
+      <label>Status</label>
+      <select id="status"><option value="all">All</option></select>
+    </div>
+    <div class="filter">
+      <label>Start date</label>
+      <input type="date" id="start">
+    </div>
+    <div class="filter">
+      <label>End date</label>
+      <input type="date" id="end">
+    </div>
+    <button class="reset" id="resetBtn">Reset</button>
+  </div>
 
-<div class="filters">
-  <select id="enterprise"></select>
-  <input type="date" id="start">
-  <input type="date" id="end">
-</div>
+  <main>
+    <div id="errBox"></div>
 
-<div class="container">
+    <section class="kpis">
+      <div class="kpi accent">
+        <span class="kpi-bar"></span>
+        <div class="kpi-label">Received Today</div>
+        <div class="kpi-value" id="kpiReceived">—</div>
+        <div class="kpi-sub">created today</div>
+      </div>
+      <div class="kpi green">
+        <span class="kpi-bar"></span>
+        <div class="kpi-label">Delivered (Today's)</div>
+        <div class="kpi-value" id="kpiDeliveredCreatedToday">—</div>
+        <div class="kpi-sub">created &amp; delivered today</div>
+      </div>
+      <div class="kpi green">
+        <span class="kpi-bar"></span>
+        <div class="kpi-label">Delivered Today (All)</div>
+        <div class="kpi-value" id="kpiDeliveredToday">—</div>
+        <div class="kpi-sub" id="kpiDeliveredSub">closed today, any backlog</div>
+      </div>
+      <div class="kpi red">
+        <span class="kpi-bar"></span>
+        <div class="kpi-label">Rejected</div>
+        <div class="kpi-value" id="kpiRejected">—</div>
+        <div class="kpi-sub" id="kpiRejectedSub">in current view</div>
+      </div>
+      <div class="kpi amber">
+        <span class="kpi-bar"></span>
+        <div class="kpi-label">Avg TAT</div>
+        <div class="kpi-value" id="kpiTat">—</div>
+        <div class="kpi-sub">create → deliver</div>
+      </div>
+    </section>
 
-<div class="kpis">
-  <div class="card"><p id="r"></p><small>Received Today</small></div>
-  <div class="card"><p id="d"></p><small>Delivered Today</small></div>
-  <div class="card"><p id="t"></p><small>Total Delivered</small></div>
-  <div class="card"><p id="tat"></p><small>Avg TAT</small></div>
-</div>
+    <section class="grid">
+      <div class="panel">
+        <h3>Month-on-month received</h3>
+        <div class="panel-sub">jobs created per month</div>
+        <div class="chart-wrap"><canvas id="chartMonthly"></canvas></div>
+      </div>
+      <div class="panel">
+        <h3>Status mix</h3>
+        <div class="panel-sub">distribution in current view</div>
+        <div class="chart-wrap"><canvas id="chartStatus"></canvas></div>
+      </div>
+    </section>
 
-<div class="grid">
-  <canvas id="monthly"></canvas>
-  <canvas id="ent"></canvas>
-</div>
+    <section class="grid-2">
+      <div class="panel">
+        <h3>Top enterprises</h3>
+        <div class="panel-sub">by job count · click to filter</div>
+        <div class="chart-wrap"><canvas id="chartEnterprise"></canvas></div>
+      </div>
+      <div class="panel">
+        <h3>Top QC users</h3>
+        <div class="panel-sub">by job count · click to filter</div>
+        <div class="chart-wrap"><canvas id="chartQc"></canvas></div>
+      </div>
+    </section>
 
-<div class="table" id="table"></div>
-
-</div>
+    <section class="table-wrap">
+      <div class="table-head">
+        <h3>Recent records</h3>
+        <span class="count" id="tableCount">—</span>
+      </div>
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Created</th>
+              <th>Enterprise</th>
+              <th>QC user</th>
+              <th>Status</th>
+              <th>Updated</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
 
 <script>
-let charts = {};
+const $ = (id) => document.getElementById(id);
+const charts = {};
 
-async function loadData() {
-  const url = `/api/data?enterprise=${enterprise.value}&start=${start.value}&end=${end.value}`;
+const PAL = {
+  ink: '#0b0b0c', muted: '#8a8a90', line: '#e8e6df',
+  accent: '#1f3f72', green: '#1f7a52', amber: '#b27a00', red: '#b3261e',
+  series: ['#0b0b0c','#1f3f72','#1f7a52','#b27a00','#b3261e','#5b21b6','#0e7490','#7c2d12','#365314','#9f1239'],
+};
 
-  const res = await fetch(url);
-  const data = await res.json();
+Chart.defaults.font.family = "'Inter', -apple-system, sans-serif";
+Chart.defaults.color = PAL.muted;
+Chart.defaults.borderColor = PAL.line;
 
-  r.innerText = data.kpis.receivedToday;
-  d.innerText = data.kpis.deliveredToday;
-  t.innerText = data.kpis.totalDelivered;
-  tat.innerText = data.kpis.avgTat;
+function destroy(id) { if (charts[id]) { charts[id].destroy(); delete charts[id]; } }
 
-  enterprise.innerHTML =
-    `<option value="all">All</option>` +
-    data.enterpriseList.map(e=>`<option>${e}</option>`).join("");
-
-  render("monthly", data.charts.monthly, "line");
-  render("ent", data.charts.enterprise);
-
-  renderTable(data.raw);
+function fmt(n) {
+  if (n === null || n === undefined || isNaN(Number(n))) return '—';
+  return Number(n).toLocaleString();
+}
+function fmtTat(min) {
+  const v = parseFloat(min);
+  if (!isFinite(v) || v === 0) return '—';
+  if (v < 60) return v.toFixed(0) + 'm';
+  if (v < 60 * 24) return (v / 60).toFixed(1) + 'h';
+  return (v / 1440).toFixed(1) + 'd';
+}
+function fmtDate(s) {
+  if (!s) return '—';
+  const d = new Date(s);
+  if (isNaN(d.getTime())) return s;
+  return d.toLocaleDateString(undefined, { month: 'short', day: '2-digit' }) +
+    ' ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+function escapeHtml(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[c]));
+}
+function statusPill(status) {
+  if (!status) return '<span class="pill">—</span>';
+  const s = String(status).toLowerCase();
+  let cls = 'pending';
+  if (['done','delivered','completed','complete'].includes(s)) cls = 'done';
+  else if (['rejected','reject','qc_rejected'].includes(s)) cls = 'rejected';
+  return `<span class="pill ${cls}">${escapeHtml(status)}</span>`;
+}
+function fillSelect(sel, items) {
+  const cur = sel.value || 'all';
+  sel.innerHTML = '<option value="all">All</option>' +
+    items.map(v => `<option value="${escapeHtml(v)}" ${cur === v ? 'selected' : ''}>${escapeHtml(v)}</option>`).join('');
+  // Restore selection if it still exists; otherwise fall back to "all".
+  if (![...sel.options].some(o => o.value === cur)) sel.value = 'all';
+  else sel.value = cur;
 }
 
-function render(id, map, type="bar") {
-  if (charts[id]) charts[id].destroy();
-
-  charts[id] = new Chart(document.getElementById(id), {
-    type,
-    data:{
-      labels:Object.keys(map),
-      datasets:[{data:Object.values(map)}]
+function lineChart(canvas, map) {
+  return new Chart(canvas, {
+    type: 'line',
+    data: {
+      labels: Object.keys(map),
+      datasets: [{
+        data: Object.values(map),
+        borderColor: PAL.ink,
+        backgroundColor: 'rgba(11,11,12,0.07)',
+        borderWidth: 1.6,
+        tension: 0.28,
+        pointRadius: 3,
+        pointHoverRadius: 5,
+        pointBackgroundColor: PAL.ink,
+        fill: true,
+      }],
     },
-    options:{
-      onClick:(e, items)=>{
-        if(items.length){
-          const label = charts[id].data.labels[items[0].index];
-          drill(label);
-        }
-      }
-    }
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { displayColors: false } },
+      scales: {
+        x: { grid: { color: PAL.line, drawTicks: false }, ticks: { font: { size: 11 } } },
+        y: { grid: { color: PAL.line }, beginAtZero: true, ticks: { font: { size: 11 } } },
+      },
+    },
   });
 }
 
-function renderTable(rows){
-  table.innerHTML = `
-    <table width="100%">
-      <tr><th>Enterprise</th><th>Status</th><th>QC</th></tr>
-      ${rows.map(r=>`
-        <tr>
-          <td>${r.Ent_Name}</td>
-          <td>${r.status}</td>
-          <td>${r.qc_email_id}</td>
-        </tr>`).join("")}
-    </table>`;
+function barChart(canvas, map, opts = {}) {
+  const labels = Object.keys(map);
+  const values = Object.values(map);
+  return new Chart(canvas, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        data: values,
+        backgroundColor: opts.color || PAL.ink,
+        borderRadius: 4,
+        maxBarThickness: 22,
+      }],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      indexAxis: opts.horizontal ? 'y' : 'x',
+      plugins: { legend: { display: false }, tooltip: { displayColors: false } },
+      onClick: (_, items) => {
+        if (!items.length || !opts.onPick) return;
+        opts.onPick(labels[items[0].index]);
+      },
+      scales: {
+        x: {
+          grid: { color: PAL.line, display: !opts.horizontal },
+          ticks: { font: { size: 11 } }, beginAtZero: opts.horizontal,
+        },
+        y: {
+          grid: { color: PAL.line, display: opts.horizontal },
+          ticks: { font: { size: 11 }, autoSkip: false },
+          beginAtZero: !opts.horizontal,
+        },
+      },
+    },
+  });
 }
 
-function drill(label){
-  alert("Drilldown for: " + label);
+function doughnutChart(canvas, map) {
+  const labels = Object.keys(map);
+  const values = Object.values(map);
+  const colors = labels.map((l, i) => {
+    const k = String(l).toLowerCase();
+    if (['done','delivered','completed','complete'].includes(k)) return PAL.green;
+    if (['rejected','reject','qc_rejected'].includes(k)) return PAL.red;
+    if (['pending','in_progress','in progress','assigned'].includes(k)) return PAL.amber;
+    return PAL.series[i % PAL.series.length];
+  });
+  return new Chart(canvas, {
+    type: 'doughnut',
+    data: { labels, datasets: [{ data: values, backgroundColor: colors, borderWidth: 0 }] },
+    options: {
+      responsive: true, maintainAspectRatio: false, cutout: '64%',
+      plugins: {
+        legend: {
+          position: 'right',
+          labels: { boxWidth: 10, boxHeight: 10, font: { size: 12 }, padding: 10 },
+        },
+        tooltip: { displayColors: false },
+      },
+    },
+  });
 }
+
+function getParams() {
+  const p = new URLSearchParams();
+  if ($('enterprise').value !== 'all') p.set('enterprise', $('enterprise').value);
+  if ($('user').value !== 'all')        p.set('user', $('user').value);
+  if ($('status').value !== 'all')      p.set('status', $('status').value);
+  if ($('start').value)                  p.set('start', $('start').value);
+  if ($('end').value)                    p.set('end', $('end').value);
+  return p;
+}
+
+async function loadData() {
+  const btn = $('syncBtn');
+  btn.disabled = true; btn.textContent = 'Syncing…';
+  $('errBox').innerHTML = '';
+
+  try {
+    const res = await fetch('/api/data?' + getParams().toString());
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Request failed');
+    paint(data);
+  } catch (err) {
+    $('errBox').innerHTML = `<div class="err">Failed to load data: ${escapeHtml(err.message)}</div>`;
+  } finally {
+    btn.disabled = false; btn.textContent = 'Sync';
+  }
+}
+
+function paint(data) {
+  // KPIs
+  $('kpiReceived').textContent                 = fmt(data.kpis.receivedToday);
+  $('kpiDeliveredCreatedToday').textContent    = fmt(data.kpis.deliveredTodayFromTodayCreated);
+  $('kpiDeliveredToday').textContent           = fmt(data.kpis.deliveredToday);
+  $('kpiRejected').textContent                 = fmt(data.kpis.rejectedCount);
+  $('kpiRejectedSub').textContent              = `${fmt(data.kpis.rejectedToday)} today`;
+  $('kpiTat').textContent                      = fmtTat(data.kpis.avgTat);
+  $('kpiDeliveredSub').textContent             = `total delivered: ${fmt(data.kpis.totalDelivered)}`;
+
+  // Filter dropdowns (preserve current selection)
+  fillSelect($('enterprise'), data.filters.enterpriseList);
+  fillSelect($('user'), data.filters.userList);
+  fillSelect($('status'), data.filters.statusList);
+
+  // Charts
+  destroy('monthly'); destroy('status'); destroy('enterprise'); destroy('qc');
+  charts.monthly    = lineChart($('chartMonthly'), data.charts.monthly);
+  charts.status     = doughnutChart($('chartStatus'), data.charts.status);
+  charts.enterprise = barChart($('chartEnterprise'), data.charts.enterprise, {
+    horizontal: true, color: PAL.accent,
+    onPick: (label) => { $('enterprise').value = label; loadData(); },
+  });
+  charts.qc = barChart($('chartQc'), data.charts.qc, {
+    horizontal: true, color: PAL.ink,
+    onPick: (label) => { $('user').value = label; loadData(); },
+  });
+
+  // Table
+  const rows = data.raw || [];
+  $('tableCount').textContent = `${fmt(rows.length)} of ${fmt(data.kpis.totalRecords)}`;
+  $('tableBody').innerHTML = rows.length === 0
+    ? `<tr><td colspan="5" class="empty">No records match these filters.</td></tr>`
+    : rows.map(r => `
+        <tr>
+          <td class="mono">${escapeHtml(fmtDate(r.Created_ON))}</td>
+          <td>${escapeHtml(r.Ent_Name || '—')}</td>
+          <td>${escapeHtml(r.qc_email_id || '—')}</td>
+          <td>${statusPill(r.status)}</td>
+          <td class="mono">${escapeHtml(fmtDate(r.Updated_ON))}</td>
+        </tr>`).join('');
+
+  // Sync info
+  const syncedAt = data.lastSynced ? new Date(data.lastSynced) : null;
+  $('syncInfo').textContent = syncedAt && !isNaN(syncedAt.getTime())
+    ? 'Synced ' + syncedAt.toLocaleTimeString()
+    : '';
+}
+
+function reset() {
+  $('enterprise').value = 'all';
+  $('user').value = 'all';
+  $('status').value = 'all';
+  $('start').value = '';
+  $('end').value = '';
+  loadData();
+}
+
+['enterprise','user','status','start','end'].forEach(id => {
+  $(id).addEventListener('change', loadData);
+});
+$('syncBtn').addEventListener('click', loadData);
+$('resetBtn').addEventListener('click', reset);
 
 loadData();
 </script>
-
 </body>
 </html>
