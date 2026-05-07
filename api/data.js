@@ -44,9 +44,6 @@ function safeDate(str) {
 
 const isoMonth = (d) => (d ? d.toISOString().slice(0, 7) : null);
 
-// ── Status helpers ─────────────────────────────────────────────
-// CSV column is literally "verified_status" (with a space)
-// crm_status and verified_status are both lowercased on ingest (see loadCache)
 function isDelivered(r) {
   return r._crm === "qc_done" && r._verified === "verified";
 }
@@ -63,14 +60,26 @@ async function loadCache() {
   if (!resp.ok) throw new Error(`Metabase responded ${resp.status}`);
   const text = await resp.text();
   const rows = parseCSV(text);
+
+  // Debug: log all column names on first load
+  if (rows.length > 0) {
+    console.log("[data.js] CSV columns:", Object.keys(rows[0]));
+  }
+
   cache = rows.map(r => {
-    // CRM column is "CRM_Status" (mixed case) in this Metabase CSV
     r._crm      = (r["CRM_Status"] || r["crm_status"] || r["crm status"] || "").toLowerCase().trim();
     r._verified = (r["verified_status"] || r["verified status"] || r["verified"] || "").toLowerCase().trim();
 
-    // Write back clean display values
     r.crm_status      = r._crm;
     r.verified_status = r._verified;
+
+    // Team: try multiple possible column names
+    // Common patterns: team_name, Team, team, qc_team, department
+    r._team = (
+      r["team_name"] || r["Team_Name"] || r["team"] || r["Team"] ||
+      r["qc_team"]   || r["QC_Team"]   || r["department"] || r["Department"] ||
+      r["group"]     || r["Group"]     || ""
+    ).trim();
 
     r.created = safeDate(r.Created_ON);
     r.updated = safeDate(r.Updated_ON);
@@ -84,26 +93,42 @@ export default async function handler(req, res) {
   try {
     const all = await loadCache();
 
-    // Debug helper — visit /api/data?debug=1 to confirm column values
+    // Debug helper
     if (req.query.debug === "1") {
       const sample = all.slice(0, 5);
       return res.status(200).json({
         all_columns:      Object.keys(sample[0] || {}),
         crm_samples:      sample.map(r => r._crm),
         verified_samples: sample.map(r => r._verified),
+        team_samples:     sample.map(r => r._team),
+        raw_sample:       sample,
       });
     }
 
-    const { start, end, enterprise, user, status: statusFilter } = req.query;
+    const {
+      start, end, enterprise, team, user,
+      status: statusFilter, verified: verifiedFilter
+    } = req.query;
 
-    const enterpriseList = [...new Set(all.map(d => d.Ent_Name).filter(Boolean))].sort();
+    // Build lists filtered by enterprise for team cascade
+    const enterpriseList  = [...new Set(all.map(d => d.Ent_Name).filter(Boolean))].sort();
+
+    // Team list — optionally scoped to selected enterprise
+    const teamSource = enterprise && enterprise !== "all"
+      ? all.filter(d => d.Ent_Name === enterprise)
+      : all;
+    const teamList = [...new Set(teamSource.map(d => d._team).filter(Boolean))].sort();
+
     const userList       = [...new Set(all.map(d => d.qc_email_id).filter(Boolean))].sort();
     const statusList     = [...new Set(all.map(d => d.status).filter(Boolean))].sort();
+    const verifiedList   = [...new Set(all.map(d => d._verified).filter(Boolean))].sort();
 
     let data = all;
-    if (enterprise && enterprise !== "all")     data = data.filter(d => d.Ent_Name === enterprise);
-    if (user && user !== "all")                 data = data.filter(d => d.qc_email_id === user);
-    if (statusFilter && statusFilter !== "all") data = data.filter(d => d.status === statusFilter);
+    if (enterprise && enterprise !== "all")       data = data.filter(d => d.Ent_Name === enterprise);
+    if (team       && team       !== "all")       data = data.filter(d => d._team === team);
+    if (user       && user       !== "all")       data = data.filter(d => d.qc_email_id === user);
+    if (statusFilter && statusFilter !== "all")   data = data.filter(d => d.status === statusFilter);
+    if (verifiedFilter && verifiedFilter !== "all") data = data.filter(d => d._verified === verifiedFilter);
     if (start) {
       const s = new Date(start);
       data = data.filter(d => d.created && d.created >= s);
@@ -120,6 +145,7 @@ export default async function handler(req, res) {
     let totalPending   = 0;
 
     const entMap    = {};
+    const teamMap   = {};
     const qcMap     = {};
     const statusMap = {};
     const monthMap  = {};
@@ -132,8 +158,9 @@ export default async function handler(req, res) {
       else if (isPending(d))  totalPending++;
 
       if (d.Ent_Name)    entMap[d.Ent_Name]   = (entMap[d.Ent_Name]   || 0) + 1;
+      if (d._team)       teamMap[d._team]      = (teamMap[d._team]     || 0) + 1;
       if (d.qc_email_id) qcMap[d.qc_email_id] = (qcMap[d.qc_email_id] || 0) + 1;
-      if (d.status)      statusMap[d.status]  = (statusMap[d.status]  || 0) + 1;
+      if (d.status)      statusMap[d.status]   = (statusMap[d.status]  || 0) + 1;
 
       const m = isoMonth(d.created);
       if (m) {
@@ -147,6 +174,9 @@ export default async function handler(req, res) {
     const topEnt = Object.fromEntries(
       Object.entries(entMap).sort((a, b) => b[1] - a[1]).slice(0, 12)
     );
+    const topTeam = Object.fromEntries(
+      Object.entries(teamMap).sort((a, b) => b[1] - a[1]).slice(0, 12)
+    );
     const topQc = Object.fromEntries(
       Object.entries(qcMap).sort((a, b) => b[1] - a[1]).slice(0, 15)
     );
@@ -157,26 +187,39 @@ export default async function handler(req, res) {
       rejected:  Object.fromEntries(sortedMonthKeys.map(k => [k, monthMap[k].rejected])),
     };
 
+    // Counts for KPI cards
+    const totalEnterpriseCount = Object.keys(entMap).length;
+    const totalTeamCount       = Object.keys(teamMap).length;
+
     return res.status(200).json({
-      kpis: { totalReceived, totalDelivered, totalRejected, totalPending, totalRecords: data.length },
-      filters: { enterpriseList, userList, statusList },
-      charts: { enterprise: topEnt, qc: topQc, status: statusMap, monthly: monthlySorted },
+      kpis: {
+        totalReceived, totalDelivered, totalRejected, totalPending,
+        totalRecords: data.length,
+        totalEnterpriseCount,
+        totalTeamCount,
+      },
+      filters: { enterpriseList, teamList, userList, statusList, verifiedList },
+      charts: {
+        enterprise: topEnt, team: topTeam,
+        qc: topQc, status: statusMap, monthly: monthlySorted,
+      },
       raw: data
         .slice()
         .sort((a, b) => (b.created?.getTime() || 0) - (a.created?.getTime() || 0))
         .slice(0, 500)
         .map(d => ({
-        Ent_Name:        d.Ent_Name,
-        status:          d.status,
-        crm_status:      d._crm,           // now correctly sourced from CRM_Status
-        verified_status: d._verified,
-        qc_email_id:     d.qc_email_id,
-        video_id:        d.Video_ID,       // note: capital V and ID in this CSV
-        vin:             d.VIN,            // capital VIN
-        sku_id:          d.Sku_ID,         // capital S
-        Created_ON:      d.Created_ON,
-        Updated_ON:      d.Updated_ON,
-})),
+          Ent_Name:        d.Ent_Name,
+          team:            d._team,
+          status:          d.status,
+          crm_status:      d._crm,
+          verified_status: d._verified,
+          qc_email_id:     d.qc_email_id,
+          video_id:        d.Video_ID,
+          vin:             d.VIN,
+          sku_id:          d.Sku_ID,
+          Created_ON:      d.Created_ON,
+          Updated_ON:      d.Updated_ON,
+        })),
       lastSynced: new Date(lastFetch).toISOString(),
     });
   } catch (err) {
