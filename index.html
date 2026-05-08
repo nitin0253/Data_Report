@@ -55,22 +55,75 @@
   .date-trigger:hover,.date-trigger.open{border-color:var(--accent);}
   .dt-text{flex:1;}.dt-chev{opacity:.4;transition:transform .2s;flex-shrink:0;}
   .date-trigger.open .dt-chev{transform:rotate(180deg);}
-  .date-panel{display:none;position:absolute;top:calc(100% + 6px);left:0;z-index:600;background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 32px var(--shadow-lg);min-width:500px;overflow:hidden;}
+  .date-panel{display:none;position:absolute;top:calc(100% + 6px);left:0;z-index:600;background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 32px var(--shadow-lg);min-width:600px;overflow:hidden;}
   .date-panel.open{display:flex;}
-  .dp-presets{width:165px;flex-shrink:0;border-right:1px solid var(--line);padding:8px 0;background:var(--bg);}
+  .dp-presets{width:165px;flex-shrink:0;border-right:1px solid var(--line);padding:8px 0;background:var(--bg);overflow-y:auto;}
   .dp-sec{padding:6px 14px 3px;font-family:'JetBrains Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);}
   .dp-preset{display:block;width:100%;text-align:left;padding:7px 14px;background:none;border:none;border-left:2px solid transparent;font:400 13px 'Inter';color:var(--ink-2);cursor:pointer;transition:background .1s,color .1s;}
   .dp-preset:hover{background:var(--surface);color:var(--ink);}
   .dp-preset.sel{color:var(--accent);font-weight:500;border-left-color:var(--accent);background:var(--surface);}
-  .dp-body{flex:1;padding:16px;display:flex;flex-direction:column;gap:12px;}
+  .dp-body{flex:1;padding:14px 16px;display:flex;flex-direction:column;gap:10px;min-width:0;}
   .dp-title{font-family:'JetBrains Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);}
   .dp-inputs{display:flex;gap:10px;align-items:flex-end;}
-  .dp-field{display:flex;flex-direction:column;gap:4px;flex:1;}
+  .dp-field{display:flex;flex-direction:column;gap:4px;flex:1;min-width:0;}
   .dp-field span{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;}
   .dp-field input[type=date]{background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:7px 10px;font:400 13px 'Inter';color:var(--ink);outline:none;width:100%;cursor:pointer;transition:border-color .15s;}
   .dp-field input[type=date]:focus{border-color:var(--accent);}
   .dp-preview{padding:7px 10px;background:var(--bg);border:1px solid var(--line);border-radius:6px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);min-height:33px;display:flex;align-items:center;}
   .dp-actions{display:flex;gap:8px;justify-content:flex-end;}
+
+  /* CALENDAR WIDGET */
+  .cal-wrap{
+    background:var(--bg);border:1px solid var(--line);
+    border-radius:8px;padding:10px 12px;
+    display:flex;flex-direction:column;gap:6px;
+  }
+  .cal-header{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 2px 4px;}
+  .cal-month-label{
+    font-family:'Bricolage Grotesque',serif;font-size:14px;font-weight:600;
+    color:var(--ink);letter-spacing:-.01em;flex:1;text-align:center;
+  }
+  .cal-nav{
+    background:transparent;border:1px solid var(--line);
+    width:26px;height:26px;border-radius:6px;cursor:pointer;
+    color:var(--ink-2);display:flex;align-items:center;justify-content:center;
+    font-size:13px;line-height:1;flex-shrink:0;transition:background .12s,color .12s,border-color .12s;
+  }
+  .cal-nav:hover{background:var(--surface);color:var(--ink);border-color:var(--accent);}
+  .cal-weekdays{
+    display:grid;grid-template-columns:repeat(7,1fr);gap:0;
+    font-family:'JetBrains Mono',monospace;font-size:9px;
+    color:var(--muted);text-transform:uppercase;letter-spacing:.06em;
+    text-align:center;padding:2px 0;
+  }
+  .cal-weekdays span{padding:4px 0;}
+  .cal-days{display:grid;grid-template-columns:repeat(7,1fr);gap:0;}
+  .cal-day{
+    aspect-ratio:1;display:flex;align-items:center;justify-content:center;
+    font:400 12px 'Inter',sans-serif;font-variant-numeric:tabular-nums;
+    border-radius:6px;cursor:pointer;border:none;background:transparent;
+    color:var(--ink);position:relative;
+    transition:background .1s,color .1s;
+  }
+  .cal-day:hover:not(.muted):not(.start):not(.end){background:var(--surface);}
+  .cal-day.muted{color:var(--muted);opacity:.4;}
+  .cal-day.today{font-weight:600;}
+  .cal-day.today::after{
+    content:'';position:absolute;bottom:3px;left:50%;
+    transform:translateX(-50%);width:3px;height:3px;
+    border-radius:50%;background:var(--accent);
+  }
+  .cal-day.today.start::after,.cal-day.today.end::after{background:var(--surface);}
+  .cal-day.in-range{background:rgba(31,63,114,.12);border-radius:0;color:var(--ink);}
+  [data-theme="dark"] .cal-day.in-range{background:rgba(107,158,255,.18);}
+  .cal-day.start,.cal-day.end{
+    background:var(--accent);color:var(--surface);font-weight:500;
+  }
+  .cal-day.start{border-top-right-radius:0;border-bottom-right-radius:0;}
+  .cal-day.end{border-top-left-radius:0;border-bottom-left-radius:0;}
+  .cal-day.start.end{border-radius:6px;}
+  /* When start/end are at row edges, the in-range row above/below visually fills */
+  .cal-day.start:hover,.cal-day.end:hover{opacity:.92;}
   .btn-apply{background:var(--ink);color:var(--surface);border:none;padding:7px 18px;border-radius:6px;font:500 13px 'Inter';cursor:pointer;transition:opacity .15s;}
   .btn-apply:hover{opacity:.82;}
   .btn-cancel{background:transparent;border:1px solid var(--line);padding:7px 14px;border-radius:6px;font:400 13px 'Inter';color:var(--ink-2);cursor:pointer;transition:background .15s;}
@@ -320,6 +373,17 @@
         </div>
         <div class="dp-body">
           <div class="dp-title">Custom date range</div>
+          <div class="cal-wrap">
+            <div class="cal-header">
+              <button type="button" class="cal-nav" id="calPrev" aria-label="Previous month">‹</button>
+              <span class="cal-month-label" id="calLabel">—</span>
+              <button type="button" class="cal-nav" id="calNext" aria-label="Next month">›</button>
+            </div>
+            <div class="cal-weekdays">
+              <span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span>
+            </div>
+            <div class="cal-days" id="calDays"></div>
+          </div>
           <div class="dp-inputs">
             <div class="dp-field"><span>From</span><input type="date" id="dpFrom"></div>
             <div class="dp-field"><span>To</span><input type="date" id="dpTo"></div>
@@ -336,7 +400,6 @@
     <div class="f-group"><label class="f-label">Enterprise</label><select class="f-select" id="fEnt"><option value="all">All enterprises</option></select></div>
     <div class="f-group"><label class="f-label">Team</label><select class="f-select" id="fTeam"><option value="all">All teams</option></select></div>
     <div class="f-group"><label class="f-label">User (QC)</label><select class="f-select" id="fUser"><option value="all">All</option></select></div>
-    <div class="f-group"><label class="f-label">Status</label><select class="f-select" id="fStatus"><option value="all">All</option></select></div>
     <div class="f-group"><label class="f-label">Verified</label><select class="f-select" id="fVerified"><option value="all">All</option></select></div>
     <div class="f-group"><label class="f-label">SLA</label>
       <select class="f-select" id="fSla">
@@ -459,7 +522,7 @@ function fmtTat(mins){
 let isDark=false;
 const charts={};
 let lastResponse=null; // cache last response so we can render breakdown views without refetch
-const F={ preset:'all', from:null, to:null, enterprise:'all', team:'all', user:'all', status:'all', verified:'all', sla:'all' };
+const F={ preset:'all', from:null, to:null, enterprise:'all', team:'all', user:'all', verified:'all', sla:'all' };
 
 // ── KPI definitions — one source of truth for cards ────────────
 const KPIS = [
@@ -536,7 +599,13 @@ function updatePreview(){
   $('dpPreview').textContent=(f&&t)?fmtShort(new Date(f))+'  →  '+fmtShort(new Date(t)):f?'From '+fmtShort(new Date(f)):'—';
 }
 const dtTrigger=$('dateTrigger'),dtPanel=$('datePanel');
-dtTrigger.addEventListener('click',e=>{e.stopPropagation();const o=dtPanel.classList.contains('open');dtPanel.classList.toggle('open',!o);dtTrigger.classList.toggle('open',!o);});
+dtTrigger.addEventListener('click',e=>{
+  e.stopPropagation();
+  const opening=!dtPanel.classList.contains('open');
+  dtPanel.classList.toggle('open',opening);
+  dtTrigger.classList.toggle('open',opening);
+  if(opening) syncCalFromInputs();
+});
 document.addEventListener('click',e=>{if(!$('dateWrap').contains(e.target)){dtPanel.classList.remove('open');dtTrigger.classList.remove('open');}});
 document.querySelectorAll('.dp-preset').forEach(btn=>{
   btn.addEventListener('click',()=>{
@@ -551,6 +620,7 @@ document.querySelectorAll('.dp-preset').forEach(btn=>{
   });
 });
 ['dpFrom','dpTo'].forEach(id=>$(id).addEventListener('change',()=>{
+  syncCalFromInputs();
   updatePreview();
   document.querySelectorAll('.dp-preset').forEach(b=>b.classList.toggle('sel',b.dataset.p==='custom'));
 }));
@@ -562,6 +632,116 @@ $('dpApply').addEventListener('click',()=>{
 });
 $('dpCancel').addEventListener('click',()=>{dtPanel.classList.remove('open');dtTrigger.classList.remove('open');});
 
+// ── Calendar widget ───────────────────────────────────────────
+const cal = { view: new Date(), rangeStart: null, rangeEnd: null };
+
+function midnight(d){return new Date(d.getFullYear(),d.getMonth(),d.getDate());}
+
+function syncCalFromInputs(){
+  const f=$('dpFrom').value, t=$('dpTo').value;
+  cal.rangeStart = f ? midnight(new Date(f+'T00:00:00')) : null;
+  cal.rangeEnd   = t ? midnight(new Date(t+'T00:00:00')) : null;
+  // View the month containing the start (or current month if none)
+  const ref = cal.rangeStart || new Date();
+  cal.view = new Date(ref.getFullYear(), ref.getMonth(), 1);
+  calRender();
+}
+
+function calRender(){
+  const view = cal.view;
+  $('calLabel').textContent = view.toLocaleDateString(undefined,{month:'long',year:'numeric'});
+
+  // Build 6×7 = 42-cell grid starting from Sunday before the 1st of view month
+  const firstWeekday = view.getDay(); // 0 = Sun
+  const lastDay = new Date(view.getFullYear(), view.getMonth()+1, 0).getDate();
+  const prevLast = new Date(view.getFullYear(), view.getMonth(), 0).getDate();
+
+  const cells = [];
+  // Leading days from previous month
+  for (let i=firstWeekday-1; i>=0; i--){
+    cells.push({ date: new Date(view.getFullYear(), view.getMonth()-1, prevLast-i), muted:true });
+  }
+  // Current month days
+  for (let d=1; d<=lastDay; d++){
+    cells.push({ date: new Date(view.getFullYear(), view.getMonth(), d), muted:false });
+  }
+  // Trailing days from next month to fill to 42
+  while (cells.length < 42){
+    const last = cells[cells.length-1].date;
+    cells.push({ date: new Date(last.getFullYear(), last.getMonth(), last.getDate()+1), muted:true });
+  }
+
+  const today = midnight(new Date());
+  const F0 = cal.rangeStart, T0 = cal.rangeEnd;
+
+  $('calDays').innerHTML = cells.map((c,i)=>{
+    const d  = c.date;
+    const ts = d.getTime();
+    const isStart = F0 && ts === F0.getTime();
+    const isEnd   = T0 && ts === T0.getTime();
+    const inRange = F0 && T0 && ts > F0.getTime() && ts < T0.getTime();
+    const isToday = ts === today.getTime();
+    const cls = ['cal-day'];
+    if (c.muted)  cls.push('muted');
+    if (isToday)  cls.push('today');
+    if (isStart)  cls.push('start');
+    if (isEnd)    cls.push('end');
+    if (inRange)  cls.push('in-range');
+    return `<button type="button" class="${cls.join(' ')}" data-i="${i}">${d.getDate()}</button>`;
+  }).join('');
+
+  // Stash cells for click handler lookup
+  cal._cells = cells;
+}
+
+function onCalDayClick(e){
+  const btn = e.target.closest('.cal-day');
+  if (!btn) return;
+  const i = parseInt(btn.dataset.i);
+  const d = cal._cells?.[i]?.date;
+  if (!d) return;
+  const day = midnight(d);
+
+  if (!cal.rangeStart || cal.rangeEnd){
+    // Fresh selection
+    cal.rangeStart = day;
+    cal.rangeEnd   = null;
+  } else {
+    // Have start, set end (auto-swap if user clicked before start)
+    if (day.getTime() < cal.rangeStart.getTime()){
+      cal.rangeEnd = cal.rangeStart;
+      cal.rangeStart = day;
+    } else {
+      cal.rangeEnd = day;
+    }
+  }
+
+  // If user clicked into adjacent month (muted day), navigate to that month
+  if (day.getMonth() !== cal.view.getMonth() || day.getFullYear() !== cal.view.getFullYear()){
+    cal.view = new Date(day.getFullYear(), day.getMonth(), 1);
+  }
+
+  calRender();
+
+  // Reflect into the manual inputs and preview
+  $('dpFrom').value = cal.rangeStart ? isoDate(cal.rangeStart) : '';
+  $('dpTo').value   = cal.rangeEnd   ? isoDate(cal.rangeEnd)   : '';
+  updatePreview();
+
+  // Mark preset list as "Custom"
+  document.querySelectorAll('.dp-preset').forEach(b=>b.classList.toggle('sel',b.dataset.p==='custom'));
+}
+
+$('calDays').addEventListener('click', onCalDayClick);
+$('calPrev').addEventListener('click', ()=>{
+  cal.view = new Date(cal.view.getFullYear(), cal.view.getMonth()-1, 1);
+  calRender();
+});
+$('calNext').addEventListener('click', ()=>{
+  cal.view = new Date(cal.view.getFullYear(), cal.view.getMonth()+1, 1);
+  calRender();
+});
+
 // ── URL builder ──────────────────────────────────────────────
 function buildUrl(extra={}){
   const p=new URLSearchParams();
@@ -570,7 +750,6 @@ function buildUrl(extra={}){
   if(F.enterprise!=='all') p.set('enterprise',F.enterprise);
   if(F.team      !=='all') p.set('team',      F.team);
   if(F.user      !=='all') p.set('user',       F.user);
-  if(F.status    !=='all') p.set('status',     F.status);
   if(F.verified  !=='all') p.set('verified',   F.verified);
   if(F.sla       !=='all') p.set('sla',        F.sla);
   for (const [k,v] of Object.entries(extra)) if(v!=null && v!=='') p.set(k,v);
@@ -607,7 +786,6 @@ function applyServerResponse(data){
     F.enterprise=fl.teamEnterprise; $('fEnt').value=fl.teamEnterprise;
   }
   populateSel($('fUser'),     fl.userList||[],     F.user);
-  populateSel($('fStatus'),   fl.statusList||[],   F.status);
   populateSel($('fVerified'), fl.verifiedList||[], F.verified);
   paint(data);
 }
@@ -622,11 +800,10 @@ function populateSel(sel, items, curVal){
 $('fEnt').addEventListener('change',()=>{F.enterprise=$('fEnt').value;F.team='all';fetchAndRender('Filtering…');});
 $('fTeam').addEventListener('change',()=>{F.team=$('fTeam').value;if(F.team==='all')F.enterprise=$('fEnt').value;fetchAndRender('Filtering…');});
 $('fUser').addEventListener('change', ()=>{F.user    =$('fUser').value;    fetchAndRender();});
-$('fStatus').addEventListener('change',()=>{F.status =$('fStatus').value;  fetchAndRender();});
 $('fVerified').addEventListener('change',()=>{F.verified=$('fVerified').value;fetchAndRender();});
 $('fSla').addEventListener('change',()=>{F.sla=$('fSla').value;fetchAndRender();});
 $('resetBtn').addEventListener('click',()=>{
-  Object.assign(F,{preset:'all',from:null,to:null,enterprise:'all',team:'all',user:'all',status:'all',verified:'all',sla:'all'});
+  Object.assign(F,{preset:'all',from:null,to:null,enterprise:'all',team:'all',user:'all',verified:'all',sla:'all'});
   $('fSla').value='all';
   syncDateUI(); fetchAndRender('Resetting…');
 });
@@ -825,7 +1002,6 @@ function activeFilterChips(){
   if(F.enterprise!=='all') chips.push(`<span class="chip">Enterprise <strong>${esc(F.enterprise)}</strong></span>`);
   if(F.team!=='all')       chips.push(`<span class="chip">Team <strong>${esc(F.team)}</strong></span>`);
   if(F.user!=='all')       chips.push(`<span class="chip">User <strong>${esc(F.user)}</strong></span>`);
-  if(F.status!=='all')     chips.push(`<span class="chip">Status <strong>${esc(F.status)}</strong></span>`);
   if(F.verified!=='all')   chips.push(`<span class="chip">Verified <strong>${esc(F.verified)}</strong></span>`);
   if(F.sla!=='all')        chips.push(`<span class="chip">SLA <strong>${F.sla==='1'?'Within':'Out of'}</strong></span>`);
   return chips.length?chips.join(''):'<span class="chip">No filters applied</span>';
