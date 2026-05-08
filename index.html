@@ -11,18 +11,18 @@
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
 <style>
   :root {
-    --bg:#f6f5f1;--surface:#ffffff;--ink:#0b0b0c;--ink-2:#404045;
-    --muted:#8a8a90;--line:#e8e6df;--accent:#1f3f72;--green:#1f7a52;
-    --amber:#b27a00;--red:#b3261e;--purple:#5b21b6;--teal:#0e7490;
+    --bg:#f6f5f1;--surface:#ffffff;--surface-2:#fbfaf6;--ink:#0b0b0c;--ink-2:#404045;
+    --muted:#8a8a90;--line:#e8e6df;--line-2:#d6d3c8;--accent:#1f3f72;--green:#1f7a52;
+    --amber:#b27a00;--red:#b3261e;--orange:#c2410c;--purple:#5b21b6;--teal:#0e7490;
     --theme-btn-bg:#0b0b0c;--theme-btn-fg:#ffffff;
-    --shadow:rgba(0,0,0,0.06);--shadow-lg:rgba(0,0,0,0.14);
+    --shadow:rgba(0,0,0,0.05);--shadow-md:rgba(0,0,0,0.08);--shadow-lg:rgba(0,0,0,0.18);
   }
   [data-theme="dark"]{
-    --bg:#111113;--surface:#1c1c1f;--ink:#f0efe9;--ink-2:#b0b0b8;
-    --muted:#606068;--line:#2a2a2f;--accent:#4a7fd4;--green:#2faa72;
-    --amber:#d4960a;--red:#e05450;--purple:#9f7aea;--teal:#22d3ee;
+    --bg:#111113;--surface:#1c1c1f;--surface-2:#222226;--ink:#f0efe9;--ink-2:#b0b0b8;
+    --muted:#76767e;--line:#2a2a2f;--line-2:#34343a;--accent:#6b9eff;--green:#4ade80;
+    --amber:#f5c265;--red:#f87171;--orange:#fb923c;--purple:#c084fc;--teal:#22d3ee;
     --theme-btn-bg:#f0efe9;--theme-btn-fg:#111113;
-    --shadow:rgba(0,0,0,0.3);--shadow-lg:rgba(0,0,0,0.5);
+    --shadow:rgba(0,0,0,0.3);--shadow-md:rgba(0,0,0,0.4);--shadow-lg:rgba(0,0,0,0.6);
   }
   *{box-sizing:border-box;}
   body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased;font-size:14px;min-height:100vh;transition:background .25s,color .25s;}
@@ -69,7 +69,6 @@
   .dp-field span{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;}
   .dp-field input[type=date]{background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:7px 10px;font:400 13px 'Inter';color:var(--ink);outline:none;width:100%;cursor:pointer;transition:border-color .15s;}
   .dp-field input[type=date]:focus{border-color:var(--accent);}
-  .dp-field input[type=date]::-webkit-calendar-picker-indicator{opacity:.5;cursor:pointer;}
   .dp-preview{padding:7px 10px;background:var(--bg);border:1px solid var(--line);border-radius:6px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);min-height:33px;display:flex;align-items:center;}
   .dp-actions{display:flex;gap:8px;justify-content:flex-end;}
   .btn-apply{background:var(--ink);color:var(--surface);border:none;padding:7px 18px;border-radius:6px;font:500 13px 'Inter';cursor:pointer;transition:opacity .15s;}
@@ -80,16 +79,58 @@
   /* MAIN */
   main{padding:22px 28px 80px;max-width:1500px;margin:0 auto;}
 
-  /* KPIS */
-  .kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:20px;}
-  .kpi{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px 18px;position:relative;overflow:hidden;transition:background .25s,border-color .25s;}
-  .kpi-bar{position:absolute;top:0;left:0;right:0;height:3px;}
-  .kpi.ca .kpi-bar{background:var(--accent);}.kpi.cg .kpi-bar{background:var(--green);}
-  .kpi.cr .kpi-bar{background:var(--red);}.kpi.cam .kpi-bar{background:var(--amber);}
-  .kpi.ct .kpi-bar{background:var(--teal);}.kpi.cp .kpi-bar{background:var(--purple);}
-  .kpi-label{font-family:'JetBrains Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);}
-  .kpi-value{font-family:'Bricolage Grotesque',serif;font-size:32px;font-weight:600;letter-spacing:-.025em;margin-top:8px;line-height:1;font-variant-numeric:tabular-nums;}
-  .kpi-sub{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);margin-top:6px;}
+  /* OVERVIEW SECTION */
+  .section-label{
+    font-family:'JetBrains Mono',monospace;font-size:11px;
+    text-transform:uppercase;letter-spacing:.14em;color:var(--muted);
+    margin-bottom:14px;font-weight:500;
+  }
+
+  /* KPI CARDS — screenshot style */
+  .kpis{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(170px,1fr));
+    gap:12px;margin-bottom:28px;
+  }
+  .kpi{
+    background:var(--surface);border:1px solid var(--line);border-radius:14px;
+    padding:20px 22px;cursor:pointer;position:relative;
+    transition:transform .15s ease,box-shadow .15s ease,border-color .15s ease;
+    display:flex;flex-direction:column;gap:0;min-height:135px;
+  }
+  .kpi:hover{
+    transform:translateY(-2px);
+    box-shadow:0 6px 20px var(--shadow-md);
+    border-color:var(--line-2);
+  }
+  .kpi:active{transform:translateY(0);}
+  .kpi-label{
+    font-family:'JetBrains Mono',monospace;font-size:11px;
+    text-transform:uppercase;letter-spacing:.08em;color:var(--muted);
+    font-weight:500;line-height:1.35;
+  }
+  .kpi-value{
+    font-family:'Bricolage Grotesque',serif;font-size:38px;font-weight:600;
+    letter-spacing:-.025em;margin-top:14px;line-height:1;
+    font-variant-numeric:tabular-nums;color:var(--ink);
+  }
+  .kpi-value.green {color:var(--green);}
+  .kpi-value.red   {color:var(--red);}
+  .kpi-value.orange{color:var(--orange);}
+  .kpi-value.amber {color:var(--amber);}
+  .kpi-value.blue  {color:var(--accent);}
+  .kpi-value.teal  {color:var(--teal);}
+  .kpi-value.purple{color:var(--purple);}
+  .kpi-sub{
+    font-family:'JetBrains Mono',monospace;font-size:11px;
+    color:var(--muted);margin-top:auto;padding-top:10px;line-height:1.4;
+  }
+  .kpi-arrow{
+    position:absolute;top:18px;right:18px;color:var(--muted);
+    opacity:0;transition:opacity .15s,transform .15s;
+  }
+  .kpi:hover .kpi-arrow{opacity:.7;transform:translate(2px,-2px);}
+  .kpi-arrow svg{width:14px;height:14px;display:block;}
 
   /* GRIDS */
   .grid-2-1{display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:16px;}
@@ -102,12 +143,12 @@
   .legend-item{display:flex;align-items:center;gap:6px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);}
   .legend-dot{width:10px;height:10px;border-radius:3px;flex-shrink:0;}
 
-  /* TABLE */
+  /* TABLE (main) */
   .table-wrap{background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden;transition:background .25s,border-color .25s;}
   .table-head{padding:14px 18px 12px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:baseline;}
   .table-head h3{margin:0;font-family:'Bricolage Grotesque',serif;font-size:16px;font-weight:600;letter-spacing:-.01em;}
   .table-count{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);}
-  .table-scroll{max-height:440px;overflow-y:auto;}
+  .table-scroll{max-height:480px;overflow:auto;}
   table{width:100%;border-collapse:collapse;font-size:13px;}
   thead{position:sticky;top:0;background:var(--surface);z-index:1;}
   th{text-align:left;padding:10px 14px;font-family:'JetBrains Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:500;border-bottom:1px solid var(--line);white-space:nowrap;}
@@ -117,6 +158,8 @@
   .pill.delivered{background:rgba(31,122,82,.1);color:var(--green);border-color:rgba(31,122,82,.3);}
   .pill.rejected{background:rgba(179,38,30,.1);color:var(--red);border-color:rgba(179,38,30,.3);}
   .pill.pending{background:rgba(178,122,0,.1);color:var(--amber);border-color:rgba(178,122,0,.3);}
+  .pill.sla-in{background:rgba(31,122,82,.1);color:var(--green);border-color:rgba(31,122,82,.3);}
+  .pill.sla-out{background:rgba(194,65,12,.1);color:var(--orange);border-color:rgba(194,65,12,.3);}
 
   #errBox{margin-bottom:12px;}
   .err{background:rgba(179,38,30,.07);border:1px solid rgba(179,38,30,.25);color:var(--red);padding:12px 16px;border-radius:8px;font-size:13px;}
@@ -129,14 +172,66 @@
   .spinner{width:28px;height:28px;border:2.5px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;}
   @keyframes spin{to{transform:rotate(360deg);}}
 
+  /* DRILL-DOWN MODAL (side drawer) */
+  .modal-backdrop{
+    display:none;position:fixed;inset:0;z-index:800;
+    background:rgba(0,0,0,0);transition:background .25s;
+  }
+  .modal-backdrop.show{display:block;background:rgba(0,0,0,.45);backdrop-filter:blur(2px);}
+  .modal-panel{
+    position:fixed;top:0;right:0;bottom:0;
+    width:min(95vw,1100px);background:var(--surface);
+    display:flex;flex-direction:column;
+    box-shadow:-12px 0 40px var(--shadow-lg);
+    transform:translateX(100%);transition:transform .3s cubic-bezier(.32,.72,.32,1);
+  }
+  .modal-backdrop.show .modal-panel{transform:translateX(0);}
+  .modal-head{
+    padding:20px 26px;border-bottom:1px solid var(--line);
+    display:flex;justify-content:space-between;align-items:flex-start;gap:16px;
+  }
+  .modal-title-wrap{flex:1;min-width:0;}
+  .modal-title{font-family:'Bricolage Grotesque',serif;font-size:22px;font-weight:600;letter-spacing:-.02em;color:var(--ink);line-height:1.1;}
+  .modal-sub{font-family:'JetBrains Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-top:6px;}
+  .modal-close{
+    background:transparent;border:1px solid var(--line);cursor:pointer;
+    width:34px;height:34px;border-radius:8px;
+    display:flex;align-items:center;justify-content:center;
+    color:var(--ink-2);font-size:20px;line-height:1;
+    transition:background .15s,color .15s;flex-shrink:0;
+  }
+  .modal-close:hover{background:var(--bg);color:var(--ink);}
+  .modal-stats{
+    padding:14px 26px;border-bottom:1px solid var(--line);
+    display:flex;flex-wrap:wrap;gap:24px;background:var(--surface-2);
+  }
+  .modal-stat{display:flex;flex-direction:column;gap:4px;}
+  .modal-stat-label{font-family:'JetBrains Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);}
+  .modal-stat-value{font-family:'Bricolage Grotesque',serif;font-size:22px;font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums;line-height:1;}
+  .modal-stat-value.green{color:var(--green);}.modal-stat-value.red{color:var(--red);}
+  .modal-stat-value.orange{color:var(--orange);}.modal-stat-value.amber{color:var(--amber);}
+  .modal-body{flex:1;overflow:auto;}
+  .modal-footer{padding:10px 26px;border-top:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);}
+  .filter-chips{display:flex;flex-wrap:wrap;gap:6px;}
+  .chip{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:999px;background:var(--bg);border:1px solid var(--line);font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink-2);text-transform:uppercase;letter-spacing:.04em;}
+  .chip strong{color:var(--ink);font-weight:500;}
+  .modal-body table{font-size:13px;}
+  .modal-body th{padding:11px 16px;background:var(--surface);}
+  .modal-body td{padding:11px 16px;}
+  .breakdown-row{cursor:pointer;}
+  .breakdown-row:hover td{background:var(--bg);}
+  .breakdown-name{font-weight:500;color:var(--ink);}
+  .num-cell{text-align:right;font-family:'JetBrains Mono',monospace;font-variant-numeric:tabular-nums;}
+  .pct-bar{display:inline-block;width:60px;height:6px;background:var(--line);border-radius:3px;overflow:hidden;margin-left:8px;vertical-align:middle;}
+  .pct-bar-fill{display:block;height:100%;background:var(--green);}
+
   /* THEME TOGGLE */
   .theme-toggle{position:fixed;bottom:24px;left:24px;z-index:200;background:var(--theme-btn-bg);color:var(--theme-btn-fg);border:none;border-radius:999px;padding:10px 16px;font:500 12px 'JetBrains Mono',monospace;cursor:pointer;display:flex;align-items:center;gap:8px;box-shadow:0 4px 18px var(--shadow);transition:background .25s,color .25s,transform .15s;letter-spacing:.04em;}
   .theme-toggle:hover{transform:translateY(-2px);}
   .theme-toggle svg{width:14px;height:14px;flex-shrink:0;}
 
-  @media(max-width:1200px){.kpis{grid-template-columns:repeat(3,1fr);}}
-  @media(max-width:900px){.kpis{grid-template-columns:repeat(2,1fr);}.grid-2-1,.grid-1-1{grid-template-columns:1fr;}}
-  @media(max-width:600px){header,.filters,main{padding-left:16px;padding-right:16px;}.kpis{grid-template-columns:1fr 1fr;gap:10px;}.kpi-value{font-size:26px;}}
+  @media(max-width:900px){.grid-2-1,.grid-1-1{grid-template-columns:1fr;}.modal-panel{width:100vw;}}
+  @media(max-width:600px){header,.filters,main{padding-left:16px;padding-right:16px;}.kpi-value{font-size:30px;}.modal-stats{gap:14px;padding:12px 18px;}}
 </style>
 </head>
 <body>
@@ -156,7 +251,7 @@
 
 <div id="sticky-top">
   <header>
-    <div class="brand"><h1>Ops Dashboard</h1><span class="tag">QC · Throughput · Status</span></div>
+    <div class="brand"><h1>Ops Dashboard</h1><span class="tag">QC · Throughput · SLA</span></div>
     <div class="actions">
       <span class="autosync-badge" id="autoSyncBadge">Next sync in —</span>
       <span class="sync-info" id="syncInfo">—</span>
@@ -165,7 +260,6 @@
   </header>
 
   <div class="filters">
-    <!-- DATE PICKER -->
     <div class="date-filter" id="dateWrap">
       <label class="f-label">Date range</label>
       <div class="date-trigger" id="dateTrigger" tabindex="0">
@@ -204,25 +298,17 @@
       </div>
     </div>
 
-    <div class="f-group">
-      <label class="f-label">Enterprise</label>
-      <select class="f-select" id="fEnt"><option value="all">All enterprises</option></select>
-    </div>
-    <div class="f-group">
-      <label class="f-label">Team</label>
-      <select class="f-select" id="fTeam"><option value="all">All teams</option></select>
-    </div>
-    <div class="f-group">
-      <label class="f-label">User (QC)</label>
-      <select class="f-select" id="fUser"><option value="all">All</option></select>
-    </div>
-    <div class="f-group">
-      <label class="f-label">Status</label>
-      <select class="f-select" id="fStatus"><option value="all">All</option></select>
-    </div>
-    <div class="f-group">
-      <label class="f-label">Verified</label>
-      <select class="f-select" id="fVerified"><option value="all">All</option></select>
+    <div class="f-group"><label class="f-label">Enterprise</label><select class="f-select" id="fEnt"><option value="all">All enterprises</option></select></div>
+    <div class="f-group"><label class="f-label">Team</label><select class="f-select" id="fTeam"><option value="all">All teams</option></select></div>
+    <div class="f-group"><label class="f-label">User (QC)</label><select class="f-select" id="fUser"><option value="all">All</option></select></div>
+    <div class="f-group"><label class="f-label">Status</label><select class="f-select" id="fStatus"><option value="all">All</option></select></div>
+    <div class="f-group"><label class="f-label">Verified</label><select class="f-select" id="fVerified"><option value="all">All</option></select></div>
+    <div class="f-group"><label class="f-label">SLA</label>
+      <select class="f-select" id="fSla">
+        <option value="all">All</option>
+        <option value="1">Within SLA</option>
+        <option value="0">Out of SLA</option>
+      </select>
     </div>
     <button class="btn-reset" id="resetBtn">Reset</button>
   </div>
@@ -230,13 +316,10 @@
 
 <main>
   <div id="errBox"></div>
-  <section class="kpis">
-    <div class="kpi ca"><span class="kpi-bar"></span><div class="kpi-label">Total Received</div><div class="kpi-value" id="kRecv">—</div><div class="kpi-sub">all records in view</div></div>
-    <div class="kpi cg"><span class="kpi-bar"></span><div class="kpi-label">Delivered</div><div class="kpi-value" id="kDel">—</div><div class="kpi-sub">qc_done &amp; verified</div></div>
-    <div class="kpi cr"><span class="kpi-bar"></span><div class="kpi-label">Rejected</div><div class="kpi-value" id="kRej">—</div><div class="kpi-sub">qc_done &amp; rejected</div></div>
-    <div class="kpi cam"><span class="kpi-bar"></span><div class="kpi-label">Pending</div><div class="kpi-value" id="kPend">—</div><div class="kpi-sub">crm_status ≠ qc_done</div></div>
-    <div class="kpi ct"><span class="kpi-bar"></span><div class="kpi-label">Enterprises</div><div class="kpi-value" id="kEnt">—</div><div class="kpi-sub">in current view</div></div>
-    <div class="kpi cp"><span class="kpi-bar"></span><div class="kpi-label">Teams</div><div class="kpi-value" id="kTeam">—</div><div class="kpi-sub">in current view</div></div>
+
+  <div class="section-label">Overview</div>
+  <section class="kpis" id="kpiGrid">
+    <!-- cards rendered by JS so click-handlers stay in one place -->
   </section>
 
   <section class="grid-2-1">
@@ -251,10 +334,12 @@
     </div>
     <div class="panel"><h3>Status mix</h3><div class="panel-sub">distribution in current view</div><div class="chart-wrap"><canvas id="cStatus"></canvas></div></div>
   </section>
+
   <section class="grid-1-1">
     <div class="panel"><h3>Top enterprises</h3><div class="panel-sub">by job count · click to filter</div><div class="chart-wrap"><canvas id="cEnt"></canvas></div></div>
     <div class="panel"><h3>Top teams</h3><div class="panel-sub">by job count · click to filter</div><div class="chart-wrap"><canvas id="cTeam"></canvas></div></div>
   </section>
+
   <section class="grid-1-1">
     <div class="panel"><h3>Top QC users</h3><div class="panel-sub">by job count · click to filter</div><div class="chart-wrap"><canvas id="cQc"></canvas></div></div>
     <div class="panel"><h3>Verified status breakdown</h3><div class="panel-sub">across filtered records</div><div class="chart-wrap"><canvas id="cVerified"></canvas></div></div>
@@ -266,7 +351,7 @@
       <table>
         <thead><tr>
           <th>Created</th><th>Enterprise</th><th>Team</th><th>QC User</th>
-          <th>Status</th><th>CRM Status</th><th>Verified</th>
+          <th>Status</th><th>CRM</th><th>Verified</th><th>SLA</th><th>TAT</th>
           <th>Video ID</th><th>VIN</th><th>SKU ID</th><th>Updated</th>
         </tr></thead>
         <tbody id="tBody"></tbody>
@@ -275,24 +360,83 @@
   </section>
 </main>
 
+<!-- DRILL-DOWN MODAL -->
+<div class="modal-backdrop" id="modal">
+  <div class="modal-panel">
+    <div class="modal-head">
+      <div class="modal-title-wrap">
+        <div class="modal-title" id="modalTitle">—</div>
+        <div class="modal-sub" id="modalSub">—</div>
+      </div>
+      <button class="modal-close" id="modalClose" aria-label="Close">×</button>
+    </div>
+    <div class="modal-stats" id="modalStats"></div>
+    <div class="modal-body" id="modalBody"></div>
+    <div class="modal-footer">
+      <div class="filter-chips" id="modalChips"></div>
+      <span id="modalCount">—</span>
+    </div>
+  </div>
+</div>
+
 <script>
-const $  = id => document.getElementById(id);
+const $   = id => document.getElementById(id);
 const esc = s => String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const num = n => (n==null||isNaN(+n))?'—':(+n).toLocaleString();
 const fmtDate = s => { if(!s) return '—'; const d=new Date(s); return isNaN(d)?s:d.toLocaleDateString(undefined,{month:'short',day:'2-digit'})+' '+d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}); };
 const isoDate = d => d?d.toISOString().slice(0,10):'';
 const fmtShort = d => d?d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}):'';
 
+// ── TAT formatting (input is minutes) ─────────────────────────
+function fmtTat(mins){
+  if(mins==null||isNaN(+mins)) return '—';
+  const m = +mins;
+  if (m < 1)    return (m*60).toFixed(0)+'s';
+  if (m < 60)   return m.toFixed(1)+'m';
+  if (m < 1440) return (m/60).toFixed(1)+'h';
+  return (m/1440).toFixed(1)+'d';
+}
+
 // ── State ─────────────────────────────────────────────────────
 let isDark=false;
 const charts={};
-// Single filter state object — always sent to server as query params
-const F={ preset:'all', from:null, to:null, enterprise:'all', team:'all', user:'all', status:'all', verified:'all' };
+let lastResponse=null; // cache last response so we can render breakdown views without refetch
+const F={ preset:'all', from:null, to:null, enterprise:'all', team:'all', user:'all', status:'all', verified:'all', sla:'all' };
+
+// ── KPI definitions — one source of truth for cards ────────────
+const KPIS = [
+  { id:'received',  label:'Total Received',   sub:'all records in view',          color:'',       view:null,           kind:'records' },
+  { id:'delivered', label:'Delivered',         sub:'qc_done & verified',           color:'green',  view:'delivered',    kind:'records' },
+  { id:'rejected',  label:'Rejected',          sub:'qc_done & rejected',           color:'red',    view:'rejected',     kind:'records' },
+  { id:'pending',   label:'Pending',           sub:'crm_status ≠ qc_done',         color:'amber',  view:'pending',      kind:'records' },
+  { id:'within',    label:'Within SLA',        sub:'sla flag = 1',                  color:'green',  view:'within_sla',   kind:'records' },
+  { id:'out',       label:'Out of SLA',        sub:'sla flag = 0',                  color:'orange', view:'out_of_sla',   kind:'records' },
+  { id:'tat',       label:'Avg TAT',           sub:'avg turnaround time',          color:'blue',   view:'tat',          kind:'tat'     },
+  { id:'ent',       label:'Total Enterprises', sub:'distinct in current view',     color:'',       view:null,           kind:'breakdown', dim:'enterprise' },
+  { id:'team',      label:'Total Teams',       sub:'distinct in current view',     color:'purple', view:null,           kind:'breakdown', dim:'team'       },
+];
+
+function renderKpiCards(){
+  $('kpiGrid').innerHTML = KPIS.map(k => `
+    <div class="kpi" data-id="${k.id}" role="button" tabindex="0">
+      <div class="kpi-arrow"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 11L11 5M6 5h5v5"/></svg></div>
+      <div class="kpi-label">${esc(k.label)}</div>
+      <div class="kpi-value ${k.color}" id="kv-${k.id}">—</div>
+      <div class="kpi-sub" id="ks-${k.id}">${esc(k.sub)}</div>
+    </div>
+  `).join('');
+  $('kpiGrid').querySelectorAll('.kpi').forEach(el=>{
+    const id = el.dataset.id;
+    const open = ()=>openDrill(KPIS.find(x=>x.id===id));
+    el.addEventListener('click', open);
+    el.addEventListener('keydown', e=>{ if(e.key==='Enter'||e.key===' '){e.preventDefault();open();} });
+  });
+}
 
 // ── Theme ─────────────────────────────────────────────────────
 function getPal(){
   const s=getComputedStyle(document.documentElement);
-  return Object.fromEntries(['ink','muted','line','accent','green','amber','red','purple','teal'].map(k=>[k,s.getPropertyValue('--'+k).trim()]));
+  return Object.fromEntries(['ink','muted','line','accent','green','amber','red','orange','purple','teal'].map(k=>[k,s.getPropertyValue('--'+k).trim()]));
 }
 function applyTheme(dark){
   isDark=dark;
@@ -301,13 +445,13 @@ function applyTheme(dark){
   $('themeIcon').innerHTML=dark?`<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>`:
     `<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>`;
   const dot=$('dotRecv'); if(dot) dot.style.background=getPal().ink;
-  localStorage.setItem('opsDash_theme',dark?'dark':'light');
+  try { localStorage.setItem('opsDash_theme',dark?'dark':'light'); } catch(e){}
+  if(lastResponse) paint(lastResponse); // recolor charts
 }
 $('themeBtn').addEventListener('click',()=>applyTheme(!isDark));
 
 // ── Date picker ───────────────────────────────────────────────
 const PLABELS={all:'All time',today:'Today',this_week:'This week',last_week:'Last week',last_3_weeks:'Last 3 weeks',this_month:'This month',last_month:'Last month',last_30:'Last 30 days',last_3_months:'Last 3 months',custom:'Custom range'};
-
 function presetRange(p){
   const now=new Date(),tod=new Date(now.getFullYear(),now.getMonth(),now.getDate());
   const ago=n=>{const d=new Date(tod);d.setDate(tod.getDate()-n);return d;};
@@ -322,7 +466,6 @@ function presetRange(p){
   if(p==='last_3_months')return{from:new Date(now.getFullYear(),now.getMonth()-3,1),to:new Date(tod)};
   return{from:null,to:null};
 }
-
 function syncDateUI(){
   const{preset,from,to}=F;
   $('dtLabel').textContent = preset!=='custom'? PLABELS[preset]||'All time' :
@@ -335,17 +478,14 @@ function updatePreview(){
   const f=$('dpFrom').value,t=$('dpTo').value;
   $('dpPreview').textContent=(f&&t)?fmtShort(new Date(f))+'  →  '+fmtShort(new Date(t)):f?'From '+fmtShort(new Date(f)):'—';
 }
-
 const dtTrigger=$('dateTrigger'),dtPanel=$('datePanel');
 dtTrigger.addEventListener('click',e=>{e.stopPropagation();const o=dtPanel.classList.contains('open');dtPanel.classList.toggle('open',!o);dtTrigger.classList.toggle('open',!o);});
 document.addEventListener('click',e=>{if(!$('dateWrap').contains(e.target)){dtPanel.classList.remove('open');dtTrigger.classList.remove('open');}});
-
 document.querySelectorAll('.dp-preset').forEach(btn=>{
   btn.addEventListener('click',()=>{
     const p=btn.dataset.p;
     if(p!=='custom'){
-      const r=presetRange(p);
-      F.preset=p;F.from=r.from;F.to=r.to;
+      const r=presetRange(p);F.preset=p;F.from=r.from;F.to=r.to;
       syncDateUI();dtPanel.classList.remove('open');dtTrigger.classList.remove('open');
       fetchAndRender();
     } else {
@@ -365,10 +505,9 @@ $('dpApply').addEventListener('click',()=>{
 });
 $('dpCancel').addEventListener('click',()=>{dtPanel.classList.remove('open');dtTrigger.classList.remove('open');});
 
-// ── Build URL — ALL filters sent to server ─────────────────────
-function buildUrl(){
+// ── URL builder ──────────────────────────────────────────────
+function buildUrl(extra={}){
   const p=new URLSearchParams();
-  // Always send date params so server does the filtering on full dataset
   if(F.from) p.set('start',isoDate(F.from));
   if(F.to)   p.set('end',  isoDate(F.to));
   if(F.enterprise!=='all') p.set('enterprise',F.enterprise);
@@ -376,11 +515,13 @@ function buildUrl(){
   if(F.user      !=='all') p.set('user',       F.user);
   if(F.status    !=='all') p.set('status',     F.status);
   if(F.verified  !=='all') p.set('verified',   F.verified);
+  if(F.sla       !=='all') p.set('sla',        F.sla);
+  for (const [k,v] of Object.entries(extra)) if(v!=null && v!=='') p.set(k,v);
   const s=p.toString();
   return '/api/data'+(s?'?'+s:'');
 }
 
-// ── Fetch (abort previous if in-flight) ──────────────────────
+// ── Main fetch ───────────────────────────────────────────────
 let abortCtrl=null;
 async function fetchAndRender(msg='Fetching data…'){
   if(abortCtrl) abortCtrl.abort();
@@ -391,6 +532,7 @@ async function fetchAndRender(msg='Fetching data…'){
     const res=await fetch(buildUrl(),{signal:abortCtrl.signal});
     const data=await res.json();
     if(!res.ok) throw new Error(data.error||'Request failed');
+    lastResponse=data;
     $('syncInfo').textContent='Synced '+new Date().toLocaleTimeString();
     applyServerResponse(data);
   }catch(err){
@@ -399,59 +541,37 @@ async function fetchAndRender(msg='Fetching data…'){
   }finally{ setLoading(false); }
 }
 
-// ── Apply server response: rebuild selects + paint ────────────
 function applyServerResponse(data){
   const fl=data.filters||{};
-
-  // Enterprise select
-  populateSel($('fEnt'), fl.enterpriseList||[], F.enterprise);
-
-  // Team select — scoped list comes from server (already filtered by enterprise if one was active)
-  populateSel($('fTeam'), fl.teamList||[], F.team);
+  populateSel($('fEnt'),  fl.enterpriseList||[], F.enterprise);
+  populateSel($('fTeam'), fl.teamList||[],       F.team);
   $('fTeam').disabled=!(fl.teamList?.length);
-
-  // If selecting a team caused enterprise to be inferred, sync enterprise dropdown
   if(fl.teamEnterprise && fl.teamEnterprise!=='all' && F.enterprise==='all'){
-    F.enterprise=fl.teamEnterprise;
-    $('fEnt').value=fl.teamEnterprise;
+    F.enterprise=fl.teamEnterprise; $('fEnt').value=fl.teamEnterprise;
   }
-
   populateSel($('fUser'),     fl.userList||[],     F.user);
   populateSel($('fStatus'),   fl.statusList||[],   F.status);
   populateSel($('fVerified'), fl.verifiedList||[], F.verified);
-
   paint(data);
 }
-
 function populateSel(sel, items, curVal){
-  // Preserve first default option text
   const def=sel.options[0]?.textContent||'All';
   sel.innerHTML=`<option value="all">${def}</option>`+
     items.map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join('');
   sel.value=items.includes(curVal)?curVal:'all';
 }
 
-// ── Filter event handlers — update F then fetch ───────────────
-$('fEnt').addEventListener('change',()=>{
-  F.enterprise=$('fEnt').value;
-  // Reset team when enterprise changes — new scoped list comes from server
-  F.team='all';
-  fetchAndRender('Filtering…');
-});
-$('fTeam').addEventListener('change',()=>{
-  F.team=$('fTeam').value;
-  // Bidirectional cascade: let server return teamEnterprise and we'll sync
-  if(F.team==='all') F.enterprise='all'; // clear enterprise when team cleared
-  fetchAndRender('Filtering…');
-});
-$('fUser').addEventListener('change',   ()=>{ F.user    =$('fUser').value;    fetchAndRender(); });
-$('fStatus').addEventListener('change', ()=>{ F.status  =$('fStatus').value;  fetchAndRender(); });
-$('fVerified').addEventListener('change',()=>{ F.verified=$('fVerified').value;fetchAndRender(); });
-
+// ── Filter handlers ───────────────────────────────────────────
+$('fEnt').addEventListener('change',()=>{F.enterprise=$('fEnt').value;F.team='all';fetchAndRender('Filtering…');});
+$('fTeam').addEventListener('change',()=>{F.team=$('fTeam').value;if(F.team==='all')F.enterprise=$('fEnt').value;fetchAndRender('Filtering…');});
+$('fUser').addEventListener('change', ()=>{F.user    =$('fUser').value;    fetchAndRender();});
+$('fStatus').addEventListener('change',()=>{F.status =$('fStatus').value;  fetchAndRender();});
+$('fVerified').addEventListener('change',()=>{F.verified=$('fVerified').value;fetchAndRender();});
+$('fSla').addEventListener('change',()=>{F.sla=$('fSla').value;fetchAndRender();});
 $('resetBtn').addEventListener('click',()=>{
-  Object.assign(F,{preset:'all',from:null,to:null,enterprise:'all',team:'all',user:'all',status:'all',verified:'all'});
-  syncDateUI();
-  fetchAndRender('Resetting…');
+  Object.assign(F,{preset:'all',from:null,to:null,enterprise:'all',team:'all',user:'all',status:'all',verified:'all',sla:'all'});
+  $('fSla').value='all';
+  syncDateUI(); fetchAndRender('Resetting…');
 });
 
 // ── Auto-sync ─────────────────────────────────────────────────
@@ -474,12 +594,7 @@ $('syncBtn').addEventListener('click',async()=>{
   $('syncBtn').disabled=false;$('syncBtn').textContent='Sync';
   schedAuto();
 });
-
-// ── Loading overlay ───────────────────────────────────────────
-function setLoading(on,msg='Loading…'){
-  $('loadOverlay').classList.toggle('show',on);
-  $('loadMsg').textContent=msg;
-}
+function setLoading(on,msg='Loading…'){$('loadOverlay').classList.toggle('show',on);$('loadMsg').textContent=msg;}
 
 // ── Charts ────────────────────────────────────────────────────
 Chart.defaults.font.family="'Inter',sans-serif";
@@ -500,7 +615,6 @@ function mkLine(canvas,monthly){
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{mode:'index',intersect:false},datalabels:{display:true}},scales:{x:{grid:{color:PAL.line,drawTicks:false},ticks:{font:{size:11},color:PAL.muted}},y:{grid:{color:PAL.line},beginAtZero:true,ticks:{font:{size:11},color:PAL.muted}}}},
   });
 }
-
 function mkDonut(id,canvas,map){
   killChart(id);
   if(!map||!Object.keys(map).length) return;
@@ -508,7 +622,6 @@ function mkDonut(id,canvas,map){
   const colors=labels.map((l,i)=>{const k=l.toLowerCase();if(k==='delivered'||k==='verified')return PAL.green;if(k==='rejected')return PAL.red;if(k==='pending')return PAL.amber;if(k==='none')return PAL.muted;return[PAL.accent,PAL.purple,PAL.teal,'#7c2d12','#365314'][i%5];});
   charts[id]=new Chart(canvas,{type:'doughnut',plugins:[ChartDataLabels],data:{labels,datasets:[{data:values,backgroundColor:colors,borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,cutout:'64%',plugins:{legend:{position:'right',labels:{boxWidth:10,boxHeight:10,font:{size:12},padding:10,color:PAL.muted}},tooltip:{displayColors:false},datalabels:{display:false}}}});
 }
-
 function mkBar(id,canvas,map,opts={}){
   killChart(id);
   if(!map||!Object.keys(map).length) return;
@@ -525,44 +638,193 @@ function mkBar(id,canvas,map,opts={}){
 // ── Paint ─────────────────────────────────────────────────────
 function paint(data){
   const PAL=getPal(),k=data.kpis||{},c=data.charts||{};
-  $('kRecv').textContent=num(k.totalReceived);
-  $('kDel').textContent=num(k.totalDelivered);
-  $('kRej').textContent=num(k.totalRejected);
-  $('kPend').textContent=num(k.totalPending);
-  $('kEnt').textContent=num(k.totalEnterpriseCount);
-  $('kTeam').textContent=num(k.totalTeamCount);
+
+  // KPI values
+  $('kv-received').textContent  = num(k.totalReceived);
+  $('kv-delivered').textContent = num(k.totalDelivered);
+  $('kv-rejected').textContent  = num(k.totalRejected);
+  $('kv-pending').textContent   = num(k.totalPending);
+  $('kv-within').textContent    = num(k.withinSla);
+  $('kv-out').textContent       = num(k.outOfSla);
+  $('kv-tat').textContent       = fmtTat(k.avgTat);
+  $('kv-ent').textContent       = num(k.totalEnterpriseCount);
+  $('kv-team').textContent      = num(k.totalTeamCount);
+
+  // Sub-text refinements
+  $('ks-tat').textContent = k.tatRecordCount ? `from ${num(k.tatRecordCount)} records with TAT data` : 'avg turnaround time';
+  $('ks-within').textContent = k.totalReceived ? `${((k.withinSla/k.totalReceived)*100).toFixed(1)}% of total` : 'sla flag = 1';
+  $('ks-out').textContent    = k.totalReceived ? `${((k.outOfSla /k.totalReceived)*100).toFixed(1)}% of total` : 'sla flag = 0';
+
   const dot=$('dotRecv');if(dot)dot.style.background=PAL.ink;
   Chart.defaults.color=PAL.muted;Chart.defaults.borderColor=PAL.line;
 
   mkLine($('cMonthly'),c.monthly);
   mkDonut('status',$('cStatus'),c.status);
   mkDonut('verified',$('cVerified'),c.verified);
-
-  // Reverse for horizontal bars (largest at top)
   const rev=obj=>obj?Object.fromEntries(Object.entries(obj).reverse()):{};
-  mkBar('ent',$('cEnt'),rev(c.enterprise),{h:true,color:PAL.accent,
-    onPick:label=>{F.enterprise=label;F.team='all';fetchAndRender('Filtering…');}});
-  mkBar('team',$('cTeam'),rev(c.team),{h:true,color:PAL.purple,
-    onPick:label=>{F.team=label;fetchAndRender('Filtering…');}});
-  mkBar('qc',$('cQc'),rev(c.qc),{h:true,color:PAL.ink,
-    onPick:label=>{F.user=label;fetchAndRender();}});
+  mkBar('ent',$('cEnt'),rev(c.enterprise),{h:true,color:PAL.accent,onPick:label=>{F.enterprise=label;F.team='all';fetchAndRender('Filtering…');}});
+  mkBar('team',$('cTeam'),rev(c.team),{h:true,color:PAL.purple,onPick:label=>{F.team=label;fetchAndRender('Filtering…');}});
+  mkBar('qc',$('cQc'),rev(c.qc),{h:true,color:PAL.ink,onPick:label=>{F.user=label;fetchAndRender();}});
 
-  // Table
-  const rows=data.raw||[];
-  $('tCount').textContent=`${num(rows.length)} of ${num(data.totalFiltered||k.totalReceived)} (showing latest 500)`;
-  $('tBody').innerHTML=!rows.length
-    ?`<tr><td colspan="11" class="empty">No records match these filters.</td></tr>`
+  renderRecordsTable($('tBody'), data.raw||[], data, $('tCount'));
+}
+
+// ── Records table renderer (shared by main + modal) ───────────
+function renderRecordsTable(tbody, rows, data, countEl){
+  if(countEl) countEl.textContent =
+    `${num(rows.length)} of ${num(data.totalFiltered||(data.kpis?.totalReceived))}`+
+    (rows.length>=500?' (showing latest 500)':'');
+  tbody.innerHTML=!rows.length
+    ?`<tr><td colspan="13" class="empty">No records match these filters.</td></tr>`
     :rows.map(r=>{
       const crmL=(r.crm_status||'').toLowerCase(),verL=(r.verified_status||'').toLowerCase();
-      const isD=crmL==='qc_done'&&verL==='verified',isR=crmL==='qc_done'&&verL==='rejected';
+      const isD=crmL==='qc_done'&&verL==='verified',isR=crmL==='qc_done'&&(verL==='rejected'||!verL||verL==='none');
       const pill=isD?'<span class="pill delivered">Delivered</span>':isR?'<span class="pill rejected">Rejected</span>':'<span class="pill pending">Pending</span>';
-      return`<tr><td class="mono">${esc(fmtDate(r.Created_ON))}</td><td>${esc(r.Ent_Name||'—')}</td><td>${esc(r.team||'—')}</td><td>${esc(r.qc_email_id||'—')}</td><td>${esc(r.status||'—')}</td><td>${esc(r.crm_status||'—')}</td><td>${pill}</td><td class="mono">${esc(r.video_id||'—')}</td><td class="mono">${esc(r.vin||'—')}</td><td class="mono">${esc(r.sku_id||'—')}</td><td class="mono">${esc(fmtDate(r.Updated_ON))}</td></tr>`;
+      const slaPill = r.sla===1?'<span class="pill sla-in">In</span>':r.sla===0?'<span class="pill sla-out">Out</span>':'<span class="pill">—</span>';
+      return`<tr><td class="mono">${esc(fmtDate(r.Created_ON))}</td><td>${esc(r.Ent_Name||'—')}</td><td>${esc(r.team||'—')}</td><td>${esc(r.qc_email_id||'—')}</td><td>${esc(r.status||'—')}</td><td>${esc(r.crm_status||'—')}</td><td>${pill}</td><td>${slaPill}</td><td class="mono">${esc(fmtTat(r.tat))}</td><td class="mono">${esc(r.video_id||'—')}</td><td class="mono">${esc(r.vin||'—')}</td><td class="mono">${esc(r.sku_id||'—')}</td><td class="mono">${esc(fmtDate(r.Updated_ON))}</td></tr>`;
     }).join('');
 }
 
+// ─────────────────────────────────────────────────────────────
+// DRILL-DOWN MODAL
+// ─────────────────────────────────────────────────────────────
+function activeFilterChips(){
+  const chips=[];
+  if(F.from||F.to)         chips.push(`<span class="chip">Date <strong>${esc(F.preset==='custom'?(F.from?fmtShort(F.from):'')+(F.from&&F.to?' → ':'')+(F.to?fmtShort(F.to):''):PLABELS[F.preset]||'')}</strong></span>`);
+  if(F.enterprise!=='all') chips.push(`<span class="chip">Enterprise <strong>${esc(F.enterprise)}</strong></span>`);
+  if(F.team!=='all')       chips.push(`<span class="chip">Team <strong>${esc(F.team)}</strong></span>`);
+  if(F.user!=='all')       chips.push(`<span class="chip">User <strong>${esc(F.user)}</strong></span>`);
+  if(F.status!=='all')     chips.push(`<span class="chip">Status <strong>${esc(F.status)}</strong></span>`);
+  if(F.verified!=='all')   chips.push(`<span class="chip">Verified <strong>${esc(F.verified)}</strong></span>`);
+  if(F.sla!=='all')        chips.push(`<span class="chip">SLA <strong>${F.sla==='1'?'Within':'Out of'}</strong></span>`);
+  return chips.length?chips.join(''):'<span class="chip">No filters applied</span>';
+}
+
+async function openDrill(kpi){
+  if(!kpi) return;
+  $('modalTitle').textContent = kpi.label;
+  $('modalSub').textContent   = kpi.sub.toUpperCase();
+  $('modalChips').innerHTML   = activeFilterChips();
+  $('modalStats').innerHTML   = '';
+  $('modalBody').innerHTML    = '<div class="empty">Loading…</div>';
+  $('modalCount').textContent = '';
+  $('modal').classList.add('show');
+
+  try{
+    if(kpi.kind==='breakdown'){
+      // Use cached response — no extra fetch needed
+      if(!lastResponse){ $('modalBody').innerHTML='<div class="empty">No data loaded yet.</div>'; return; }
+      renderBreakdown(kpi.dim, lastResponse);
+      return;
+    }
+
+    // For records / tat — fetch with view param
+    const url = buildUrl(kpi.view ? { view: kpi.view } : {});
+    const res = await fetch(url);
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error||'Request failed');
+
+    // Stat strip — show key numbers from the parent (filtered) set
+    const k=data.kpis||{};
+    $('modalStats').innerHTML = [
+      ['In view', num(data.drillCount ?? data.totalFiltered), ''],
+      ['Total filtered', num(data.totalFiltered), ''],
+      ['Delivered', num(k.totalDelivered), 'green'],
+      ['Rejected', num(k.totalRejected), 'red'],
+      ['Within SLA', num(k.withinSla), 'green'],
+      ['Out of SLA', num(k.outOfSla), 'orange'],
+      ['Avg TAT', fmtTat(k.avgTat), ''],
+    ].map(([l,v,c])=>`<div class="modal-stat"><span class="modal-stat-label">${esc(l)}</span><span class="modal-stat-value ${c}">${v}</span></div>`).join('');
+
+    // Body — records table
+    $('modalBody').innerHTML = `
+      <table>
+        <thead><tr>
+          <th>Created</th><th>Enterprise</th><th>Team</th><th>QC User</th>
+          <th>Status</th><th>CRM</th><th>Verified</th><th>SLA</th><th>TAT</th>
+          <th>Video ID</th><th>VIN</th><th>SKU ID</th><th>Updated</th>
+        </tr></thead>
+        <tbody id="modalRows"></tbody>
+      </table>`;
+    renderRecordsTable($('modalRows'), data.raw||[], data, null);
+    const shown = (data.raw||[]).length, total = data.drillCount ?? data.totalFiltered ?? 0;
+    $('modalCount').textContent = `Showing ${num(shown)} of ${num(total)}` + (shown>=500&&total>500?' (latest 500)':'');
+  }catch(err){
+    $('modalBody').innerHTML = `<div class="err" style="margin:20px">Failed to load: ${esc(err.message)}</div>`;
+  }
+}
+
+function renderBreakdown(dim, data){
+  const map = (data.breakdown && data.breakdown[dim]) || {};
+  const entries = Object.entries(map).sort((a,b)=>b[1].total-a[1].total);
+  const totalAll = entries.reduce((s,[,v])=>s+v.total, 0);
+
+  // Stat strip
+  const k=data.kpis||{};
+  const distinct = dim==='enterprise'?k.totalEnterpriseCount:k.totalTeamCount;
+  $('modalStats').innerHTML = [
+    [dim==='enterprise'?'Enterprises':'Teams', num(distinct), 'blue'],
+    ['Total records', num(totalAll), ''],
+    ['Delivered', num(entries.reduce((s,[,v])=>s+v.delivered,0)), 'green'],
+    ['Rejected', num(entries.reduce((s,[,v])=>s+v.rejected,0)), 'red'],
+    ['Within SLA', num(entries.reduce((s,[,v])=>s+v.withinSla,0)), 'green'],
+    ['Out of SLA', num(entries.reduce((s,[,v])=>s+v.outOfSla,0)), 'orange'],
+  ].map(([l,v,c])=>`<div class="modal-stat"><span class="modal-stat-label">${esc(l)}</span><span class="modal-stat-value ${c}">${v}</span></div>`).join('');
+
+  if(!entries.length){
+    $('modalBody').innerHTML = '<div class="empty">No data in current view.</div>';
+    $('modalCount').textContent = '';
+    return;
+  }
+
+  $('modalBody').innerHTML = `
+    <table>
+      <thead><tr>
+        <th>${dim==='enterprise'?'Enterprise':'Team'}</th>
+        <th class="num-cell">Total</th>
+        <th class="num-cell">Delivered</th>
+        <th class="num-cell">Rejected</th>
+        <th class="num-cell">Pending</th>
+        <th class="num-cell">Within SLA</th>
+        <th class="num-cell">Out of SLA</th>
+        <th class="num-cell">Delivery rate</th>
+      </tr></thead>
+      <tbody>${entries.map(([name,v])=>{
+        const rate = v.total ? (v.delivered/v.total)*100 : 0;
+        return `<tr class="breakdown-row" data-name="${esc(name)}" data-dim="${dim}" title="Click to filter by ${esc(name)}">
+          <td class="breakdown-name">${esc(name)}</td>
+          <td class="num-cell">${num(v.total)}</td>
+          <td class="num-cell" style="color:var(--green)">${num(v.delivered)}</td>
+          <td class="num-cell" style="color:var(--red)">${num(v.rejected)}</td>
+          <td class="num-cell" style="color:var(--amber)">${num(v.pending)}</td>
+          <td class="num-cell" style="color:var(--green)">${num(v.withinSla)}</td>
+          <td class="num-cell" style="color:var(--orange)">${num(v.outOfSla)}</td>
+          <td class="num-cell">${rate.toFixed(1)}%<span class="pct-bar"><span class="pct-bar-fill" style="width:${rate.toFixed(1)}%"></span></span></td>
+        </tr>`;
+      }).join('')}</tbody>
+    </table>`;
+  $('modalCount').textContent = `${num(entries.length)} ${dim==='enterprise'?'enterprises':'teams'}`;
+
+  $('modalBody').querySelectorAll('.breakdown-row').forEach(tr=>{
+    tr.addEventListener('click',()=>{
+      const name=tr.dataset.name, d=tr.dataset.dim;
+      if(d==='enterprise'){ F.enterprise=name; F.team='all'; }
+      else                { F.team=name; }
+      closeModal();
+      fetchAndRender('Filtering…');
+    });
+  });
+}
+
+function closeModal(){$('modal').classList.remove('show');}
+$('modalClose').addEventListener('click',closeModal);
+$('modal').addEventListener('click',e=>{if(e.target===$('modal'))closeModal();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('modal').classList.contains('show'))closeModal();});
+
 // ── Init ──────────────────────────────────────────────────────
-const savedTheme=localStorage.getItem('opsDash_theme');
+let savedTheme=null; try{savedTheme=localStorage.getItem('opsDash_theme');}catch(e){}
 if(savedTheme==='dark') applyTheme(true);
+renderKpiCards();
 syncDateUI();
 fetchAndRender('Loading dashboard…');
 schedAuto();
