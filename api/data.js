@@ -110,13 +110,42 @@ async function loadCache() {
     r._team     = pickField(r, ['Team_Name','team_name','Team','team','qc_team','QC_Team','department','Department','group','Group']).trim();
     r._created  = safeDate(r.Created_ON);
     r._updated  = safeDate(r.Updated_ON);
-    r._tat      = parseTat(pickField(r, [
+    // Try MANY common column-name variations for TAT
+    const tatRaw = pickField(r, [
       'TAT','tat','Tat','TAT_minutes','tat_minutes','TAT_seconds','tat_seconds',
-      'turnaround_time','Turnaround_Time','TurnaroundTime','delivery_tat','Delivery_TAT'
-    ]));
+      'TAT_in_minutes','tat_in_minutes','TAT_in_min','tat_in_min',
+      'TAT_in_seconds','tat_in_seconds','TAT_in_sec','tat_in_sec',
+      'TAT_hours','tat_hours','TAT_in_hours','tat_in_hours',
+      'turnaround_time','Turnaround_Time','TurnaroundTime','turnaround','Turnaround',
+      'delivery_tat','Delivery_TAT','total_tat','Total_TAT','final_tat','Final_TAT',
+      'processing_time','Processing_Time','processingTime',
+      'time_taken','Time_Taken','duration','Duration',
+    ]);
+    r._tat = parseTat(tatRaw);
+
+    // If parseTat parsed a value from a *_seconds or *_hours column, normalize to minutes.
+    for (const [name, factor] of [
+      ['TAT_seconds', 1/60], ['tat_seconds', 1/60], ['TAT_in_seconds', 1/60], ['tat_in_seconds', 1/60],
+      ['TAT_in_sec', 1/60], ['tat_in_sec', 1/60],
+      ['TAT_hours', 60], ['tat_hours', 60], ['TAT_in_hours', 60], ['tat_in_hours', 60],
+    ]) {
+      if (r[name] != null && String(r[name]).trim() !== '' && r._tat != null) {
+        r._tat = r._tat * factor;
+        break;
+      }
+    }
+
     r._sla = parseSla(pickField(r, [
-      'SLA_Flag','sla_flag','SLA','sla','within_sla','Within_SLA','is_within_sla','SLA_Status','sla_status'
+      'SLA_Flag','sla_flag','SLA','sla','within_sla','Within_SLA','is_within_sla',
+      'SLA_Status','sla_status','SLA_flag','sla_met','SLA_Met','within_sla_flag',
     ]));
+
+    // Fallback: derive TAT from (Updated_ON - Created_ON) for closed records
+    // when no explicit TAT column was found in the source.
+    if (r._tat == null && r._created && r._updated && r._crm === 'qc_done') {
+      const diffMs = r._updated.getTime() - r._created.getTime();
+      if (diffMs > 0) r._tat = diffMs / 60000; // minutes
+    }
     return r;
   });
 
@@ -191,10 +220,13 @@ function aggregate(rows) {
     rejected:  Object.fromEntries(sortedMonths.map(k => [k, monthMap[k].rejected])),
   };
 
+  const slaTotal = withinSla + outOfSla;
   return {
     kpis: {
       totalReceived, totalDelivered, totalRejected, totalPending,
       withinSla, outOfSla, slaUnknown,
+      slaTotal,
+      slaPercent: slaTotal ? +((withinSla / slaTotal) * 100).toFixed(2) : null,
       avgTat: tatCount ? +(tatSum / tatCount).toFixed(2) : null,
       tatRecordCount: tatCount,
       totalEnterpriseCount: Object.keys(entMap).length,
