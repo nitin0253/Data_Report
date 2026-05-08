@@ -161,6 +161,41 @@
   .pill.sla-in{background:rgba(31,122,82,.1);color:var(--green);border-color:rgba(31,122,82,.3);}
   .pill.sla-out{background:rgba(194,65,12,.1);color:var(--orange);border-color:rgba(194,65,12,.3);}
 
+  /* SLA PANEL */
+  .sla-content{display:flex;flex-direction:column;gap:14px;padding-top:6px;}
+  .sla-cells{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .sla-cell{
+    padding:14px 16px;border-radius:10px;background:var(--surface-2);
+    border:1px solid var(--line);display:flex;flex-direction:column;
+    align-items:flex-start;gap:4px;cursor:pointer;
+    transition:transform .15s,box-shadow .15s,border-color .15s;
+  }
+  .sla-cell:hover{transform:translateY(-2px);box-shadow:0 4px 14px var(--shadow-md);border-color:var(--line-2);}
+  .sla-cell.sla-in{border-left:3px solid var(--green);}
+  .sla-cell.sla-out{border-left:3px solid var(--orange);}
+  .sla-num{
+    font-family:'Bricolage Grotesque',serif;font-size:30px;font-weight:600;
+    letter-spacing:-.025em;line-height:1;font-variant-numeric:tabular-nums;
+  }
+  .sla-num.green{color:var(--green);}
+  .sla-num.orange{color:var(--orange);}
+  .sla-pct{
+    font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--ink-2);
+    font-variant-numeric:tabular-nums;font-weight:500;
+  }
+  .sla-cell-label{
+    font-family:'JetBrains Mono',monospace;font-size:10px;
+    text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-top:2px;
+  }
+  .sla-bar{display:flex;height:14px;border-radius:7px;overflow:hidden;background:var(--bg);border:1px solid var(--line);}
+  .sla-bar-in{background:var(--green);transition:width .4s ease;height:100%;width:0;}
+  .sla-bar-out{background:var(--orange);transition:width .4s ease;height:100%;width:0;}
+  .sla-tick{display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);}
+  .sla-meta{
+    font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);
+    text-align:center;margin-top:2px;padding-top:4px;border-top:1px solid var(--line);
+  }
+
   #errBox{margin-bottom:12px;}
   .err{background:rgba(179,38,30,.07);border:1px solid rgba(179,38,30,.25);color:var(--red);padding:12px 16px;border-radius:8px;font-size:13px;}
   .empty{padding:60px 20px;text-align:center;color:var(--muted);font-size:13px;}
@@ -332,7 +367,30 @@
         <div class="legend-item"><div class="legend-dot" style="background:#b3261e"></div><span>Rejected</span></div>
       </div>
     </div>
-    <div class="panel"><h3>Status mix</h3><div class="panel-sub">distribution in current view</div><div class="chart-wrap"><canvas id="cStatus"></canvas></div></div>
+    <div class="panel sla-panel">
+      <h3>SLA performance</h3>
+      <div class="panel-sub">within / out of SLA · click cells to drill</div>
+      <div class="sla-content">
+        <div class="sla-cells">
+          <div class="sla-cell sla-in" id="slaCellIn" tabindex="0" role="button">
+            <div class="sla-num green" id="slaNumIn">—</div>
+            <div class="sla-pct" id="slaPctIn">—%</div>
+            <div class="sla-cell-label">Within SLA</div>
+          </div>
+          <div class="sla-cell sla-out" id="slaCellOut" tabindex="0" role="button">
+            <div class="sla-num orange" id="slaNumOut">—</div>
+            <div class="sla-pct" id="slaPctOut">—%</div>
+            <div class="sla-cell-label">Out of SLA</div>
+          </div>
+        </div>
+        <div class="sla-bar" id="slaBar">
+          <div class="sla-bar-in" id="slaBarIn"></div>
+          <div class="sla-bar-out" id="slaBarOut"></div>
+        </div>
+        <div class="sla-tick"><span>0%</span><span>100%</span></div>
+        <div class="sla-meta" id="slaMeta">—</div>
+      </div>
+    </div>
   </section>
 
   <section class="grid-1-1">
@@ -405,15 +463,14 @@ const F={ preset:'all', from:null, to:null, enterprise:'all', team:'all', user:'
 
 // ── KPI definitions — one source of truth for cards ────────────
 const KPIS = [
-  { id:'received',  label:'Total Received',   sub:'all records in view',          color:'',       view:null,           kind:'records' },
-  { id:'delivered', label:'Delivered',         sub:'qc_done & verified',           color:'green',  view:'delivered',    kind:'records' },
-  { id:'rejected',  label:'Rejected',          sub:'qc_done & rejected',           color:'red',    view:'rejected',     kind:'records' },
-  { id:'pending',   label:'Pending',           sub:'crm_status ≠ qc_done',         color:'amber',  view:'pending',      kind:'records' },
-  { id:'within',    label:'Within SLA',        sub:'sla flag = 1',                  color:'green',  view:'within_sla',   kind:'records' },
-  { id:'out',       label:'Out of SLA',        sub:'sla flag = 0',                  color:'orange', view:'out_of_sla',   kind:'records' },
-  { id:'tat',       label:'Avg TAT',           sub:'avg turnaround time',          color:'blue',   view:'tat',          kind:'tat'     },
   { id:'ent',       label:'Total Enterprises', sub:'distinct in current view',     color:'',       view:null,           kind:'breakdown', dim:'enterprise' },
   { id:'team',      label:'Total Teams',       sub:'distinct in current view',     color:'purple', view:null,           kind:'breakdown', dim:'team'       },
+  { id:'received',  label:'Total Received',    sub:'all records in view',          color:'',       view:null,           kind:'records'   },
+  { id:'delivered', label:'Delivered',         sub:'qc_done & verified',           color:'green',  view:'delivered',    kind:'records'   },
+  { id:'rejected',  label:'Rejected',          sub:'qc_done & rejected',           color:'red',    view:'rejected',     kind:'records'   },
+  { id:'pending',   label:'Pending',           sub:'crm_status ≠ qc_done',         color:'amber',  view:'pending',      kind:'records'   },
+  { id:'sla',       label:'SLA Compliance',    sub:'% delivered within SLA',       color:'green',  view:'within_sla',   kind:'records'   },
+  { id:'tat',       label:'Avg TAT',           sub:'avg turnaround time',          color:'blue',   view:'tat',          kind:'tat'       },
 ];
 
 function renderKpiCards(){
@@ -600,17 +657,66 @@ function setLoading(on,msg='Loading…'){$('loadOverlay').classList.toggle('show
 Chart.defaults.font.family="'Inter',sans-serif";
 function killChart(id){if(charts[id]){charts[id].destroy();delete charts[id];}}
 
-function mkLine(canvas,monthly){
+function mkMonthly(canvas, monthly){
   killChart('monthly');
-  if(!monthly||typeof monthly.received!=='object') return;
-  const PAL=getPal(),months=Object.keys(monthly.received).sort();
+  if(!monthly || typeof monthly.received!=='object') return;
+  const PAL=getPal();
+  const months=Object.keys(monthly.received).sort();
   if(!months.length) return;
-  charts.monthly=new Chart(canvas,{
-    type:'line',plugins:[ChartDataLabels],
-    data:{labels:months,datasets:[
-      {label:'Received',data:months.map(m=>monthly.received[m]||0),borderColor:PAL.ink,backgroundColor:'rgba(11,11,12,0.06)',borderWidth:1.8,tension:0.28,pointRadius:3,pointHoverRadius:5,fill:false,datalabels:{align:'top',anchor:'end',color:PAL.ink,font:{family:"'JetBrains Mono',monospace",size:10},formatter:v=>v>0?v:''}},
-      {label:'Delivered',data:months.map(m=>monthly.delivered[m]||0),borderColor:PAL.green,backgroundColor:'transparent',borderWidth:1.8,tension:0.28,pointRadius:3,pointHoverRadius:5,fill:false,datalabels:{align:'bottom',anchor:'end',color:PAL.green,font:{family:"'JetBrains Mono',monospace",size:10},formatter:v=>v>0?v:''}},
-      {label:'Rejected',data:months.map(m=>monthly.rejected[m]||0),borderColor:PAL.red,backgroundColor:'transparent',borderWidth:1.8,tension:0.28,pointRadius:3,pointHoverRadius:5,fill:false,datalabels:{align:'right',anchor:'center',color:PAL.red,font:{family:"'JetBrains Mono',monospace",size:10},formatter:v=>v>0?v:''}},
+
+  // Pretty labels: "2024-12" -> "Dec 2024"
+  const prettyLabels = months.map(m=>{
+    const [y,mm]=m.split('-');
+    return new Date(parseInt(y),parseInt(mm)-1,1)
+      .toLocaleDateString('en-US',{month:'short',year:'numeric'});
+  });
+
+  const recv = months.map(m=>monthly.received[m]||0);
+  const dlvd = months.map(m=>monthly.delivered[m]||0);
+  const rejd = months.map(m=>monthly.rejected[m]||0);
+
+  // For 1-2 months a grouped bar chart is clearer and labels center naturally.
+  // For 3+ months we use the line chart.
+  const useBar = months.length <= 2;
+
+  if (useBar) {
+    charts.monthly = new Chart(canvas,{
+      type:'bar', plugins:[ChartDataLabels],
+      data:{labels:prettyLabels, datasets:[
+        {label:'Received', data:recv, backgroundColor:PAL.ink,   borderRadius:4, maxBarThickness:64},
+        {label:'Delivered',data:dlvd, backgroundColor:PAL.green, borderRadius:4, maxBarThickness:64},
+        {label:'Rejected', data:rejd, backgroundColor:PAL.red,   borderRadius:4, maxBarThickness:64},
+      ]},
+      options:{
+        responsive:true, maintainAspectRatio:false,
+        plugins:{
+          legend:{display:false},
+          tooltip:{mode:'index',intersect:false},
+          datalabels:{
+            anchor:'end', align:'top', offset:4,
+            color:(ctx)=>[PAL.ink,PAL.green,PAL.red][ctx.datasetIndex]||PAL.ink,
+            font:{family:"'JetBrains Mono',monospace",size:11,weight:'500'},
+            formatter:v=>v>0?v:'',
+          },
+        },
+        scales:{
+          x:{grid:{display:false}, ticks:{font:{size:12},color:PAL.muted}},
+          y:{grid:{color:PAL.line}, beginAtZero:true, ticks:{font:{size:11},color:PAL.muted}},
+        },
+      },
+    });
+    return;
+  }
+
+  charts.monthly = new Chart(canvas,{
+    type:'line', plugins:[ChartDataLabels],
+    data:{labels:prettyLabels, datasets:[
+      {label:'Received', data:recv, borderColor:PAL.ink,   backgroundColor:'rgba(11,11,12,0.06)', borderWidth:1.8, tension:0.28, pointRadius:3, pointHoverRadius:5, fill:false,
+       datalabels:{align:'top',anchor:'end',color:PAL.ink,font:{family:"'JetBrains Mono',monospace",size:10},formatter:v=>v>0?v:''}},
+      {label:'Delivered',data:dlvd, borderColor:PAL.green, backgroundColor:'transparent', borderWidth:1.8, tension:0.28, pointRadius:3, pointHoverRadius:5, fill:false,
+       datalabels:{align:'bottom',anchor:'end',color:PAL.green,font:{family:"'JetBrains Mono',monospace",size:10},formatter:v=>v>0?v:''}},
+      {label:'Rejected', data:rejd, borderColor:PAL.red,   backgroundColor:'transparent', borderWidth:1.8, tension:0.28, pointRadius:3, pointHoverRadius:5, fill:false,
+       datalabels:{align:'top',anchor:'end',color:PAL.red,font:{family:"'JetBrains Mono',monospace",size:10},formatter:v=>v>0?v:''}},
     ]},
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{mode:'index',intersect:false},datalabels:{display:true}},scales:{x:{grid:{color:PAL.line,drawTicks:false},ticks:{font:{size:11},color:PAL.muted}},y:{grid:{color:PAL.line},beginAtZero:true,ticks:{font:{size:11},color:PAL.muted}}}},
   });
@@ -639,27 +745,35 @@ function mkBar(id,canvas,map,opts={}){
 function paint(data){
   const PAL=getPal(),k=data.kpis||{},c=data.charts||{};
 
-  // KPI values
+  // KPI values — new ordering: ent, team, received, delivered, rejected, pending, sla, tat
+  $('kv-ent').textContent       = num(k.totalEnterpriseCount);
+  $('kv-team').textContent      = num(k.totalTeamCount);
   $('kv-received').textContent  = num(k.totalReceived);
   $('kv-delivered').textContent = num(k.totalDelivered);
   $('kv-rejected').textContent  = num(k.totalRejected);
   $('kv-pending').textContent   = num(k.totalPending);
-  $('kv-within').textContent    = num(k.withinSla);
-  $('kv-out').textContent       = num(k.outOfSla);
   $('kv-tat').textContent       = fmtTat(k.avgTat);
-  $('kv-ent').textContent       = num(k.totalEnterpriseCount);
-  $('kv-team').textContent      = num(k.totalTeamCount);
+
+  // SLA card → percentage delivered within SLA
+  const slaTotal = (k.withinSla||0) + (k.outOfSla||0);
+  const slaPct   = slaTotal ? (k.withinSla/slaTotal)*100 : null;
+  $('kv-sla').textContent = slaPct!=null ? slaPct.toFixed(1)+'%' : '—';
+  $('ks-sla').textContent = slaTotal
+    ? `${num(k.withinSla)} of ${num(slaTotal)} within SLA`
+    : 'no SLA data in current view';
 
   // Sub-text refinements
-  $('ks-tat').textContent = k.tatRecordCount ? `from ${num(k.tatRecordCount)} records with TAT data` : 'avg turnaround time';
-  $('ks-within').textContent = k.totalReceived ? `${((k.withinSla/k.totalReceived)*100).toFixed(1)}% of total` : 'sla flag = 1';
-  $('ks-out').textContent    = k.totalReceived ? `${((k.outOfSla /k.totalReceived)*100).toFixed(1)}% of total` : 'sla flag = 0';
+  $('ks-tat').textContent = k.tatRecordCount
+    ? `from ${num(k.tatRecordCount)} records with TAT data`
+    : 'no TAT data in current view';
+
+  // Drive the SLA panel (replaces status mix)
+  paintSla(k);
 
   const dot=$('dotRecv');if(dot)dot.style.background=PAL.ink;
   Chart.defaults.color=PAL.muted;Chart.defaults.borderColor=PAL.line;
 
-  mkLine($('cMonthly'),c.monthly);
-  mkDonut('status',$('cStatus'),c.status);
+  mkMonthly($('cMonthly'),c.monthly);
   mkDonut('verified',$('cVerified'),c.verified);
   const rev=obj=>obj?Object.fromEntries(Object.entries(obj).reverse()):{};
   mkBar('ent',$('cEnt'),rev(c.enterprise),{h:true,color:PAL.accent,onPick:label=>{F.enterprise=label;F.team='all';fetchAndRender('Filtering…');}});
@@ -667,6 +781,23 @@ function paint(data){
   mkBar('qc',$('cQc'),rev(c.qc),{h:true,color:PAL.ink,onPick:label=>{F.user=label;fetchAndRender();}});
 
   renderRecordsTable($('tBody'), data.raw||[], data, $('tCount'));
+}
+
+// ── SLA panel painter ────────────────────────────────────────
+function paintSla(k){
+  const within = k.withinSla||0, out = k.outOfSla||0, total = within + out;
+  const pctIn  = total ? (within/total)*100 : 0;
+  const pctOut = total ? (out/total)*100    : 0;
+  $('slaNumIn').textContent  = num(within);
+  $('slaNumOut').textContent = num(out);
+  $('slaPctIn').textContent  = total ? pctIn.toFixed(1)+'%' : '—%';
+  $('slaPctOut').textContent = total ? pctOut.toFixed(1)+'%' : '—%';
+  $('slaBarIn').style.width  = pctIn+'%';
+  $('slaBarOut').style.width = pctOut+'%';
+  const unknown = k.slaUnknown || 0;
+  $('slaMeta').textContent = total
+    ? `${num(total)} records with SLA flag` + (unknown ? ` · ${num(unknown)} without` : '')
+    : 'No SLA data in current view';
 }
 
 // ── Records table renderer (shared by main + modal) ───────────
@@ -821,10 +952,22 @@ $('modalClose').addEventListener('click',closeModal);
 $('modal').addEventListener('click',e=>{if(e.target===$('modal'))closeModal();});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('modal').classList.contains('show'))closeModal();});
 
+// SLA panel cells → drill-down
+function bindSlaCells(){
+  const inCell = $('slaCellIn'), outCell = $('slaCellOut');
+  const openIn  = ()=>openDrill({label:'Within SLA',  sub:'records delivered within SLA',     view:'within_sla', kind:'records'});
+  const openOut = ()=>openDrill({label:'Out of SLA',  sub:'records breached SLA',             view:'out_of_sla', kind:'records'});
+  if (inCell)  { inCell.addEventListener('click', openIn);
+                 inCell.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openIn();}}); }
+  if (outCell) { outCell.addEventListener('click', openOut);
+                 outCell.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openOut();}}); }
+}
+
 // ── Init ──────────────────────────────────────────────────────
 let savedTheme=null; try{savedTheme=localStorage.getItem('opsDash_theme');}catch(e){}
 if(savedTheme==='dark') applyTheme(true);
 renderKpiCards();
+bindSlaCells();
 syncDateUI();
 fetchAndRender('Loading dashboard…');
 schedAuto();
