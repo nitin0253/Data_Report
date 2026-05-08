@@ -49,7 +49,15 @@ function isoMonth(d) { return d ? d.toISOString().slice(0, 7) : null; }
 
 // ── Status helpers ─────────────────────────────────────────────
 function isDelivered(r) { return r._crm === 'qc_done' && r._verified === 'verified'; }
-function isRejected(r)  { return r._crm === 'qc_done' && r._verified === 'rejected'; }
+function isRejected(r) {
+  return (
+    r._crm === 'qc_done' &&
+    (
+      r._verified === 'rejected' ||
+      !r._verified ||                // handles null / undefined / ''
+      r._verified === 'none'
+    )
+  );}
 function isPending(r)   { return r._crm !== 'qc_done'; }
 
 // ── Load and normalise cache ───────────────────────────────────
