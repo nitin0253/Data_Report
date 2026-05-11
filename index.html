@@ -34,9 +34,12 @@
   .brand{display:flex;align-items:baseline;gap:14px;}
   header h1{margin:0;font-family:'Bricolage Grotesque',serif;font-weight:600;font-size:22px;letter-spacing:-.025em;}
   .tag{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;}
-  .actions{display:flex;align-items:center;gap:12px;}
+  .actions{display:flex;align-items:center;gap:10px;}
   .sync-info{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);}
   .autosync-badge{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:3px 10px;white-space:nowrap;}
+  .btn-icon{background:var(--surface);color:var(--ink-2);border:1px solid var(--line);padding:7px 14px;border-radius:6px;font:500 13px 'Inter';cursor:pointer;transition:background .15s,color .15s,border-color .15s;display:inline-flex;align-items:center;gap:6px;}
+  .btn-icon:hover{background:var(--bg);color:var(--ink);}
+  .btn-icon.active{background:var(--accent);color:var(--surface);border-color:var(--accent);}
   .btn-sync{background:var(--ink);color:var(--surface);border:none;padding:8px 16px;border-radius:6px;font:500 13px 'Inter';cursor:pointer;transition:opacity .15s;}
   .btn-sync:hover{opacity:.82;}.btn-sync[disabled]{opacity:.45;cursor:wait;}
 
@@ -51,7 +54,7 @@
 
   /* DATE PICKER */
   .date-filter{position:relative;display:flex;flex-direction:column;gap:4px;}
-  .date-trigger{display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:7px 12px;font:400 13px 'Inter';color:var(--ink);cursor:pointer;min-width:210px;user-select:none;transition:border-color .15s;white-space:nowrap;}
+  .date-trigger{display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:7px 12px;font:400 13px 'Inter';color:var(--ink);cursor:pointer;min-width:220px;user-select:none;transition:border-color .15s;white-space:nowrap;}
   .date-trigger:hover,.date-trigger.open{border-color:var(--accent);}
   .dt-text{flex:1;}.dt-chev{opacity:.4;transition:transform .2s;flex-shrink:0;}
   .date-trigger.open .dt-chev{transform:rotate(180deg);}
@@ -64,139 +67,96 @@
   .dp-preset.sel{color:var(--accent);font-weight:500;border-left-color:var(--accent);background:var(--surface);}
   .dp-body{flex:1;padding:14px 16px;display:flex;flex-direction:column;gap:10px;min-width:0;}
   .dp-title{font-family:'JetBrains Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);}
-  .dp-inputs{display:flex;gap:10px;align-items:flex-end;}
-  .dp-field{display:flex;flex-direction:column;gap:4px;flex:1;min-width:0;}
-  .dp-field span{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;}
-  .dp-field input[type=date]{background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:7px 10px;font:400 13px 'Inter';color:var(--ink);outline:none;width:100%;cursor:pointer;transition:border-color .15s;}
-  .dp-field input[type=date]:focus{border-color:var(--accent);}
-  .dp-preview{padding:7px 10px;background:var(--bg);border:1px solid var(--line);border-radius:6px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);min-height:33px;display:flex;align-items:center;}
-  .dp-actions{display:flex;gap:8px;justify-content:flex-end;}
+  .dp-hint{font-family:'Inter',sans-serif;font-size:11px;color:var(--muted);}
+  .dp-preview{padding:8px 12px;background:var(--bg);border:1px solid var(--line);border-radius:6px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--ink);min-height:34px;display:flex;align-items:center;justify-content:space-between;gap:8px;}
+  .dp-preview .dp-clear{background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer;padding:2px 6px;border-radius:4px;}
+  .dp-preview .dp-clear:hover{background:var(--surface);color:var(--ink);}
 
-  /* CALENDAR WIDGET */
-  .cal-wrap{
-    background:var(--bg);border:1px solid var(--line);
-    border-radius:8px;padding:10px 12px;
-    display:flex;flex-direction:column;gap:6px;
-  }
+  /* CALENDAR */
+  .cal-wrap{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;gap:6px;}
   .cal-header{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 2px 4px;}
-  .cal-month-label{
-    font-family:'Bricolage Grotesque',serif;font-size:14px;font-weight:600;
-    color:var(--ink);letter-spacing:-.01em;flex:1;text-align:center;
-  }
-  .cal-nav{
-    background:transparent;border:1px solid var(--line);
-    width:26px;height:26px;border-radius:6px;cursor:pointer;
-    color:var(--ink-2);display:flex;align-items:center;justify-content:center;
-    font-size:13px;line-height:1;flex-shrink:0;transition:background .12s,color .12s,border-color .12s;
-  }
+  .cal-month-label{font-family:'Bricolage Grotesque',serif;font-size:14px;font-weight:600;color:var(--ink);letter-spacing:-.01em;flex:1;text-align:center;}
+  .cal-nav{background:transparent;border:1px solid var(--line);width:26px;height:26px;border-radius:6px;cursor:pointer;color:var(--ink-2);display:flex;align-items:center;justify-content:center;font-size:13px;line-height:1;flex-shrink:0;transition:background .12s,color .12s,border-color .12s;}
   .cal-nav:hover{background:var(--surface);color:var(--ink);border-color:var(--accent);}
-  .cal-weekdays{
-    display:grid;grid-template-columns:repeat(7,1fr);gap:0;
-    font-family:'JetBrains Mono',monospace;font-size:9px;
-    color:var(--muted);text-transform:uppercase;letter-spacing:.06em;
-    text-align:center;padding:2px 0;
-  }
+  .cal-weekdays{display:grid;grid-template-columns:repeat(7,1fr);gap:0;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;text-align:center;padding:2px 0;}
   .cal-weekdays span{padding:4px 0;}
   .cal-days{display:grid;grid-template-columns:repeat(7,1fr);gap:0;}
-  .cal-day{
-    aspect-ratio:1;display:flex;align-items:center;justify-content:center;
-    font:400 12px 'Inter',sans-serif;font-variant-numeric:tabular-nums;
-    border-radius:6px;cursor:pointer;border:none;background:transparent;
-    color:var(--ink);position:relative;
-    transition:background .1s,color .1s;
-  }
+  .cal-day{aspect-ratio:1;display:flex;align-items:center;justify-content:center;font:400 12px 'Inter',sans-serif;font-variant-numeric:tabular-nums;border-radius:6px;cursor:pointer;border:none;background:transparent;color:var(--ink);position:relative;transition:background .1s,color .1s;}
   .cal-day:hover:not(.muted):not(.start):not(.end){background:var(--surface);}
   .cal-day.muted{color:var(--muted);opacity:.4;}
   .cal-day.today{font-weight:600;}
-  .cal-day.today::after{
-    content:'';position:absolute;bottom:3px;left:50%;
-    transform:translateX(-50%);width:3px;height:3px;
-    border-radius:50%;background:var(--accent);
-  }
+  .cal-day.today::after{content:'';position:absolute;bottom:3px;left:50%;transform:translateX(-50%);width:3px;height:3px;border-radius:50%;background:var(--accent);}
   .cal-day.today.start::after,.cal-day.today.end::after{background:var(--surface);}
   .cal-day.in-range{background:rgba(31,63,114,.12);border-radius:0;color:var(--ink);}
   [data-theme="dark"] .cal-day.in-range{background:rgba(107,158,255,.18);}
-  .cal-day.start,.cal-day.end{
-    background:var(--accent);color:var(--surface);font-weight:500;
-  }
+  .cal-day.start,.cal-day.end{background:var(--accent);color:var(--surface);font-weight:500;}
   .cal-day.start{border-top-right-radius:0;border-bottom-right-radius:0;}
   .cal-day.end{border-top-left-radius:0;border-bottom-left-radius:0;}
   .cal-day.start.end{border-radius:6px;}
-  /* When start/end are at row edges, the in-range row above/below visually fills */
-  .cal-day.start:hover,.cal-day.end:hover{opacity:.92;}
-  .btn-apply{background:var(--ink);color:var(--surface);border:none;padding:7px 18px;border-radius:6px;font:500 13px 'Inter';cursor:pointer;transition:opacity .15s;}
-  .btn-apply:hover{opacity:.82;}
-  .btn-cancel{background:transparent;border:1px solid var(--line);padding:7px 14px;border-radius:6px;font:400 13px 'Inter';color:var(--ink-2);cursor:pointer;transition:background .15s;}
-  .btn-cancel:hover{background:var(--bg);}
 
   /* MAIN */
   main{padding:22px 28px 80px;max-width:1500px;margin:0 auto;}
 
   /* OVERVIEW SECTION */
-  .section-label{
-    font-family:'JetBrains Mono',monospace;font-size:11px;
-    text-transform:uppercase;letter-spacing:.14em;color:var(--muted);
-    margin-bottom:14px;font-weight:500;
-  }
+  .section-label{font-family:'JetBrains Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.14em;color:var(--muted);margin-bottom:14px;font-weight:500;display:flex;align-items:center;gap:10px;}
 
-  /* KPI CARDS — screenshot style */
-  .kpis{
-    display:grid;
-    grid-template-columns:repeat(auto-fit,minmax(170px,1fr));
-    gap:12px;margin-bottom:28px;
-  }
-  .kpi{
-    background:var(--surface);border:1px solid var(--line);border-radius:14px;
-    padding:20px 22px;cursor:pointer;position:relative;
-    transition:transform .15s ease,box-shadow .15s ease,border-color .15s ease;
-    display:flex;flex-direction:column;gap:0;min-height:135px;
-  }
-  .kpi:hover{
-    transform:translateY(-2px);
-    box-shadow:0 6px 20px var(--shadow-md);
-    border-color:var(--line-2);
-  }
+  /* KPI CARDS */
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:28px;}
+  .kpi{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px 20px;cursor:pointer;position:relative;transition:transform .15s ease,box-shadow .15s ease,border-color .15s ease;display:flex;flex-direction:column;gap:0;min-height:135px;}
+  .kpi:hover{transform:translateY(-2px);box-shadow:0 6px 20px var(--shadow-md);border-color:var(--line-2);}
   .kpi:active{transform:translateY(0);}
-  .kpi-label{
-    font-family:'JetBrains Mono',monospace;font-size:11px;
-    text-transform:uppercase;letter-spacing:.08em;color:var(--muted);
-    font-weight:500;line-height:1.35;
-  }
-  .kpi-value{
-    font-family:'Bricolage Grotesque',serif;font-size:38px;font-weight:600;
-    letter-spacing:-.025em;margin-top:14px;line-height:1;
-    font-variant-numeric:tabular-nums;color:var(--ink);
-  }
-  .kpi-value.green {color:var(--green);}
-  .kpi-value.red   {color:var(--red);}
-  .kpi-value.orange{color:var(--orange);}
-  .kpi-value.amber {color:var(--amber);}
-  .kpi-value.blue  {color:var(--accent);}
-  .kpi-value.teal  {color:var(--teal);}
-  .kpi-value.purple{color:var(--purple);}
-  .kpi-sub{
-    font-family:'JetBrains Mono',monospace;font-size:11px;
-    color:var(--muted);margin-top:auto;padding-top:10px;line-height:1.4;
-  }
-  .kpi-arrow{
-    position:absolute;top:18px;right:18px;color:var(--muted);
-    opacity:0;transition:opacity .15s,transform .15s;
-  }
+  .kpi-label{font-family:'JetBrains Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:500;line-height:1.35;}
+  .kpi-value{font-family:'Bricolage Grotesque',serif;font-size:36px;font-weight:600;letter-spacing:-.025em;margin-top:14px;line-height:1;font-variant-numeric:tabular-nums;color:var(--ink);}
+  .kpi-value.green{color:var(--green);}.kpi-value.red{color:var(--red);}.kpi-value.orange{color:var(--orange);}.kpi-value.amber{color:var(--amber);}.kpi-value.blue{color:var(--accent);}.kpi-value.purple{color:var(--purple);}
+  .kpi-pct{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--ink-2);font-weight:500;margin-top:6px;font-variant-numeric:tabular-nums;}
+  .kpi-pct.muted{color:var(--muted);}
+  .kpi-sub{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);margin-top:auto;padding-top:10px;line-height:1.4;}
+  .kpi-arrow{position:absolute;top:18px;right:18px;color:var(--muted);opacity:0;transition:opacity .15s,transform .15s;}
   .kpi:hover .kpi-arrow{opacity:.7;transform:translate(2px,-2px);}
   .kpi-arrow svg{width:14px;height:14px;display:block;}
 
-  /* GRIDS */
-  .grid-2-1{display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:16px;}
-  .grid-1-1{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}
-  .panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px;min-width:0;transition:background .25s,border-color .25s;}
+  /* PANEL GRID — customizable */
+  .panel-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-bottom:16px;}
+  .panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px;min-width:0;transition:background .25s,border-color .25s;position:relative;}
+  .panel[data-size="full"]{grid-column:span 2;}
+  .panel[data-size="half"]{grid-column:span 1;}
+  .panel-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px;}
+  .panel-title-wrap{flex:1;min-width:0;}
   .panel h3{margin:0;font-family:'Bricolage Grotesque',serif;font-size:16px;font-weight:600;letter-spacing:-.01em;}
-  .panel-sub{font-family:'JetBrains Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-top:4px;margin-bottom:14px;}
-  .chart-wrap{position:relative;height:280px;}
-  .legend{display:flex;gap:16px;margin-top:10px;flex-wrap:wrap;}
-  .legend-item{display:flex;align-items:center;gap:6px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);}
-  .legend-dot{width:10px;height:10px;border-radius:3px;flex-shrink:0;}
+  .panel-sub{font-family:'JetBrains Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-top:4px;}
+  .chart-wrap{position:relative;height:300px;}
+  .chart-wrap.tall{height:340px;}
+  .chart-wrap.short{height:260px;}
 
-  /* TABLE (main) */
+  /* TREND CHART TABS */
+  .trend-tabs{display:flex;background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:3px;gap:2px;flex-shrink:0;}
+  .trend-tab{background:transparent;border:none;padding:5px 12px;border-radius:999px;cursor:pointer;font:500 12px 'Inter';color:var(--muted);transition:background .15s,color .15s;letter-spacing:-.005em;}
+  .trend-tab:hover{color:var(--ink);}
+  .trend-tab.sel{background:var(--surface);color:var(--accent);box-shadow:0 1px 3px var(--shadow);}
+  .trend-legend{display:flex;gap:18px;margin-top:8px;flex-wrap:wrap;justify-content:center;}
+  .trend-legend-item{display:flex;align-items:center;gap:6px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);cursor:pointer;}
+  .trend-legend-item .ldot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+  .trend-legend-item .lval{color:var(--ink);font-weight:500;}
+
+  /* SLA PANEL */
+  .sla-content{display:flex;flex-direction:column;gap:14px;padding-top:6px;}
+  .sla-cells{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .sla-cell{padding:14px 16px;border-radius:10px;background:var(--surface-2);border:1px solid var(--line);display:flex;flex-direction:column;align-items:flex-start;gap:4px;cursor:pointer;transition:transform .15s,box-shadow .15s,border-color .15s;}
+  .sla-cell:hover{transform:translateY(-2px);box-shadow:0 4px 14px var(--shadow-md);border-color:var(--line-2);}
+  .sla-cell.sla-in{border-left:3px solid var(--green);}
+  .sla-cell.sla-out{border-left:3px solid var(--orange);}
+  .sla-num{font-family:'Bricolage Grotesque',serif;font-size:30px;font-weight:600;letter-spacing:-.025em;line-height:1;font-variant-numeric:tabular-nums;}
+  .sla-num.green{color:var(--green);}.sla-num.orange{color:var(--orange);}
+  .sla-pct{font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--ink-2);font-variant-numeric:tabular-nums;font-weight:500;}
+  .sla-cell-label{font-family:'JetBrains Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-top:2px;}
+  .sla-bar{display:flex;height:14px;border-radius:7px;overflow:hidden;background:var(--bg);border:1px solid var(--line);}
+  .sla-bar-in{background:var(--green);transition:width .4s ease;height:100%;width:0;}
+  .sla-bar-out{background:var(--orange);transition:width .4s ease;height:100%;width:0;}
+  .sla-tick{display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);}
+  .sla-bottom{display:flex;justify-content:space-between;align-items:center;padding-top:8px;border-top:1px solid var(--line);font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);}
+  .sla-bottom strong{color:var(--ink);font-weight:600;font-variant-numeric:tabular-nums;}
+
+  /* TABLE */
   .table-wrap{background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden;transition:background .25s,border-color .25s;}
   .table-head{padding:14px 18px 12px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:baseline;}
   .table-head h3{margin:0;font-family:'Bricolage Grotesque',serif;font-size:16px;font-weight:600;letter-spacing:-.01em;}
@@ -214,41 +174,6 @@
   .pill.sla-in{background:rgba(31,122,82,.1);color:var(--green);border-color:rgba(31,122,82,.3);}
   .pill.sla-out{background:rgba(194,65,12,.1);color:var(--orange);border-color:rgba(194,65,12,.3);}
 
-  /* SLA PANEL */
-  .sla-content{display:flex;flex-direction:column;gap:14px;padding-top:6px;}
-  .sla-cells{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-  .sla-cell{
-    padding:14px 16px;border-radius:10px;background:var(--surface-2);
-    border:1px solid var(--line);display:flex;flex-direction:column;
-    align-items:flex-start;gap:4px;cursor:pointer;
-    transition:transform .15s,box-shadow .15s,border-color .15s;
-  }
-  .sla-cell:hover{transform:translateY(-2px);box-shadow:0 4px 14px var(--shadow-md);border-color:var(--line-2);}
-  .sla-cell.sla-in{border-left:3px solid var(--green);}
-  .sla-cell.sla-out{border-left:3px solid var(--orange);}
-  .sla-num{
-    font-family:'Bricolage Grotesque',serif;font-size:30px;font-weight:600;
-    letter-spacing:-.025em;line-height:1;font-variant-numeric:tabular-nums;
-  }
-  .sla-num.green{color:var(--green);}
-  .sla-num.orange{color:var(--orange);}
-  .sla-pct{
-    font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--ink-2);
-    font-variant-numeric:tabular-nums;font-weight:500;
-  }
-  .sla-cell-label{
-    font-family:'JetBrains Mono',monospace;font-size:10px;
-    text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-top:2px;
-  }
-  .sla-bar{display:flex;height:14px;border-radius:7px;overflow:hidden;background:var(--bg);border:1px solid var(--line);}
-  .sla-bar-in{background:var(--green);transition:width .4s ease;height:100%;width:0;}
-  .sla-bar-out{background:var(--orange);transition:width .4s ease;height:100%;width:0;}
-  .sla-tick{display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);}
-  .sla-meta{
-    font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);
-    text-align:center;margin-top:2px;padding-top:4px;border-top:1px solid var(--line);
-  }
-
   #errBox{margin-bottom:12px;}
   .err{background:rgba(179,38,30,.07);border:1px solid rgba(179,38,30,.25);color:var(--red);padding:12px 16px;border-radius:8px;font-size:13px;}
   .empty{padding:60px 20px;text-align:center;color:var(--muted);font-size:13px;}
@@ -260,39 +185,17 @@
   .spinner{width:28px;height:28px;border:2.5px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;}
   @keyframes spin{to{transform:rotate(360deg);}}
 
-  /* DRILL-DOWN MODAL (side drawer) */
-  .modal-backdrop{
-    display:none;position:fixed;inset:0;z-index:800;
-    background:rgba(0,0,0,0);transition:background .25s;
-  }
+  /* DRILL-DOWN MODAL */
+  .modal-backdrop{display:none;position:fixed;inset:0;z-index:800;background:rgba(0,0,0,0);transition:background .25s;}
   .modal-backdrop.show{display:block;background:rgba(0,0,0,.45);backdrop-filter:blur(2px);}
-  .modal-panel{
-    position:fixed;top:0;right:0;bottom:0;
-    width:min(95vw,1100px);background:var(--surface);
-    display:flex;flex-direction:column;
-    box-shadow:-12px 0 40px var(--shadow-lg);
-    transform:translateX(100%);transition:transform .3s cubic-bezier(.32,.72,.32,1);
-  }
+  .modal-panel{position:fixed;top:0;right:0;bottom:0;width:min(95vw,1100px);background:var(--surface);display:flex;flex-direction:column;box-shadow:-12px 0 40px var(--shadow-lg);transform:translateX(100%);transition:transform .3s cubic-bezier(.32,.72,.32,1);}
   .modal-backdrop.show .modal-panel{transform:translateX(0);}
-  .modal-head{
-    padding:20px 26px;border-bottom:1px solid var(--line);
-    display:flex;justify-content:space-between;align-items:flex-start;gap:16px;
-  }
-  .modal-title-wrap{flex:1;min-width:0;}
+  .modal-head{padding:20px 26px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:flex-start;gap:16px;}
   .modal-title{font-family:'Bricolage Grotesque',serif;font-size:22px;font-weight:600;letter-spacing:-.02em;color:var(--ink);line-height:1.1;}
   .modal-sub{font-family:'JetBrains Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-top:6px;}
-  .modal-close{
-    background:transparent;border:1px solid var(--line);cursor:pointer;
-    width:34px;height:34px;border-radius:8px;
-    display:flex;align-items:center;justify-content:center;
-    color:var(--ink-2);font-size:20px;line-height:1;
-    transition:background .15s,color .15s;flex-shrink:0;
-  }
+  .modal-close{background:transparent;border:1px solid var(--line);cursor:pointer;width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--ink-2);font-size:20px;line-height:1;transition:background .15s,color .15s;flex-shrink:0;}
   .modal-close:hover{background:var(--bg);color:var(--ink);}
-  .modal-stats{
-    padding:14px 26px;border-bottom:1px solid var(--line);
-    display:flex;flex-wrap:wrap;gap:24px;background:var(--surface-2);
-  }
+  .modal-stats{padding:14px 26px;border-bottom:1px solid var(--line);display:flex;flex-wrap:wrap;gap:24px;background:var(--surface-2);}
   .modal-stat{display:flex;flex-direction:column;gap:4px;}
   .modal-stat-label{font-family:'JetBrains Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);}
   .modal-stat-value{font-family:'Bricolage Grotesque',serif;font-size:22px;font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums;line-height:1;}
@@ -318,8 +221,25 @@
   .theme-toggle:hover{transform:translateY(-2px);}
   .theme-toggle svg{width:14px;height:14px;flex-shrink:0;}
 
-  @media(max-width:900px){.grid-2-1,.grid-1-1{grid-template-columns:1fr;}.modal-panel{width:100vw;}}
-  @media(max-width:600px){header,.filters,main{padding-left:16px;padding-right:16px;}.kpi-value{font-size:30px;}.modal-stats{gap:14px;padding:12px 18px;}}
+  /* EDIT MODE */
+  .edit-controls{display:none;align-items:center;gap:4px;}
+  body.edit-mode .edit-controls{display:flex;}
+  body.edit-mode .panel{border:1px dashed var(--accent);background:linear-gradient(var(--surface),var(--surface)) padding-box;}
+  body.edit-mode .panel::before{content:'';position:absolute;inset:0;background:rgba(31,63,114,0.025);border-radius:12px;pointer-events:none;}
+  [data-theme="dark"] body.edit-mode .panel::before{background:rgba(107,158,255,0.04);}
+  .ec-btn{background:transparent;border:1px solid var(--line);color:var(--ink-2);width:28px;height:28px;border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;line-height:1;transition:background .12s,color .12s,border-color .12s;}
+  .ec-btn:hover{background:var(--bg);color:var(--ink);border-color:var(--accent);}
+  .ec-btn:disabled{opacity:.3;cursor:not-allowed;}
+  .ec-btn.size-btn{width:auto;padding:0 8px;font-family:'JetBrains Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.05em;}
+  body.edit-mode .kpi{cursor:default;}
+  body.edit-mode .kpi:hover{transform:none;box-shadow:none;border-color:var(--line);}
+  body.edit-mode .panel{transition:none;}
+  .edit-hint{display:none;background:rgba(31,63,114,0.08);border:1px solid rgba(31,63,114,0.2);border-radius:8px;padding:10px 14px;font-size:13px;color:var(--accent);margin-bottom:16px;font-family:'JetBrains Mono',monospace;}
+  body.edit-mode .edit-hint{display:flex;align-items:center;gap:8px;}
+  [data-theme="dark"] .edit-hint{background:rgba(107,158,255,0.1);border-color:rgba(107,158,255,0.3);color:var(--accent);}
+
+  @media(max-width:900px){.panel-grid{grid-template-columns:1fr;}.panel[data-size="full"],.panel[data-size="half"]{grid-column:span 1;}.modal-panel{width:100vw;}}
+  @media(max-width:600px){header,.filters,main{padding-left:16px;padding-right:16px;}.kpi-value{font-size:30px;}.modal-stats{gap:14px;padding:12px 18px;}.date-panel{min-width:0;width:calc(100vw - 32px);flex-direction:column;}.dp-presets{width:100%;border-right:none;border-bottom:1px solid var(--line);display:flex;flex-wrap:wrap;}}
 </style>
 </head>
 <body>
@@ -328,8 +248,7 @@
 
 <button class="theme-toggle" id="themeBtn">
   <svg id="themeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-    <circle cx="12" cy="12" r="5"/>
-    <line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
+    <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
     <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
     <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
     <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
@@ -343,6 +262,10 @@
     <div class="actions">
       <span class="autosync-badge" id="autoSyncBadge">Next sync in —</span>
       <span class="sync-info" id="syncInfo">—</span>
+      <button class="btn-icon" id="editBtn" title="Customize layout">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M11.5 1.5l3 3-9 9L2 14l.5-3.5 9-9z"/></svg>
+        <span id="editLabel">Customize</span>
+      </button>
       <button class="btn-sync" id="syncBtn">Sync</button>
     </div>
   </header>
@@ -352,47 +275,38 @@
       <label class="f-label">Date range</label>
       <div class="date-trigger" id="dateTrigger" tabindex="0">
         <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="2" width="12" height="13" rx="2"/><line x1="5" y1="1" x2="5" y2="4"/><line x1="11" y1="1" x2="11" y2="4"/><line x1="2" y1="7" x2="14" y2="7"/></svg>
-        <span class="dt-text" id="dtLabel">All time</span>
+        <span class="dt-text" id="dtLabel">This month</span>
         <svg class="dt-chev" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="2,4 6,8 10,4"/></svg>
       </div>
       <div class="date-panel" id="datePanel">
         <div class="dp-presets">
           <div class="dp-sec">Quick select</div>
-          <button class="dp-preset sel" data-p="all">All time</button>
+          <button class="dp-preset" data-p="all">All time</button>
           <button class="dp-preset" data-p="today">Today</button>
+          <button class="dp-preset" data-p="yesterday">Yesterday</button>
           <button class="dp-preset" data-p="this_week">This week</button>
           <button class="dp-preset" data-p="last_week">Last week</button>
-          <button class="dp-preset" data-p="last_3_weeks">Last 3 weeks</button>
           <div class="dp-sec" style="margin-top:6px">Months</div>
-          <button class="dp-preset" data-p="this_month">This month</button>
+          <button class="dp-preset sel" data-p="this_month">This month</button>
           <button class="dp-preset" data-p="last_month">Last month</button>
           <button class="dp-preset" data-p="last_30">Last 30 days</button>
           <button class="dp-preset" data-p="last_3_months">Last 3 months</button>
           <div class="dp-sec" style="margin-top:6px">Custom</div>
-          <button class="dp-preset" data-p="custom">Custom range…</button>
+          <button class="dp-preset" data-p="custom">Custom range</button>
         </div>
         <div class="dp-body">
           <div class="dp-title">Custom date range</div>
+          <div class="dp-hint">Click a date to set start, click another to set end and apply.</div>
           <div class="cal-wrap">
             <div class="cal-header">
               <button type="button" class="cal-nav" id="calPrev" aria-label="Previous month">‹</button>
               <span class="cal-month-label" id="calLabel">—</span>
               <button type="button" class="cal-nav" id="calNext" aria-label="Next month">›</button>
             </div>
-            <div class="cal-weekdays">
-              <span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span>
-            </div>
+            <div class="cal-weekdays"><span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span></div>
             <div class="cal-days" id="calDays"></div>
           </div>
-          <div class="dp-inputs">
-            <div class="dp-field"><span>From</span><input type="date" id="dpFrom"></div>
-            <div class="dp-field"><span>To</span><input type="date" id="dpTo"></div>
-          </div>
-          <div class="dp-preview" id="dpPreview">—</div>
-          <div class="dp-actions">
-            <button class="btn-cancel" id="dpCancel">Cancel</button>
-            <button class="btn-apply" id="dpApply">Apply</button>
-          </div>
+          <div class="dp-preview" id="dpPreview"><span id="dpPreviewText">Pick a date to begin</span><button class="dp-clear" id="dpClear" type="button">Clear</button></div>
         </div>
       </div>
     </div>
@@ -414,25 +328,43 @@
 
 <main>
   <div id="errBox"></div>
+  <div class="edit-hint">
+    <span>Customize mode active.</span>
+    <span style="opacity:.85">Use ↑ ↓ to reorder panels, half / full to resize.</span>
+  </div>
 
   <div class="section-label">Overview</div>
-  <section class="kpis" id="kpiGrid">
-    <!-- cards rendered by JS so click-handlers stay in one place -->
-  </section>
+  <section class="kpis" id="kpiGrid"></section>
 
-  <section class="grid-2-1">
-    <div class="panel">
-      <h3>Month-on-month</h3><div class="panel-sub">received · delivered · rejected per month</div>
-      <div class="chart-wrap"><canvas id="cMonthly"></canvas></div>
-      <div class="legend">
-        <div class="legend-item"><div class="legend-dot" id="dotRecv" style="background:#0b0b0c"></div><span>Received</span></div>
-        <div class="legend-item"><div class="legend-dot" style="background:#1f7a52"></div><span>Delivered</span></div>
-        <div class="legend-item"><div class="legend-dot" style="background:#b3261e"></div><span>Rejected</span></div>
+  <div class="panel-grid" id="panelGrid">
+    <div class="panel" data-panel="trend" data-size="full">
+      <div class="panel-header">
+        <div class="panel-title-wrap">
+          <h3>Throughput trend</h3>
+          <div class="panel-sub" id="trendSub">received · delivered · rejected</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div class="trend-tabs" id="trendTabs">
+            <button class="trend-tab" data-r="week">This week</button>
+            <button class="trend-tab" data-r="weeks">6 Weeks</button>
+            <button class="trend-tab sel" data-r="months">6 Months</button>
+            <button class="trend-tab" data-r="year">1 Year</button>
+          </div>
+          <div class="edit-controls" data-panel-ctl="trend"></div>
+        </div>
       </div>
+      <div class="chart-wrap tall"><canvas id="cTrend"></canvas></div>
+      <div class="trend-legend" id="trendLegend"></div>
     </div>
-    <div class="panel sla-panel">
-      <h3>SLA performance</h3>
-      <div class="panel-sub">within / out of SLA · click cells to drill</div>
+
+    <div class="panel" data-panel="sla" data-size="half">
+      <div class="panel-header">
+        <div class="panel-title-wrap">
+          <h3>SLA performance</h3>
+          <div class="panel-sub">within / out of SLA · click to drill</div>
+        </div>
+        <div class="edit-controls" data-panel-ctl="sla"></div>
+      </div>
       <div class="sla-content">
         <div class="sla-cells">
           <div class="sla-cell sla-in" id="slaCellIn" tabindex="0" role="button">
@@ -446,46 +378,71 @@
             <div class="sla-cell-label">Out of SLA</div>
           </div>
         </div>
-        <div class="sla-bar" id="slaBar">
-          <div class="sla-bar-in" id="slaBarIn"></div>
-          <div class="sla-bar-out" id="slaBarOut"></div>
-        </div>
+        <div class="sla-bar"><div class="sla-bar-in" id="slaBarIn"></div><div class="sla-bar-out" id="slaBarOut"></div></div>
         <div class="sla-tick"><span>0%</span><span>100%</span></div>
-        <div class="sla-meta" id="slaMeta">—</div>
+        <div class="sla-bottom">
+          <span>Delivery rate: <strong id="slaDeliveryRate">—</strong></span>
+          <span id="slaMeta">—</span>
+        </div>
       </div>
     </div>
-  </section>
 
-  <section class="grid-1-1">
-    <div class="panel"><h3>Top enterprises</h3><div class="panel-sub">by job count · click to filter</div><div class="chart-wrap"><canvas id="cEnt"></canvas></div></div>
-    <div class="panel"><h3>Top teams</h3><div class="panel-sub">by job count · click to filter</div><div class="chart-wrap"><canvas id="cTeam"></canvas></div></div>
-  </section>
-
-  <section class="grid-1-1">
-    <div class="panel"><h3>Top QC users</h3><div class="panel-sub">by job count · click to filter</div><div class="chart-wrap"><canvas id="cQc"></canvas></div></div>
-    <div class="panel"><h3>Verified status breakdown</h3><div class="panel-sub">across filtered records</div><div class="chart-wrap"><canvas id="cVerified"></canvas></div></div>
-  </section>
-
-  <section class="table-wrap">
-    <div class="table-head"><h3>Recent records</h3><span class="table-count" id="tCount">—</span></div>
-    <div class="table-scroll">
-      <table>
-        <thead><tr>
-          <th>Created</th><th>Enterprise</th><th>Team</th><th>QC User</th>
-          <th>Status</th><th>CRM</th><th>Verified</th><th>SLA</th><th>TAT</th>
-          <th>Video ID</th><th>VIN</th><th>SKU ID</th><th>Updated</th>
-        </tr></thead>
-        <tbody id="tBody"></tbody>
-      </table>
+    <div class="panel" data-panel="topEnt" data-size="half">
+      <div class="panel-header">
+        <div class="panel-title-wrap">
+          <h3>Top enterprises</h3>
+          <div class="panel-sub">by job count · click to filter</div>
+        </div>
+        <div class="edit-controls" data-panel-ctl="topEnt"></div>
+      </div>
+      <div class="chart-wrap"><canvas id="cEnt"></canvas></div>
     </div>
-  </section>
+
+    <div class="panel" data-panel="topTeam" data-size="half">
+      <div class="panel-header">
+        <div class="panel-title-wrap">
+          <h3>Top teams</h3>
+          <div class="panel-sub">by job count · click to filter</div>
+        </div>
+        <div class="edit-controls" data-panel-ctl="topTeam"></div>
+      </div>
+      <div class="chart-wrap"><canvas id="cTeam"></canvas></div>
+    </div>
+
+    <div class="panel" data-panel="topQc" data-size="half">
+      <div class="panel-header">
+        <div class="panel-title-wrap">
+          <h3>Top QC users</h3>
+          <div class="panel-sub">by job count · click to filter</div>
+        </div>
+        <div class="edit-controls" data-panel-ctl="topQc"></div>
+      </div>
+      <div class="chart-wrap"><canvas id="cQc"></canvas></div>
+    </div>
+
+    <div class="panel" data-panel="records" data-size="full" style="padding:0;">
+      <div class="panel-header" style="padding:14px 18px 12px;border-bottom:1px solid var(--line);margin-bottom:0;">
+        <div class="panel-title-wrap"><h3>Recent records</h3><div class="panel-sub" id="tCount">—</div></div>
+        <div class="edit-controls" data-panel-ctl="records"></div>
+      </div>
+      <div class="table-scroll">
+        <table>
+          <thead><tr>
+            <th>Created</th><th>Enterprise</th><th>Team</th><th>QC User</th>
+            <th>Status</th><th>CRM</th><th>Verified</th><th>SLA</th><th>TAT</th>
+            <th>Video ID</th><th>VIN</th><th>SKU ID</th><th>Updated</th>
+          </tr></thead>
+          <tbody id="tBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
 </main>
 
-<!-- DRILL-DOWN MODAL -->
 <div class="modal-backdrop" id="modal">
   <div class="modal-panel">
     <div class="modal-head">
-      <div class="modal-title-wrap">
+      <div style="flex:1;min-width:0;">
         <div class="modal-title" id="modalTitle">—</div>
         <div class="modal-sub" id="modalSub">—</div>
       </div>
@@ -501,39 +458,251 @@
 </div>
 
 <script>
-const $   = id => document.getElementById(id);
+const $ = id => document.getElementById(id);
 const esc = s => String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const num = n => (n==null||isNaN(+n))?'—':(+n).toLocaleString();
-const fmtDate = s => { if(!s) return '—'; const d=new Date(s); return isNaN(d)?s:d.toLocaleDateString(undefined,{month:'short',day:'2-digit'})+' '+d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}); };
 const isoDate = d => d?d.toISOString().slice(0,10):'';
 const fmtShort = d => d?d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}):'';
+const fmtDate = s => { if(!s) return '—'; const d=new Date(s); return isNaN(d)?s:d.toLocaleDateString(undefined,{month:'short',day:'2-digit'})+' '+d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}); };
 
-// ── TAT formatting (input is minutes) ─────────────────────────
-function fmtTat(mins){
-  if(mins==null||isNaN(+mins)) return '—';
-  const m = +mins;
-  if (m < 1)    return (m*60).toFixed(0)+'s';
-  if (m < 60)   return m.toFixed(1)+'m';
-  if (m < 1440) return (m/60).toFixed(1)+'h';
-  return (m/1440).toFixed(1)+'d';
+// TAT now stored in HOURS (matching SQL TAT_Hrs)
+function fmtTatHrs(h){
+  if(h==null||isNaN(+h)) return '—';
+  const v = +h;
+  if (v < 1)  return (v*60).toFixed(0)+'m';
+  if (v < 24) return v.toFixed(2)+'h';
+  return (v/24).toFixed(1)+'d';
 }
 
-// ── State ─────────────────────────────────────────────────────
-let isDark=false;
-const charts={};
-let lastResponse=null; // cache last response so we can render breakdown views without refetch
-const F={ preset:'all', from:null, to:null, enterprise:'all', team:'all', user:'all', verified:'all', sla:'all' };
+// ─────────────────────────────────────────────────────────────
+// STATE
+// ─────────────────────────────────────────────────────────────
+const RAW = [];                 // all rows from server (parsed once)
+let lastSynced = null;
+let isDark = false;
+let editMode = false;
+let trendRange = 'months';      // 'week' | 'weeks' | 'months' | 'year'
+const charts = {};
 
-// ── KPI definitions — one source of truth for cards ────────────
+// Default filter = This Month
+const F = {
+  preset:'this_month', from:null, to:null,
+  enterprise:'all', team:'all', user:'all', verified:'all', sla:'all',
+};
+
+// Layout — saved to localStorage
+const DEFAULT_LAYOUT = [
+  { id:'trend',   size:'full' },
+  { id:'sla',     size:'half' },
+  { id:'topEnt',  size:'half' },
+  { id:'topTeam', size:'half' },
+  { id:'topQc',   size:'half' },
+  { id:'records', size:'full' },
+];
+let LAYOUT = (()=>{try{const s=JSON.parse(localStorage.getItem('opsDash_layout_v2'));if(Array.isArray(s)&&s.length)return s;}catch(e){}return DEFAULT_LAYOUT.slice();})();
+const saveLayout = ()=>{try{localStorage.setItem('opsDash_layout_v2',JSON.stringify(LAYOUT));}catch(e){}};
+
+// ─────────────────────────────────────────────────────────────
+// PRESET RANGES
+// ─────────────────────────────────────────────────────────────
+const PLABELS={all:'All time',today:'Today',yesterday:'Yesterday',this_week:'This week',last_week:'Last week',this_month:'This month',last_month:'Last month',last_30:'Last 30 days',last_3_months:'Last 3 months',custom:'Custom range'};
+
+function presetRange(p){
+  const now=new Date(),tod=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+  const ago=n=>{const d=new Date(tod);d.setDate(tod.getDate()-n);return d;};
+  if(p==='all')           return{from:null,to:null};
+  if(p==='today')         return{from:new Date(tod),to:new Date(tod)};
+  if(p==='yesterday'){    const y=ago(1);return{from:y,to:y};}
+  if(p==='this_week'){    const day=tod.getDay(),diff=day===0?-6:1-day,mon=new Date(tod);mon.setDate(tod.getDate()+diff);return{from:mon,to:new Date(tod)};}
+  if(p==='last_week'){    const day=tod.getDay(),diff=day===0?-6:1-day,to2=new Date(tod);to2.setDate(tod.getDate()+diff-1);const fr=new Date(to2);fr.setDate(to2.getDate()-6);return{from:fr,to:to2};}
+  if(p==='this_month')    return{from:new Date(now.getFullYear(),now.getMonth(),1),to:new Date(tod)};
+  if(p==='last_month')    return{from:new Date(now.getFullYear(),now.getMonth()-1,1),to:new Date(now.getFullYear(),now.getMonth(),0)};
+  if(p==='last_30')       return{from:ago(29),to:new Date(tod)};
+  if(p==='last_3_months') return{from:new Date(now.getFullYear(),now.getMonth()-3,1),to:new Date(tod)};
+  return{from:null,to:null};
+}
+
+// ─────────────────────────────────────────────────────────────
+// FILTERING & AGGREGATION  (client-side, instant)
+// ─────────────────────────────────────────────────────────────
+function isDelivered(r){ return r.crm==='qc_done' && r.ver==='verified'; }
+function isRejected(r){  return r.crm==='qc_done' && (r.ver==='rejected' || !r.ver || r.ver==='none'); }
+function isPending(r){   return r.crm!=='qc_done'; }
+
+function passesFilters(r){
+  if (F.enterprise!=='all' && r.ent !== F.enterprise) return false;
+  if (F.team      !=='all' && r.team !== F.team)      return false;
+  if (F.user      !=='all' && r.qc !== F.user)        return false;
+  if (F.verified  !=='all' && r.ver !== F.verified)   return false;
+  if (F.sla==='1' && r.sla !== 1) return false;
+  if (F.sla==='0' && r.sla !== 0) return false;
+  if (F.from){
+    if (!r._created) return false;
+    if (r._created.getTime() < F.from.getTime()) return false;
+  }
+  if (F.to){
+    if (!r._created) return false;
+    if (r._created.getTime() > F.to.getTime()) return false;
+  }
+  return true;
+}
+
+function buildFilterScopes(){
+  // For each dropdown, list values that exist in the dataset (full).
+  // Doesn't shrink as filters apply, so users can always pivot.
+  const ent=new Set(),team=new Set(),user=new Set(),ver=new Set();
+  for (const r of RAW){
+    if (r.ent) ent.add(r.ent);
+    if (r.team) team.add(r.team);
+    if (r.qc) user.add(r.qc);
+    if (r.ver) ver.add(r.ver);
+  }
+  return {
+    enterpriseList: [...ent].sort(),
+    teamList:       [...team].sort(),
+    userList:       [...user].sort(),
+    verifiedList:   [...ver].sort(),
+  };
+}
+
+function aggregate(rows){
+  let totalReceived=0,totalDelivered=0,totalRejected=0,totalPending=0;
+  let withinSla=0,outOfSla=0;       // computed ONLY among delivered records
+  let tatSum=0,tatCount=0;
+  const entCount={},teamCount={},qcCount={};
+  // Breakdowns per dimension — useful for the drill-down view
+  const entBreak={},teamBreak={};
+
+  function bump(map,key,kind){
+    if(!map[key]) map[key]={total:0,delivered:0,rejected:0,pending:0,withinSla:0,outOfSla:0};
+    map[key].total++; map[key][kind]++;
+  }
+
+  for (const r of rows){
+    totalReceived++;
+    let kind='pending';
+    if (isDelivered(r)){
+      totalDelivered++; kind='delivered';
+      // SLA only meaningful for delivered records
+      if (r.sla === 1) withinSla++;
+      else if (r.sla === 0) outOfSla++;
+    } else if (isRejected(r)){
+      totalRejected++; kind='rejected';
+    } else {
+      totalPending++;
+    }
+
+    if (typeof r.tat === 'number' && isFinite(r.tat)) {
+      tatSum += r.tat; tatCount++;
+    }
+
+    if (r.ent)  entCount[r.ent]   = (entCount[r.ent]||0)+1;
+    if (r.team) teamCount[r.team] = (teamCount[r.team]||0)+1;
+    if (r.qc)   qcCount[r.qc]     = (qcCount[r.qc]||0)+1;
+
+    if (r.ent){
+      bump(entBreak, r.ent, kind);
+      if (kind === 'delivered' && r.sla === 1) entBreak[r.ent].withinSla++;
+      else if (kind === 'delivered' && r.sla === 0) entBreak[r.ent].outOfSla++;
+    }
+    if (r.team){
+      bump(teamBreak, r.team, kind);
+      if (kind === 'delivered' && r.sla === 1) teamBreak[r.team].withinSla++;
+      else if (kind === 'delivered' && r.sla === 0) teamBreak[r.team].outOfSla++;
+    }
+  }
+
+  // Top-N sorted DESC by count (server already did this; we re-sort here just in case)
+  const sortDesc = obj => Object.fromEntries(Object.entries(obj).sort((a,b)=>b[1]-a[1]));
+  const slice = (obj, n) => Object.fromEntries(Object.entries(obj).slice(0, n));
+
+  return {
+    totalReceived, totalDelivered, totalRejected, totalPending,
+    withinSla, outOfSla,
+    slaCompliance: totalDelivered ? +((withinSla/totalDelivered)*100).toFixed(2) : null,
+    deliveryRate:  totalReceived  ? +((totalDelivered/totalReceived)*100).toFixed(2) : null,
+    rejectionRate: totalReceived  ? +((totalRejected /totalReceived)*100).toFixed(2) : null,
+    avgTat: tatCount ? +(tatSum/tatCount).toFixed(2) : null,
+    tatRecordCount: tatCount,
+    enterpriseCount: Object.keys(entCount).length,
+    teamCount:       Object.keys(teamCount).length,
+    topEnt:  slice(sortDesc(entCount),  12),
+    topTeam: slice(sortDesc(teamCount), 12),
+    topQc:   slice(sortDesc(qcCount),   15),
+    entBreak, teamBreak,
+  };
+}
+
+// ─────────────────────────────────────────────────────────────
+// TREND BUCKETING  (independent of date filter)
+// ─────────────────────────────────────────────────────────────
+function bucketTrend(rows, range){
+  const now = new Date();
+  const buckets = [];
+
+  if (range === 'week'){
+    // current week, Monday→Sunday, 7 day buckets
+    const dow = now.getDay() || 7; // Sun→7
+    const mon = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dow + 1);
+    for (let i = 0; i < 7; i++){
+      const s = new Date(mon); s.setDate(mon.getDate()+i); s.setHours(0,0,0,0);
+      const e = new Date(s);   e.setDate(s.getDate()+1);
+      buckets.push({ start:s, end:e, label: s.toLocaleDateString('en-US',{weekday:'short'})+' '+s.getDate() });
+    }
+  } else if (range === 'weeks'){
+    // last 6 weeks ending this week
+    const dow = now.getDay() || 7;
+    const mon = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dow + 1);
+    for (let i = -5; i <= 0; i++){
+      const s = new Date(mon); s.setDate(mon.getDate()+i*7); s.setHours(0,0,0,0);
+      const e = new Date(s);   e.setDate(s.getDate()+7);
+      buckets.push({ start:s, end:e, label: s.toLocaleDateString('en-US',{month:'short',day:'2-digit'}) });
+    }
+  } else if (range === 'months'){
+    // last 6 months including current
+    for (let i = -5; i <= 0; i++){
+      const s = new Date(now.getFullYear(), now.getMonth()+i, 1);
+      const e = new Date(now.getFullYear(), now.getMonth()+i+1, 1);
+      const sameYear = s.getFullYear() === now.getFullYear();
+      buckets.push({ start:s, end:e, label: s.toLocaleDateString('en-US', sameYear?{month:'short'}:{month:'short',year:'2-digit'}) });
+    }
+  } else if (range === 'year'){
+    // last 12 months including current
+    for (let i = -11; i <= 0; i++){
+      const s = new Date(now.getFullYear(), now.getMonth()+i, 1);
+      const e = new Date(now.getFullYear(), now.getMonth()+i+1, 1);
+      buckets.push({ start:s, end:e, label: s.toLocaleDateString('en-US',{month:'short',year:'2-digit'}) });
+    }
+  }
+
+  const result = buckets.map(b => ({...b, received:0, delivered:0, rejected:0}));
+  for (const r of rows){
+    if (!r._created) continue;
+    const t = r._created.getTime();
+    for (const b of result){
+      if (t >= b.start.getTime() && t < b.end.getTime()){
+        b.received++;
+        if (isDelivered(r)) b.delivered++;
+        else if (isRejected(r)) b.rejected++;
+        break;
+      }
+    }
+  }
+  return result;
+}
+
+// ─────────────────────────────────────────────────────────────
+// KPI CARDS
+// ─────────────────────────────────────────────────────────────
 const KPIS = [
-  { id:'ent',       label:'Total Enterprises', sub:'distinct in current view',     color:'',       view:null,           kind:'breakdown', dim:'enterprise' },
-  { id:'team',      label:'Total Teams',       sub:'distinct in current view',     color:'purple', view:null,           kind:'breakdown', dim:'team'       },
-  { id:'received',  label:'Total Received',    sub:'all records in view',          color:'',       view:null,           kind:'records'   },
-  { id:'delivered', label:'Delivered',         sub:'qc_done & verified',           color:'green',  view:'delivered',    kind:'records'   },
-  { id:'rejected',  label:'Rejected',          sub:'qc_done & rejected',           color:'red',    view:'rejected',     kind:'records'   },
-  { id:'pending',   label:'Pending',           sub:'crm_status ≠ qc_done',         color:'amber',  view:'pending',      kind:'records'   },
-  { id:'sla',       label:'SLA Compliance',    sub:'% delivered within SLA',       color:'green',  view:'within_sla',   kind:'records'   },
-  { id:'tat',       label:'Avg TAT',           sub:'avg turnaround time',          color:'blue',   view:'tat',          kind:'tat'       },
+  { id:'ent',       label:'Total Enterprises', sub:'distinct in view',  color:'',       kind:'breakdown', dim:'ent'  },
+  { id:'team',      label:'Total Teams',       sub:'distinct in view',  color:'purple', kind:'breakdown', dim:'team' },
+  { id:'received',  label:'Total Received',    sub:'all records',       color:'',       kind:'records',   view:'all'        },
+  { id:'delivered', label:'Delivered',         sub:'qc_done & verified',color:'green',  kind:'records',   view:'delivered'  },
+  { id:'rejected',  label:'Rejected',          sub:'qc_done & rejected',color:'red',    kind:'records',   view:'rejected'   },
+  { id:'pending',   label:'Pending',           sub:'crm_status ≠ qc_done',color:'amber',kind:'records',   view:'pending'    },
+  { id:'sla',       label:'SLA Compliance',    sub:'within / delivered',color:'green',  kind:'records',   view:'within_sla' },
+  { id:'tat',       label:'Avg TAT',           sub:'turnaround time',   color:'blue',   kind:'records',   view:'tat'        },
 ];
 
 function renderKpiCards(){
@@ -542,425 +711,128 @@ function renderKpiCards(){
       <div class="kpi-arrow"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 11L11 5M6 5h5v5"/></svg></div>
       <div class="kpi-label">${esc(k.label)}</div>
       <div class="kpi-value ${k.color}" id="kv-${k.id}">—</div>
+      <div class="kpi-pct" id="kp-${k.id}"></div>
       <div class="kpi-sub" id="ks-${k.id}">${esc(k.sub)}</div>
     </div>
   `).join('');
   $('kpiGrid').querySelectorAll('.kpi').forEach(el=>{
     const id = el.dataset.id;
-    const open = ()=>openDrill(KPIS.find(x=>x.id===id));
+    const open = ()=>{ if(editMode) return; openDrill(KPIS.find(x=>x.id===id)); };
     el.addEventListener('click', open);
     el.addEventListener('keydown', e=>{ if(e.key==='Enter'||e.key===' '){e.preventDefault();open();} });
   });
 }
 
-// ── Theme ─────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────
+// CHART HELPERS
+// ─────────────────────────────────────────────────────────────
+Chart.defaults.font.family="'Inter',sans-serif";
 function getPal(){
   const s=getComputedStyle(document.documentElement);
   return Object.fromEntries(['ink','muted','line','accent','green','amber','red','orange','purple','teal'].map(k=>[k,s.getPropertyValue('--'+k).trim()]));
 }
-function applyTheme(dark){
-  isDark=dark;
-  document.documentElement.setAttribute('data-theme',dark?'dark':'light');
-  $('themeLabel').textContent=dark?'Light':'Dark';
-  $('themeIcon').innerHTML=dark?`<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>`:
-    `<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>`;
-  const dot=$('dotRecv'); if(dot) dot.style.background=getPal().ink;
-  try { localStorage.setItem('opsDash_theme',dark?'dark':'light'); } catch(e){}
-  if(lastResponse) paint(lastResponse); // recolor charts
-}
-$('themeBtn').addEventListener('click',()=>applyTheme(!isDark));
-
-// ── Date picker ───────────────────────────────────────────────
-const PLABELS={all:'All time',today:'Today',this_week:'This week',last_week:'Last week',last_3_weeks:'Last 3 weeks',this_month:'This month',last_month:'Last month',last_30:'Last 30 days',last_3_months:'Last 3 months',custom:'Custom range'};
-function presetRange(p){
-  const now=new Date(),tod=new Date(now.getFullYear(),now.getMonth(),now.getDate());
-  const ago=n=>{const d=new Date(tod);d.setDate(tod.getDate()-n);return d;};
-  if(p==='all')          return{from:null,to:null};
-  if(p==='today')        return{from:new Date(tod),to:new Date(tod)};
-  if(p==='this_week'){   const day=tod.getDay(),diff=day===0?-6:1-day,mon=new Date(tod);mon.setDate(tod.getDate()+diff);return{from:mon,to:new Date(tod)};}
-  if(p==='last_week'){   const day=tod.getDay(),diff=day===0?-6:1-day,to2=new Date(tod);to2.setDate(tod.getDate()+diff-1);const fr=new Date(to2);fr.setDate(to2.getDate()-6);return{from:fr,to:to2};}
-  if(p==='last_3_weeks') return{from:ago(20),to:new Date(tod)};
-  if(p==='this_month')   return{from:new Date(now.getFullYear(),now.getMonth(),1),to:new Date(tod)};
-  if(p==='last_month')   return{from:new Date(now.getFullYear(),now.getMonth()-1,1),to:new Date(now.getFullYear(),now.getMonth(),0)};
-  if(p==='last_30')      return{from:ago(29),to:new Date(tod)};
-  if(p==='last_3_months')return{from:new Date(now.getFullYear(),now.getMonth()-3,1),to:new Date(tod)};
-  return{from:null,to:null};
-}
-function syncDateUI(){
-  const{preset,from,to}=F;
-  $('dtLabel').textContent = preset!=='custom'? PLABELS[preset]||'All time' :
-    (from&&to)? fmtShort(from)+' → '+fmtShort(to) : from? 'From '+fmtShort(from) : 'Custom';
-  document.querySelectorAll('.dp-preset').forEach(b=>b.classList.toggle('sel',b.dataset.p===preset));
-  $('dpFrom').value=isoDate(from); $('dpTo').value=isoDate(to);
-  updatePreview();
-}
-function updatePreview(){
-  const f=$('dpFrom').value,t=$('dpTo').value;
-  $('dpPreview').textContent=(f&&t)?fmtShort(new Date(f))+'  →  '+fmtShort(new Date(t)):f?'From '+fmtShort(new Date(f)):'—';
-}
-const dtTrigger=$('dateTrigger'),dtPanel=$('datePanel');
-dtTrigger.addEventListener('click',e=>{
-  e.stopPropagation();
-  const opening=!dtPanel.classList.contains('open');
-  dtPanel.classList.toggle('open',opening);
-  dtTrigger.classList.toggle('open',opening);
-  if(opening) syncCalFromInputs();
-});
-document.addEventListener('click',e=>{if(!$('dateWrap').contains(e.target)){dtPanel.classList.remove('open');dtTrigger.classList.remove('open');}});
-document.querySelectorAll('.dp-preset').forEach(btn=>{
-  btn.addEventListener('click',()=>{
-    const p=btn.dataset.p;
-    if(p!=='custom'){
-      const r=presetRange(p);F.preset=p;F.from=r.from;F.to=r.to;
-      syncDateUI();dtPanel.classList.remove('open');dtTrigger.classList.remove('open');
-      fetchAndRender();
-    } else {
-      document.querySelectorAll('.dp-preset').forEach(b=>b.classList.toggle('sel',b.dataset.p==='custom'));
-    }
-  });
-});
-['dpFrom','dpTo'].forEach(id=>$(id).addEventListener('change',()=>{
-  syncCalFromInputs();
-  updatePreview();
-  document.querySelectorAll('.dp-preset').forEach(b=>b.classList.toggle('sel',b.dataset.p==='custom'));
-}));
-$('dpApply').addEventListener('click',()=>{
-  const f=$('dpFrom').value,t=$('dpTo').value;
-  F.preset='custom';F.from=f?new Date(f):null;F.to=t?new Date(t):null;
-  syncDateUI();dtPanel.classList.remove('open');dtTrigger.classList.remove('open');
-  fetchAndRender();
-});
-$('dpCancel').addEventListener('click',()=>{dtPanel.classList.remove('open');dtTrigger.classList.remove('open');});
-
-// ── Calendar widget ───────────────────────────────────────────
-const cal = { view: new Date(), rangeStart: null, rangeEnd: null };
-
-function midnight(d){return new Date(d.getFullYear(),d.getMonth(),d.getDate());}
-
-function syncCalFromInputs(){
-  const f=$('dpFrom').value, t=$('dpTo').value;
-  cal.rangeStart = f ? midnight(new Date(f+'T00:00:00')) : null;
-  cal.rangeEnd   = t ? midnight(new Date(t+'T00:00:00')) : null;
-  // View the month containing the start (or current month if none)
-  const ref = cal.rangeStart || new Date();
-  cal.view = new Date(ref.getFullYear(), ref.getMonth(), 1);
-  calRender();
-}
-
-function calRender(){
-  const view = cal.view;
-  $('calLabel').textContent = view.toLocaleDateString(undefined,{month:'long',year:'numeric'});
-
-  // Build 6×7 = 42-cell grid starting from Sunday before the 1st of view month
-  const firstWeekday = view.getDay(); // 0 = Sun
-  const lastDay = new Date(view.getFullYear(), view.getMonth()+1, 0).getDate();
-  const prevLast = new Date(view.getFullYear(), view.getMonth(), 0).getDate();
-
-  const cells = [];
-  // Leading days from previous month
-  for (let i=firstWeekday-1; i>=0; i--){
-    cells.push({ date: new Date(view.getFullYear(), view.getMonth()-1, prevLast-i), muted:true });
-  }
-  // Current month days
-  for (let d=1; d<=lastDay; d++){
-    cells.push({ date: new Date(view.getFullYear(), view.getMonth(), d), muted:false });
-  }
-  // Trailing days from next month to fill to 42
-  while (cells.length < 42){
-    const last = cells[cells.length-1].date;
-    cells.push({ date: new Date(last.getFullYear(), last.getMonth(), last.getDate()+1), muted:true });
-  }
-
-  const today = midnight(new Date());
-  const F0 = cal.rangeStart, T0 = cal.rangeEnd;
-
-  $('calDays').innerHTML = cells.map((c,i)=>{
-    const d  = c.date;
-    const ts = d.getTime();
-    const isStart = F0 && ts === F0.getTime();
-    const isEnd   = T0 && ts === T0.getTime();
-    const inRange = F0 && T0 && ts > F0.getTime() && ts < T0.getTime();
-    const isToday = ts === today.getTime();
-    const cls = ['cal-day'];
-    if (c.muted)  cls.push('muted');
-    if (isToday)  cls.push('today');
-    if (isStart)  cls.push('start');
-    if (isEnd)    cls.push('end');
-    if (inRange)  cls.push('in-range');
-    return `<button type="button" class="${cls.join(' ')}" data-i="${i}">${d.getDate()}</button>`;
-  }).join('');
-
-  // Stash cells for click handler lookup
-  cal._cells = cells;
-}
-
-function onCalDayClick(e){
-  const btn = e.target.closest('.cal-day');
-  if (!btn) return;
-  const i = parseInt(btn.dataset.i);
-  const d = cal._cells?.[i]?.date;
-  if (!d) return;
-  const day = midnight(d);
-
-  if (!cal.rangeStart || cal.rangeEnd){
-    // Fresh selection
-    cal.rangeStart = day;
-    cal.rangeEnd   = null;
-  } else {
-    // Have start, set end (auto-swap if user clicked before start)
-    if (day.getTime() < cal.rangeStart.getTime()){
-      cal.rangeEnd = cal.rangeStart;
-      cal.rangeStart = day;
-    } else {
-      cal.rangeEnd = day;
-    }
-  }
-
-  // If user clicked into adjacent month (muted day), navigate to that month
-  if (day.getMonth() !== cal.view.getMonth() || day.getFullYear() !== cal.view.getFullYear()){
-    cal.view = new Date(day.getFullYear(), day.getMonth(), 1);
-  }
-
-  calRender();
-
-  // Reflect into the manual inputs and preview
-  $('dpFrom').value = cal.rangeStart ? isoDate(cal.rangeStart) : '';
-  $('dpTo').value   = cal.rangeEnd   ? isoDate(cal.rangeEnd)   : '';
-  updatePreview();
-
-  // Mark preset list as "Custom"
-  document.querySelectorAll('.dp-preset').forEach(b=>b.classList.toggle('sel',b.dataset.p==='custom'));
-}
-
-$('calDays').addEventListener('click', onCalDayClick);
-$('calPrev').addEventListener('click', ()=>{
-  cal.view = new Date(cal.view.getFullYear(), cal.view.getMonth()-1, 1);
-  calRender();
-});
-$('calNext').addEventListener('click', ()=>{
-  cal.view = new Date(cal.view.getFullYear(), cal.view.getMonth()+1, 1);
-  calRender();
-});
-
-// ── URL builder ──────────────────────────────────────────────
-function buildUrl(extra={}){
-  const p=new URLSearchParams();
-  if(F.from) p.set('start',isoDate(F.from));
-  if(F.to)   p.set('end',  isoDate(F.to));
-  if(F.enterprise!=='all') p.set('enterprise',F.enterprise);
-  if(F.team      !=='all') p.set('team',      F.team);
-  if(F.user      !=='all') p.set('user',       F.user);
-  if(F.verified  !=='all') p.set('verified',   F.verified);
-  if(F.sla       !=='all') p.set('sla',        F.sla);
-  for (const [k,v] of Object.entries(extra)) if(v!=null && v!=='') p.set(k,v);
-  const s=p.toString();
-  return '/api/data'+(s?'?'+s:'');
-}
-
-// ── Main fetch ───────────────────────────────────────────────
-let abortCtrl=null;
-async function fetchAndRender(msg='Fetching data…'){
-  if(abortCtrl) abortCtrl.abort();
-  abortCtrl=new AbortController();
-  setLoading(true,msg);
-  $('errBox').innerHTML='';
-  try{
-    const res=await fetch(buildUrl(),{signal:abortCtrl.signal});
-    const data=await res.json();
-    if(!res.ok) throw new Error(data.error||'Request failed');
-    lastResponse=data;
-    $('syncInfo').textContent='Synced '+new Date().toLocaleTimeString();
-    applyServerResponse(data);
-  }catch(err){
-    if(err.name==='AbortError') return;
-    $('errBox').innerHTML=`<div class="err">Failed to load: ${esc(err.message)}</div>`;
-  }finally{ setLoading(false); }
-}
-
-function applyServerResponse(data){
-  const fl=data.filters||{};
-  populateSel($('fEnt'),  fl.enterpriseList||[], F.enterprise);
-  populateSel($('fTeam'), fl.teamList||[],       F.team);
-  $('fTeam').disabled=!(fl.teamList?.length);
-  if(fl.teamEnterprise && fl.teamEnterprise!=='all' && F.enterprise==='all'){
-    F.enterprise=fl.teamEnterprise; $('fEnt').value=fl.teamEnterprise;
-  }
-  populateSel($('fUser'),     fl.userList||[],     F.user);
-  populateSel($('fVerified'), fl.verifiedList||[], F.verified);
-  paint(data);
-}
-function populateSel(sel, items, curVal){
-  const def=sel.options[0]?.textContent||'All';
-  sel.innerHTML=`<option value="all">${def}</option>`+
-    items.map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join('');
-  sel.value=items.includes(curVal)?curVal:'all';
-}
-
-// ── Filter handlers ───────────────────────────────────────────
-$('fEnt').addEventListener('change',()=>{F.enterprise=$('fEnt').value;F.team='all';fetchAndRender('Filtering…');});
-$('fTeam').addEventListener('change',()=>{F.team=$('fTeam').value;if(F.team==='all')F.enterprise=$('fEnt').value;fetchAndRender('Filtering…');});
-$('fUser').addEventListener('change', ()=>{F.user    =$('fUser').value;    fetchAndRender();});
-$('fVerified').addEventListener('change',()=>{F.verified=$('fVerified').value;fetchAndRender();});
-$('fSla').addEventListener('change',()=>{F.sla=$('fSla').value;fetchAndRender();});
-$('resetBtn').addEventListener('click',()=>{
-  Object.assign(F,{preset:'all',from:null,to:null,enterprise:'all',team:'all',user:'all',verified:'all',sla:'all'});
-  $('fSla').value='all';
-  syncDateUI(); fetchAndRender('Resetting…');
-});
-
-// ── Auto-sync ─────────────────────────────────────────────────
-let autoTimer=null,cdTimer=null,nextAt=null;
-const AUTO_MS=10*60*1000;
-function startCD(){
-  if(cdTimer) clearInterval(cdTimer);
-  nextAt=Date.now()+AUTO_MS;
-  cdTimer=setInterval(()=>{
-    const rem=nextAt-Date.now();
-    if(rem<=0){$('autoSyncBadge').textContent='Syncing…';return;}
-    const m=Math.floor(rem/60000),s=Math.floor((rem%60000)/1000);
-    $('autoSyncBadge').textContent=`Next sync in ${m}:${String(s).padStart(2,'0')}`;
-  },1000);
-}
-function schedAuto(){if(autoTimer)clearTimeout(autoTimer);startCD();autoTimer=setTimeout(()=>{fetchAndRender('Auto-syncing…');schedAuto();},AUTO_MS);}
-$('syncBtn').addEventListener('click',async()=>{
-  $('syncBtn').disabled=true;$('syncBtn').textContent='Syncing…';
-  await fetchAndRender('Syncing…');
-  $('syncBtn').disabled=false;$('syncBtn').textContent='Sync';
-  schedAuto();
-});
-function setLoading(on,msg='Loading…'){$('loadOverlay').classList.toggle('show',on);$('loadMsg').textContent=msg;}
-
-// ── Charts ────────────────────────────────────────────────────
-Chart.defaults.font.family="'Inter',sans-serif";
 function killChart(id){if(charts[id]){charts[id].destroy();delete charts[id];}}
 
-function mkMonthly(canvas, monthly){
-  killChart('monthly');
-  if(!monthly || typeof monthly.received!=='object') return;
-  const PAL=getPal();
-  const months=Object.keys(monthly.received).sort();
-  if(!months.length) return;
+function mkTrend(canvas, buckets){
+  killChart('trend');
+  if (!buckets || !buckets.length) return;
+  const PAL = getPal();
+  const labels = buckets.map(b=>b.label);
+  const recv = buckets.map(b=>b.received);
+  const dlvd = buckets.map(b=>b.delivered);
+  const rejd = buckets.map(b=>b.rejected);
 
-  // Pretty labels: "2024-12" -> "Dec 2024"
-  const prettyLabels = months.map(m=>{
-    const [y,mm]=m.split('-');
-    return new Date(parseInt(y),parseInt(mm)-1,1)
-      .toLocaleDateString('en-US',{month:'short',year:'numeric'});
-  });
+  // Gradient fill for the primary "Received" line, gold-price style
+  const ctx = canvas.getContext('2d');
+  const grad = ctx.createLinearGradient(0, 0, 0, canvas.height || 320);
+  grad.addColorStop(0, 'rgba(31,63,114,0.18)');
+  grad.addColorStop(1, 'rgba(31,63,114,0)');
 
-  const recv = months.map(m=>monthly.received[m]||0);
-  const dlvd = months.map(m=>monthly.delivered[m]||0);
-  const rejd = months.map(m=>monthly.rejected[m]||0);
-
-  // For 1-2 months a grouped bar chart is clearer and labels center naturally.
-  // For 3+ months we use the line chart.
-  const useBar = months.length <= 2;
-
-  if (useBar) {
-    charts.monthly = new Chart(canvas,{
-      type:'bar', plugins:[ChartDataLabels],
-      data:{labels:prettyLabels, datasets:[
-        {label:'Received', data:recv, backgroundColor:PAL.ink,   borderRadius:4, maxBarThickness:64},
-        {label:'Delivered',data:dlvd, backgroundColor:PAL.green, borderRadius:4, maxBarThickness:64},
-        {label:'Rejected', data:rejd, backgroundColor:PAL.red,   borderRadius:4, maxBarThickness:64},
-      ]},
-      options:{
-        responsive:true, maintainAspectRatio:false,
-        plugins:{
-          legend:{display:false},
-          tooltip:{mode:'index',intersect:false},
-          datalabels:{
-            anchor:'end', align:'top', offset:4,
-            color:(ctx)=>[PAL.ink,PAL.green,PAL.red][ctx.datasetIndex]||PAL.ink,
-            font:{family:"'JetBrains Mono',monospace",size:11,weight:'500'},
-            formatter:v=>v>0?v:'',
+  // For a single-point bucket (e.g. "this week" with one day having data),
+  // Chart.js still draws nicely; we just configure scales for the count.
+  charts.trend = new Chart(canvas, {
+    type:'line', plugins:[ChartDataLabels],
+    data:{ labels, datasets:[
+      { label:'Received',  data:recv, borderColor:PAL.accent, backgroundColor:grad,
+        borderWidth:2.2, tension:0.35, pointRadius:0, pointHoverRadius:5, pointHoverBackgroundColor:PAL.accent,
+        pointHoverBorderColor:'#fff', pointHoverBorderWidth:2, fill:true,
+        datalabels:{display:false} },
+      { label:'Delivered', data:dlvd, borderColor:PAL.green,  backgroundColor:'transparent',
+        borderWidth:2, tension:0.35, pointRadius:0, pointHoverRadius:5, pointHoverBackgroundColor:PAL.green,
+        pointHoverBorderColor:'#fff', pointHoverBorderWidth:2, fill:false,
+        datalabels:{display:false} },
+      { label:'Rejected',  data:rejd, borderColor:PAL.red,    backgroundColor:'transparent',
+        borderWidth:2, tension:0.35, pointRadius:0, pointHoverRadius:5, pointHoverBackgroundColor:PAL.red,
+        pointHoverBorderColor:'#fff', pointHoverBorderWidth:2, fill:false,
+        datalabels:{display:false} },
+    ] },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      interaction:{ mode:'index', intersect:false },
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          backgroundColor:PAL.ink, titleColor:'#fff', bodyColor:'#fff',
+          padding:10, displayColors:true, boxPadding:4, cornerRadius:6,
+          callbacks:{
+            label:(ctx)=> `${ctx.dataset.label}: ${ctx.parsed.y.toLocaleString()}`,
           },
         },
-        scales:{
-          x:{grid:{display:false}, ticks:{font:{size:12},color:PAL.muted}},
-          y:{grid:{color:PAL.line}, beginAtZero:true, ticks:{font:{size:11},color:PAL.muted}},
-        },
+        datalabels:{display:false},
       },
-    });
+      scales:{
+        x:{ grid:{display:false}, ticks:{font:{size:11},color:PAL.muted, autoSkip:true, maxRotation:0} },
+        y:{ grid:{color:PAL.line, drawBorder:false}, beginAtZero:true,
+            ticks:{font:{size:11},color:PAL.muted, precision:0, callback:(v)=>v.toLocaleString()} },
+      },
+    },
+  });
+
+  // Update legend with current totals
+  const totals = { Received: recv.reduce((a,b)=>a+b,0), Delivered: dlvd.reduce((a,b)=>a+b,0), Rejected: rejd.reduce((a,b)=>a+b,0) };
+  const cols = { Received: PAL.accent, Delivered: PAL.green, Rejected: PAL.red };
+  $('trendLegend').innerHTML = Object.entries(totals).map(([k,v])=>
+    `<div class="trend-legend-item"><span class="ldot" style="background:${cols[k]}"></span><span>${k}: </span><span class="lval">${v.toLocaleString()}</span></div>`
+  ).join('');
+}
+
+function mkBar(id, canvas, map, opts={}){
+  killChart(id);
+  if (!map || !Object.keys(map).length){
+    // Show empty state by clearing the canvas
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0,0,canvas.width,canvas.height);
     return;
   }
-
-  charts.monthly = new Chart(canvas,{
-    type:'line', plugins:[ChartDataLabels],
-    data:{labels:prettyLabels, datasets:[
-      {label:'Received', data:recv, borderColor:PAL.ink,   backgroundColor:'rgba(11,11,12,0.06)', borderWidth:1.8, tension:0.28, pointRadius:3, pointHoverRadius:5, fill:false,
-       datalabels:{align:'top',anchor:'end',color:PAL.ink,font:{family:"'JetBrains Mono',monospace",size:10},formatter:v=>v>0?v:''}},
-      {label:'Delivered',data:dlvd, borderColor:PAL.green, backgroundColor:'transparent', borderWidth:1.8, tension:0.28, pointRadius:3, pointHoverRadius:5, fill:false,
-       datalabels:{align:'bottom',anchor:'end',color:PAL.green,font:{family:"'JetBrains Mono',monospace",size:10},formatter:v=>v>0?v:''}},
-      {label:'Rejected', data:rejd, borderColor:PAL.red,   backgroundColor:'transparent', borderWidth:1.8, tension:0.28, pointRadius:3, pointHoverRadius:5, fill:false,
-       datalabels:{align:'top',anchor:'end',color:PAL.red,font:{family:"'JetBrains Mono',monospace",size:10},formatter:v=>v>0?v:''}},
-    ]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{mode:'index',intersect:false},datalabels:{display:true}},scales:{x:{grid:{color:PAL.line,drawTicks:false},ticks:{font:{size:11},color:PAL.muted}},y:{grid:{color:PAL.line},beginAtZero:true,ticks:{font:{size:11},color:PAL.muted}}}},
-  });
-}
-function mkDonut(id,canvas,map){
-  killChart(id);
-  if(!map||!Object.keys(map).length) return;
-  const PAL=getPal(),labels=Object.keys(map),values=Object.values(map);
-  const colors=labels.map((l,i)=>{const k=l.toLowerCase();if(k==='delivered'||k==='verified')return PAL.green;if(k==='rejected')return PAL.red;if(k==='pending')return PAL.amber;if(k==='none')return PAL.muted;return[PAL.accent,PAL.purple,PAL.teal,'#7c2d12','#365314'][i%5];});
-  charts[id]=new Chart(canvas,{type:'doughnut',plugins:[ChartDataLabels],data:{labels,datasets:[{data:values,backgroundColor:colors,borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,cutout:'64%',plugins:{legend:{position:'right',labels:{boxWidth:10,boxHeight:10,font:{size:12},padding:10,color:PAL.muted}},tooltip:{displayColors:false},datalabels:{display:false}}}});
-}
-function mkBar(id,canvas,map,opts={}){
-  killChart(id);
-  if(!map||!Object.keys(map).length) return;
-  const PAL=getPal(),labels=Object.keys(map),values=Object.values(map);
-  charts[id]=new Chart(canvas,{
-    type:'bar',plugins:[ChartDataLabels],
-    data:{labels,datasets:[{data:values,backgroundColor:opts.color||PAL.accent,borderRadius:4,maxBarThickness:22,datalabels:{anchor:'end',align:opts.h?'end':'top',color:PAL.muted,font:{family:"'JetBrains Mono',monospace",size:10},formatter:v=>v}}]},
-    options:{responsive:true,maintainAspectRatio:false,indexAxis:opts.h?'y':'x',plugins:{legend:{display:false},tooltip:{displayColors:false},datalabels:{display:true}},
-      onClick:(_,items)=>{if(!items.length||!opts.onPick)return;opts.onPick(labels[items[0].index]);},
-      scales:{x:{grid:{color:PAL.line,display:!opts.h},ticks:{font:{size:11},color:PAL.muted},beginAtZero:opts.h},y:{grid:{color:PAL.line,display:opts.h},ticks:{font:{size:11},color:PAL.muted,autoSkip:false},beginAtZero:!opts.h}}},
+  const PAL = getPal();
+  const labels = Object.keys(map);
+  const values = Object.values(map);
+  charts[id] = new Chart(canvas, {
+    type:'bar', plugins:[ChartDataLabels],
+    data:{ labels, datasets:[{
+      data:values, backgroundColor: opts.color || PAL.accent,
+      borderRadius:4, maxBarThickness:22,
+      datalabels:{ anchor:'end', align:opts.h?'end':'top', color:PAL.muted,
+        font:{family:"'JetBrains Mono',monospace",size:10}, formatter:v=>v.toLocaleString() },
+    }] },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      indexAxis: opts.h ? 'y' : 'x',
+      plugins:{ legend:{display:false}, tooltip:{displayColors:false}, datalabels:{display:true} },
+      onClick:(_, items)=>{ if (!items.length || !opts.onPick) return; opts.onPick(labels[items[0].index]); },
+      scales:{
+        x:{ grid:{color:PAL.line, display:!opts.h}, ticks:{font:{size:11},color:PAL.muted}, beginAtZero:opts.h },
+        // y reversed so the FIRST (largest, desc-sorted) bar appears at the TOP
+        y:{ grid:{color:PAL.line, display:opts.h}, ticks:{font:{size:11},color:PAL.muted, autoSkip:false},
+            beginAtZero:!opts.h, reverse: opts.h ? true : false },
+      },
+    },
   });
 }
 
-// ── Paint ─────────────────────────────────────────────────────
-function paint(data){
-  const PAL=getPal(),k=data.kpis||{},c=data.charts||{};
-
-  // KPI values — new ordering: ent, team, received, delivered, rejected, pending, sla, tat
-  $('kv-ent').textContent       = num(k.totalEnterpriseCount);
-  $('kv-team').textContent      = num(k.totalTeamCount);
-  $('kv-received').textContent  = num(k.totalReceived);
-  $('kv-delivered').textContent = num(k.totalDelivered);
-  $('kv-rejected').textContent  = num(k.totalRejected);
-  $('kv-pending').textContent   = num(k.totalPending);
-  $('kv-tat').textContent       = fmtTat(k.avgTat);
-
-  // SLA card → percentage delivered within SLA
-  const slaTotal = (k.withinSla||0) + (k.outOfSla||0);
-  const slaPct   = slaTotal ? (k.withinSla/slaTotal)*100 : null;
-  $('kv-sla').textContent = slaPct!=null ? slaPct.toFixed(1)+'%' : '—';
-  $('ks-sla').textContent = slaTotal
-    ? `${num(k.withinSla)} of ${num(slaTotal)} within SLA`
-    : 'no SLA data in current view';
-
-  // Sub-text refinements
-  $('ks-tat').textContent = k.tatRecordCount
-    ? `from ${num(k.tatRecordCount)} records with TAT data`
-    : 'no TAT data in current view';
-
-  // Drive the SLA panel (replaces status mix)
-  paintSla(k);
-
-  const dot=$('dotRecv');if(dot)dot.style.background=PAL.ink;
-  Chart.defaults.color=PAL.muted;Chart.defaults.borderColor=PAL.line;
-
-  mkMonthly($('cMonthly'),c.monthly);
-  mkDonut('verified',$('cVerified'),c.verified);
-  const rev=obj=>obj?Object.fromEntries(Object.entries(obj).reverse()):{};
-  mkBar('ent',$('cEnt'),rev(c.enterprise),{h:true,color:PAL.accent,onPick:label=>{F.enterprise=label;F.team='all';fetchAndRender('Filtering…');}});
-  mkBar('team',$('cTeam'),rev(c.team),{h:true,color:PAL.purple,onPick:label=>{F.team=label;fetchAndRender('Filtering…');}});
-  mkBar('qc',$('cQc'),rev(c.qc),{h:true,color:PAL.ink,onPick:label=>{F.user=label;fetchAndRender();}});
-
-  renderRecordsTable($('tBody'), data.raw||[], data, $('tCount'));
-}
-
-// ── SLA panel painter ────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────
+// SLA + KPI PAINT
+// ─────────────────────────────────────────────────────────────
 function paintSla(k){
   const within = k.withinSla||0, out = k.outOfSla||0, total = within + out;
   const pctIn  = total ? (within/total)*100 : 0;
@@ -971,26 +843,326 @@ function paintSla(k){
   $('slaPctOut').textContent = total ? pctOut.toFixed(1)+'%' : '—%';
   $('slaBarIn').style.width  = pctIn+'%';
   $('slaBarOut').style.width = pctOut+'%';
-  const unknown = k.slaUnknown || 0;
+  $('slaDeliveryRate').textContent = k.deliveryRate!=null ? k.deliveryRate.toFixed(1)+'%' : '—';
   $('slaMeta').textContent = total
-    ? `${num(total)} records with SLA flag` + (unknown ? ` · ${num(unknown)} without` : '')
-    : 'No SLA data in current view';
+    ? `${num(total)} delivered records`
+    : 'No delivered records in view';
 }
 
-// ── Records table renderer (shared by main + modal) ───────────
-function renderRecordsTable(tbody, rows, data, countEl){
-  if(countEl) countEl.textContent =
-    `${num(rows.length)} of ${num(data.totalFiltered||(data.kpis?.totalReceived))}`+
-    (rows.length>=500?' (showing latest 500)':'');
-  tbody.innerHTML=!rows.length
-    ?`<tr><td colspan="13" class="empty">No records match these filters.</td></tr>`
-    :rows.map(r=>{
-      const crmL=(r.crm_status||'').toLowerCase(),verL=(r.verified_status||'').toLowerCase();
-      const isD=crmL==='qc_done'&&verL==='verified',isR=crmL==='qc_done'&&(verL==='rejected'||!verL||verL==='none');
-      const pill=isD?'<span class="pill delivered">Delivered</span>':isR?'<span class="pill rejected">Rejected</span>':'<span class="pill pending">Pending</span>';
-      const slaPill = r.sla===1?'<span class="pill sla-in">In</span>':r.sla===0?'<span class="pill sla-out">Out</span>':'<span class="pill">—</span>';
-      return`<tr><td class="mono">${esc(fmtDate(r.Created_ON))}</td><td>${esc(r.Ent_Name||'—')}</td><td>${esc(r.team||'—')}</td><td>${esc(r.qc_email_id||'—')}</td><td>${esc(r.status||'—')}</td><td>${esc(r.crm_status||'—')}</td><td>${pill}</td><td>${slaPill}</td><td class="mono">${esc(fmtTat(r.tat))}</td><td class="mono">${esc(r.video_id||'—')}</td><td class="mono">${esc(r.vin||'—')}</td><td class="mono">${esc(r.sku_id||'—')}</td><td class="mono">${esc(fmtDate(r.Updated_ON))}</td></tr>`;
-    }).join('');
+function paint(){
+  if (!RAW.length) return;
+  const t0 = performance.now();
+
+  // Filter
+  const filtered = RAW.filter(passesFilters);
+
+  // Aggregate
+  const k = aggregate(filtered);
+
+  // KPI values
+  $('kv-ent').textContent       = num(k.enterpriseCount);
+  $('kv-team').textContent      = num(k.teamCount);
+  $('kv-received').textContent  = num(k.totalReceived);
+  $('kv-delivered').textContent = num(k.totalDelivered);
+  $('kv-rejected').textContent  = num(k.totalRejected);
+  $('kv-pending').textContent   = num(k.totalPending);
+  $('kv-sla').textContent       = k.slaCompliance!=null ? k.slaCompliance.toFixed(1)+'%' : '—';
+  $('kv-tat').textContent       = fmtTatHrs(k.avgTat);
+
+  // % under delivered/rejected/pending
+  $('kp-delivered').textContent = k.deliveryRate!=null  ? k.deliveryRate.toFixed(1)+'% of received'  : '';
+  $('kp-rejected').textContent  = k.rejectionRate!=null ? k.rejectionRate.toFixed(1)+'% of received' : '';
+  const pendingPct = k.totalReceived ? (k.totalPending/k.totalReceived)*100 : null;
+  $('kp-pending').textContent   = pendingPct!=null ? pendingPct.toFixed(1)+'% of received' : '';
+  $('kp-sla').textContent       = k.totalDelivered ? `${num(k.withinSla)} of ${num(k.totalDelivered)}` : '';
+  $('kp-tat').textContent       = k.tatRecordCount ? `from ${num(k.tatRecordCount)} records` : '';
+  // Clear pct on cards without one
+  $('kp-ent').textContent = ''; $('kp-team').textContent = ''; $('kp-received').textContent = '';
+
+  // Sub text
+  $('ks-tat').textContent = k.tatRecordCount ? 'avg turnaround in hours' : 'no TAT data in view';
+
+  // SLA panel
+  paintSla(k);
+
+  // Top-X charts — data already in DESC order (largest first)
+  const PAL = getPal();
+  mkBar('ent',  $('cEnt'),  k.topEnt,  { h:true, color:PAL.accent,
+    onPick:label=>{ F.enterprise=label; F.team='all'; $('fEnt').value=label; $('fTeam').value='all'; refresh(); } });
+  mkBar('team', $('cTeam'), k.topTeam, { h:true, color:PAL.purple,
+    onPick:label=>{ F.team=label; $('fTeam').value=label; refresh(); } });
+  mkBar('qc',   $('cQc'),   k.topQc,   { h:true, color:PAL.ink,
+    onPick:label=>{ F.user=label; $('fUser').value=label; refresh(); } });
+
+  // Trend chart — uses FILTERED rows (so enterprise/team/etc. apply)
+  // but ignores the date filter so the timeline view is meaningful.
+  const trendRows = RAW.filter(r => {
+    if (F.enterprise!=='all' && r.ent !== F.enterprise) return false;
+    if (F.team      !=='all' && r.team !== F.team)      return false;
+    if (F.user      !=='all' && r.qc !== F.user)        return false;
+    if (F.verified  !=='all' && r.ver !== F.verified)   return false;
+    if (F.sla==='1' && r.sla !== 1) return false;
+    if (F.sla==='0' && r.sla !== 0) return false;
+    return true;
+  });
+  const buckets = bucketTrend(trendRows, trendRange);
+  mkTrend($('cTrend'), buckets);
+  $('trendSub').textContent =
+    `${{week:'this week, by day',weeks:'last 6 weeks',months:'last 6 months',year:'last 12 months'}[trendRange]} · independent of date filter`;
+
+  // Recent records
+  const recent = filtered.slice().sort((a,b)=>(b._created?.getTime()||0)-(a._created?.getTime()||0)).slice(0, 500);
+  $('tCount').textContent = `${num(recent.length)} of ${num(filtered.length)} filtered (${num(RAW.length)} total)`;
+  $('tBody').innerHTML = !recent.length
+    ? `<tr><td colspan="13" class="empty">No records match these filters.</td></tr>`
+    : recent.map(r=>{
+        const isD=isDelivered(r), isR=isRejected(r);
+        const pill = isD?'<span class="pill delivered">Delivered</span>'
+                   :isR?'<span class="pill rejected">Rejected</span>'
+                       :'<span class="pill pending">Pending</span>';
+        const slaPill = r.sla===1?'<span class="pill sla-in">In</span>'
+                       :r.sla===0?'<span class="pill sla-out">Out</span>'
+                                 :'<span class="pill">—</span>';
+        return `<tr><td class="mono">${esc(fmtDate(r.c))}</td><td>${esc(r.ent||'—')}</td><td>${esc(r.team||'—')}</td><td>${esc(r.qc||'—')}</td><td>${esc(r.status||'—')}</td><td>${esc(r.crm||'—')}</td><td>${pill}</td><td>${slaPill}</td><td class="mono">${esc(fmtTatHrs(r.tat))}</td><td class="mono">${esc(r.vid||'—')}</td><td class="mono">${esc(r.vin||'—')}</td><td class="mono">${esc(r.sku||'—')}</td><td class="mono">${esc(fmtDate(r.u))}</td></tr>`;
+      }).join('');
+
+  console.log(`[paint] ${filtered.length} rows in ${(performance.now()-t0).toFixed(1)}ms`);
+}
+
+function refresh(){ paint(); }
+
+// ─────────────────────────────────────────────────────────────
+// SYNC / FETCH
+// ─────────────────────────────────────────────────────────────
+async function syncFromServer({silent=false, force=false}={}){
+  const btn = $('syncBtn');
+  if (!silent){ btn.disabled = true; btn.textContent = 'Syncing…'; setLoading(true, 'Loading data…'); }
+  $('errBox').innerHTML='';
+  try {
+    const res = await fetch('/api/data' + (force ? '?force=1' : ''));
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Request failed');
+
+    // Parse dates once on receipt — filters then become fast
+    RAW.length = 0;
+    for (const r of (data.rows||[])){
+      r._created = r.c ? new Date(r.c.includes('T')?r.c:r.c.replace(' ','T')) : null;
+      r._updated = r.u ? new Date(r.u.includes('T')?r.u:r.u.replace(' ','T')) : null;
+      if (r._created && isNaN(r._created.getTime())) r._created = null;
+      if (r._updated && isNaN(r._updated.getTime())) r._updated = null;
+      RAW.push(r);
+    }
+    lastSynced = data.lastSynced ? new Date(data.lastSynced) : new Date();
+    $('syncInfo').textContent = 'Synced '+ new Date().toLocaleTimeString() + ' · ' + num(RAW.length) + ' rows';
+
+    // Populate filter dropdowns from the FULL dataset (won't shrink as user filters)
+    const sc = buildFilterScopes();
+    populateSel($('fEnt'),      sc.enterpriseList, F.enterprise);
+    populateSel($('fTeam'),     sc.teamList,       F.team);
+    populateSel($('fUser'),     sc.userList,       F.user);
+    populateSel($('fVerified'), sc.verifiedList,   F.verified);
+
+    refresh();
+  } catch (err) {
+    $('errBox').innerHTML = `<div class="err">Failed to load: ${esc(err.message)}</div>`;
+  } finally {
+    btn.disabled = false; btn.textContent = 'Sync';
+    setLoading(false);
+  }
+}
+
+function populateSel(sel, items, curVal){
+  const def = sel.options[0]?.textContent || 'All';
+  sel.innerHTML = `<option value="all">${def}</option>` +
+    items.map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join('');
+  sel.value = items.includes(curVal) ? curVal : 'all';
+}
+
+// ─────────────────────────────────────────────────────────────
+// FILTER EVENT HANDLERS  (no network — instant)
+// ─────────────────────────────────────────────────────────────
+$('fEnt').addEventListener('change',()=>{ F.enterprise=$('fEnt').value; F.team='all'; $('fTeam').value='all'; refresh(); });
+$('fTeam').addEventListener('change',()=>{ F.team=$('fTeam').value; refresh(); });
+$('fUser').addEventListener('change',()=>{ F.user=$('fUser').value; refresh(); });
+$('fVerified').addEventListener('change',()=>{ F.verified=$('fVerified').value; refresh(); });
+$('fSla').addEventListener('change',()=>{ F.sla=$('fSla').value; refresh(); });
+$('resetBtn').addEventListener('click',()=>{
+  // Reset to defaults (this month, no other filters)
+  const r = presetRange('this_month');
+  Object.assign(F, { preset:'this_month', from:r.from, to:r.to,
+    enterprise:'all', team:'all', user:'all', verified:'all', sla:'all' });
+  ['fEnt','fTeam','fUser','fVerified'].forEach(id=>$(id).value='all');
+  $('fSla').value = 'all';
+  syncDateUI();
+  refresh();
+});
+
+// ─────────────────────────────────────────────────────────────
+// DATE PICKER
+// ─────────────────────────────────────────────────────────────
+function syncDateUI(){
+  const {preset, from, to} = F;
+  $('dtLabel').textContent = preset!=='custom' ? PLABELS[preset]||'All time' :
+    (from && to) ? fmtShort(from)+' → '+fmtShort(to) :
+    from ? 'From '+fmtShort(from) : 'Custom';
+  document.querySelectorAll('.dp-preset').forEach(b=>b.classList.toggle('sel', b.dataset.p===preset));
+  $('dpPreviewText').textContent = (from && to) ? fmtShort(from)+'  →  '+fmtShort(to) :
+    from ? 'From '+fmtShort(from) : 'Pick a date to begin';
+}
+
+const dtTrigger=$('dateTrigger'), dtPanel=$('datePanel');
+dtTrigger.addEventListener('click', e=>{
+  e.stopPropagation();
+  const opening = !dtPanel.classList.contains('open');
+  dtPanel.classList.toggle('open', opening);
+  dtTrigger.classList.toggle('open', opening);
+  if (opening){
+    cal.rangeStart = F.from ? midnight(F.from) : null;
+    cal.rangeEnd   = F.to   ? midnight(F.to)   : null;
+    const ref = cal.rangeStart || new Date();
+    cal.view = new Date(ref.getFullYear(), ref.getMonth(), 1);
+    calRender();
+  }
+});
+
+// IMPORTANT: prevent clicks INSIDE the date panel from bubbling to the document
+// close-on-outside-click handler. This was causing the panel to close after the
+// first date click because the calendar re-renders and the old target leaves DOM.
+$('datePanel').addEventListener('click', e=>e.stopPropagation());
+$('datePanel').addEventListener('mousedown', e=>e.stopPropagation());
+
+document.addEventListener('mousedown', e=>{
+  if (!$('dateWrap').contains(e.target)){
+    dtPanel.classList.remove('open'); dtTrigger.classList.remove('open');
+  }
+});
+
+document.querySelectorAll('.dp-preset').forEach(btn=>{
+  btn.addEventListener('click', e=>{
+    e.stopPropagation();
+    const p = btn.dataset.p;
+    if (p === 'custom'){
+      document.querySelectorAll('.dp-preset').forEach(b=>b.classList.toggle('sel', b.dataset.p==='custom'));
+      return;
+    }
+    const r = presetRange(p);
+    F.preset = p; F.from = r.from; F.to = r.to;
+    syncDateUI();
+    dtPanel.classList.remove('open'); dtTrigger.classList.remove('open');
+    refresh();
+  });
+});
+
+$('dpClear').addEventListener('click', e=>{
+  e.stopPropagation();
+  cal.rangeStart = null; cal.rangeEnd = null;
+  calRender(); $('dpPreviewText').textContent = 'Pick a date to begin';
+});
+
+// ── Calendar ──
+const cal = { view: new Date(), rangeStart: null, rangeEnd: null, _cells: [] };
+function midnight(d){ return new Date(d.getFullYear(), d.getMonth(), d.getDate()); }
+
+function calRender(){
+  const view = cal.view;
+  $('calLabel').textContent = view.toLocaleDateString(undefined,{month:'long',year:'numeric'});
+  const firstWeekday = view.getDay();
+  const lastDay  = new Date(view.getFullYear(), view.getMonth()+1, 0).getDate();
+  const prevLast = new Date(view.getFullYear(), view.getMonth(), 0).getDate();
+  const cells = [];
+  for (let i=firstWeekday-1; i>=0; i--){
+    cells.push({ date:new Date(view.getFullYear(),view.getMonth()-1,prevLast-i), muted:true });
+  }
+  for (let d=1; d<=lastDay; d++){
+    cells.push({ date:new Date(view.getFullYear(),view.getMonth(),d), muted:false });
+  }
+  while (cells.length < 42){
+    const last = cells[cells.length-1].date;
+    cells.push({ date:new Date(last.getFullYear(),last.getMonth(),last.getDate()+1), muted:true });
+  }
+  const today = midnight(new Date());
+  const F0 = cal.rangeStart, T0 = cal.rangeEnd;
+
+  $('calDays').innerHTML = cells.map((c,i)=>{
+    const d=c.date, ts=d.getTime();
+    const isStart = F0 && ts === F0.getTime();
+    const isEnd   = T0 && ts === T0.getTime();
+    const inRange = F0 && T0 && ts > F0.getTime() && ts < T0.getTime();
+    const isToday = ts === today.getTime();
+    const cls=['cal-day'];
+    if (c.muted) cls.push('muted');
+    if (isToday) cls.push('today');
+    if (isStart) cls.push('start');
+    if (isEnd)   cls.push('end');
+    if (inRange) cls.push('in-range');
+    return `<button type="button" class="${cls.join(' ')}" data-i="${i}">${d.getDate()}</button>`;
+  }).join('');
+  cal._cells = cells;
+}
+
+function onCalDayClick(e){
+  e.stopPropagation();
+  const btn = e.target.closest('.cal-day');
+  if (!btn) return;
+  const i = parseInt(btn.dataset.i);
+  const d = cal._cells?.[i]?.date;
+  if (!d) return;
+  const day = midnight(d);
+
+  if (!cal.rangeStart || cal.rangeEnd){
+    // Fresh selection (either no start yet, or a complete range exists — start over)
+    cal.rangeStart = day;
+    cal.rangeEnd   = null;
+    // Move view if user clicked muted day from adjacent month
+    if (d.getMonth() !== cal.view.getMonth() || d.getFullYear() !== cal.view.getFullYear()){
+      cal.view = new Date(d.getFullYear(), d.getMonth(), 1);
+    }
+    calRender();
+    $('dpPreviewText').textContent = 'From '+fmtShort(cal.rangeStart);
+  } else {
+    // Second click → set end, auto-apply, close panel
+    if (day.getTime() < cal.rangeStart.getTime()){
+      cal.rangeEnd = cal.rangeStart; cal.rangeStart = day;
+    } else {
+      cal.rangeEnd = day;
+    }
+    calRender();
+    // Apply
+    F.preset = 'custom'; F.from = new Date(cal.rangeStart); F.to = new Date(cal.rangeEnd);
+    syncDateUI();
+    dtPanel.classList.remove('open'); dtTrigger.classList.remove('open');
+    refresh();
+  }
+  document.querySelectorAll('.dp-preset').forEach(b=>b.classList.toggle('sel', b.dataset.p==='custom'));
+}
+
+$('calDays').addEventListener('click', onCalDayClick);
+$('calPrev').addEventListener('click', e=>{ e.stopPropagation();
+  cal.view = new Date(cal.view.getFullYear(), cal.view.getMonth()-1, 1); calRender(); });
+$('calNext').addEventListener('click', e=>{ e.stopPropagation();
+  cal.view = new Date(cal.view.getFullYear(), cal.view.getMonth()+1, 1); calRender(); });
+
+// ─────────────────────────────────────────────────────────────
+// TREND TABS
+// ─────────────────────────────────────────────────────────────
+document.querySelectorAll('.trend-tab').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    trendRange = btn.dataset.r;
+    document.querySelectorAll('.trend-tab').forEach(b=>b.classList.toggle('sel', b===btn));
+    refresh();
+  });
+});
+
+// ─────────────────────────────────────────────────────────────
+// SLA PANEL → DRILL-DOWN
+// ─────────────────────────────────────────────────────────────
+function bindSlaCells(){
+  const openIn  = ()=>openDrill({label:'Within SLA', sub:'delivered within SLA', view:'within_sla', kind:'records'});
+  const openOut = ()=>openDrill({label:'Out of SLA', sub:'delivered breaching SLA', view:'out_of_sla', kind:'records'});
+  $('slaCellIn').addEventListener('click', openIn);
+  $('slaCellOut').addEventListener('click', openOut);
+  $('slaCellIn').addEventListener('keydown',  e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openIn();}});
+  $('slaCellOut').addEventListener('keydown', e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openOut();}});
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -998,107 +1170,113 @@ function renderRecordsTable(tbody, rows, data, countEl){
 // ─────────────────────────────────────────────────────────────
 function activeFilterChips(){
   const chips=[];
-  if(F.from||F.to)         chips.push(`<span class="chip">Date <strong>${esc(F.preset==='custom'?(F.from?fmtShort(F.from):'')+(F.from&&F.to?' → ':'')+(F.to?fmtShort(F.to):''):PLABELS[F.preset]||'')}</strong></span>`);
-  if(F.enterprise!=='all') chips.push(`<span class="chip">Enterprise <strong>${esc(F.enterprise)}</strong></span>`);
-  if(F.team!=='all')       chips.push(`<span class="chip">Team <strong>${esc(F.team)}</strong></span>`);
-  if(F.user!=='all')       chips.push(`<span class="chip">User <strong>${esc(F.user)}</strong></span>`);
-  if(F.verified!=='all')   chips.push(`<span class="chip">Verified <strong>${esc(F.verified)}</strong></span>`);
-  if(F.sla!=='all')        chips.push(`<span class="chip">SLA <strong>${F.sla==='1'?'Within':'Out of'}</strong></span>`);
-  return chips.length?chips.join(''):'<span class="chip">No filters applied</span>';
+  if(F.from||F.to)        chips.push(`<span class="chip">Date <strong>${esc(F.preset==='custom'?(F.from?fmtShort(F.from):'')+(F.from&&F.to?' → ':'')+(F.to?fmtShort(F.to):''):PLABELS[F.preset]||'')}</strong></span>`);
+  if(F.enterprise!=='all')chips.push(`<span class="chip">Enterprise <strong>${esc(F.enterprise)}</strong></span>`);
+  if(F.team!=='all')      chips.push(`<span class="chip">Team <strong>${esc(F.team)}</strong></span>`);
+  if(F.user!=='all')      chips.push(`<span class="chip">User <strong>${esc(F.user)}</strong></span>`);
+  if(F.verified!=='all')  chips.push(`<span class="chip">Verified <strong>${esc(F.verified)}</strong></span>`);
+  if(F.sla!=='all')       chips.push(`<span class="chip">SLA <strong>${F.sla==='1'?'Within':'Out of'}</strong></span>`);
+  return chips.length?chips.join(''):'<span class="chip">No filters</span>';
 }
 
-async function openDrill(kpi){
-  if(!kpi) return;
-  $('modalTitle').textContent = kpi.label;
-  $('modalSub').textContent   = kpi.sub.toUpperCase();
-  $('modalChips').innerHTML   = activeFilterChips();
-  $('modalStats').innerHTML   = '';
-  $('modalBody').innerHTML    = '<div class="empty">Loading…</div>';
-  $('modalCount').textContent = '';
-  $('modal').classList.add('show');
-
-  try{
-    if(kpi.kind==='breakdown'){
-      // Use cached response — no extra fetch needed
-      if(!lastResponse){ $('modalBody').innerHTML='<div class="empty">No data loaded yet.</div>'; return; }
-      renderBreakdown(kpi.dim, lastResponse);
-      return;
-    }
-
-    // For records / tat — fetch with view param
-    const url = buildUrl(kpi.view ? { view: kpi.view } : {});
-    const res = await fetch(url);
-    const data = await res.json();
-    if(!res.ok) throw new Error(data.error||'Request failed');
-
-    // Stat strip — show key numbers from the parent (filtered) set
-    const k=data.kpis||{};
-    $('modalStats').innerHTML = [
-      ['In view', num(data.drillCount ?? data.totalFiltered), ''],
-      ['Total filtered', num(data.totalFiltered), ''],
-      ['Delivered', num(k.totalDelivered), 'green'],
-      ['Rejected', num(k.totalRejected), 'red'],
-      ['Within SLA', num(k.withinSla), 'green'],
-      ['Out of SLA', num(k.outOfSla), 'orange'],
-      ['Avg TAT', fmtTat(k.avgTat), ''],
-    ].map(([l,v,c])=>`<div class="modal-stat"><span class="modal-stat-label">${esc(l)}</span><span class="modal-stat-value ${c}">${v}</span></div>`).join('');
-
-    // Body — records table
-    $('modalBody').innerHTML = `
-      <table>
-        <thead><tr>
-          <th>Created</th><th>Enterprise</th><th>Team</th><th>QC User</th>
-          <th>Status</th><th>CRM</th><th>Verified</th><th>SLA</th><th>TAT</th>
-          <th>Video ID</th><th>VIN</th><th>SKU ID</th><th>Updated</th>
-        </tr></thead>
-        <tbody id="modalRows"></tbody>
-      </table>`;
-    renderRecordsTable($('modalRows'), data.raw||[], data, null);
-    const shown = (data.raw||[]).length, total = data.drillCount ?? data.totalFiltered ?? 0;
-    $('modalCount').textContent = `Showing ${num(shown)} of ${num(total)}` + (shown>=500&&total>500?' (latest 500)':'');
-  }catch(err){
-    $('modalBody').innerHTML = `<div class="err" style="margin:20px">Failed to load: ${esc(err.message)}</div>`;
+function drillSubset(rows, view){
+  switch(view){
+    case 'delivered':  return rows.filter(isDelivered);
+    case 'rejected':   return rows.filter(isRejected);
+    case 'pending':    return rows.filter(isPending);
+    case 'within_sla': return rows.filter(r => isDelivered(r) && r.sla===1);
+    case 'out_of_sla': return rows.filter(r => isDelivered(r) && r.sla===0);
+    case 'tat':        return rows.filter(r => typeof r.tat==='number').sort((a,b)=>(b.tat||0)-(a.tat||0));
+    default:           return rows;
   }
 }
 
-function renderBreakdown(dim, data){
-  const map = (data.breakdown && data.breakdown[dim]) || {};
-  const entries = Object.entries(map).sort((a,b)=>b[1].total-a[1].total);
-  const totalAll = entries.reduce((s,[,v])=>s+v.total, 0);
+function openDrill(kpi){
+  if (!kpi) return;
+  const filtered = RAW.filter(passesFilters);
+  const k = aggregate(filtered);
 
-  // Stat strip
-  const k=data.kpis||{};
-  const distinct = dim==='enterprise'?k.totalEnterpriseCount:k.totalTeamCount;
+  $('modalTitle').textContent = kpi.label;
+  $('modalSub').textContent   = (kpi.sub||'').toUpperCase();
+  $('modalChips').innerHTML   = activeFilterChips();
+  $('modal').classList.add('show');
+
+  if (kpi.kind === 'breakdown'){
+    renderBreakdownView(kpi.dim, k);
+    return;
+  }
+
+  // Records view
+  const rows = drillSubset(filtered, kpi.view);
   $('modalStats').innerHTML = [
-    [dim==='enterprise'?'Enterprises':'Teams', num(distinct), 'blue'],
-    ['Total records', num(totalAll), ''],
-    ['Delivered', num(entries.reduce((s,[,v])=>s+v.delivered,0)), 'green'],
-    ['Rejected', num(entries.reduce((s,[,v])=>s+v.rejected,0)), 'red'],
-    ['Within SLA', num(entries.reduce((s,[,v])=>s+v.withinSla,0)), 'green'],
-    ['Out of SLA', num(entries.reduce((s,[,v])=>s+v.outOfSla,0)), 'orange'],
+    ['In view',     num(rows.length),                    ''],
+    ['Delivered',   num(k.totalDelivered),               'green'],
+    ['Rejected',    num(k.totalRejected),                'red'],
+    ['Within SLA',  num(k.withinSla),                    'green'],
+    ['Out of SLA',  num(k.outOfSla),                     'orange'],
+    ['SLA %',       k.slaCompliance!=null?k.slaCompliance.toFixed(1)+'%':'—', ''],
+    ['Avg TAT',     fmtTatHrs(k.avgTat),                 ''],
   ].map(([l,v,c])=>`<div class="modal-stat"><span class="modal-stat-label">${esc(l)}</span><span class="modal-stat-value ${c}">${v}</span></div>`).join('');
 
-  if(!entries.length){
+  const shown = rows.slice(0, 500);
+  $('modalBody').innerHTML = `
+    <table>
+      <thead><tr>
+        <th>Created</th><th>Enterprise</th><th>Team</th><th>QC User</th>
+        <th>Status</th><th>CRM</th><th>Verified</th><th>SLA</th><th>TAT</th>
+        <th>Video ID</th><th>VIN</th><th>SKU ID</th><th>Updated</th>
+      </tr></thead>
+      <tbody>${shown.length===0?`<tr><td colspan="13" class="empty">No records match.</td></tr>`:shown.map(r=>{
+        const isD=isDelivered(r), isR=isRejected(r);
+        const pill = isD?'<span class="pill delivered">Delivered</span>':isR?'<span class="pill rejected">Rejected</span>':'<span class="pill pending">Pending</span>';
+        const slaPill = r.sla===1?'<span class="pill sla-in">In</span>':r.sla===0?'<span class="pill sla-out">Out</span>':'<span class="pill">—</span>';
+        return `<tr><td class="mono">${esc(fmtDate(r.c))}</td><td>${esc(r.ent||'—')}</td><td>${esc(r.team||'—')}</td><td>${esc(r.qc||'—')}</td><td>${esc(r.status||'—')}</td><td>${esc(r.crm||'—')}</td><td>${pill}</td><td>${slaPill}</td><td class="mono">${esc(fmtTatHrs(r.tat))}</td><td class="mono">${esc(r.vid||'—')}</td><td class="mono">${esc(r.vin||'—')}</td><td class="mono">${esc(r.sku||'—')}</td><td class="mono">${esc(fmtDate(r.u))}</td></tr>`;
+      }).join('')}</tbody>
+    </table>`;
+  $('modalCount').textContent = `Showing ${num(shown.length)} of ${num(rows.length)}` + (shown.length>=500 && rows.length>500 ? ' (latest 500)' : '');
+}
+
+function renderBreakdownView(dim, k){
+  const map = dim==='ent' ? k.entBreak : k.teamBreak;
+  const entries = Object.entries(map).sort((a,b)=>b[1].total-a[1].total);
+  const totalAll = entries.reduce((s,[,v])=>s+v.total, 0);
+  const distinct = dim==='ent' ? k.enterpriseCount : k.teamCount;
+  const totalDeliv = entries.reduce((s,[,v])=>s+v.delivered,0);
+  const totalRej   = entries.reduce((s,[,v])=>s+v.rejected,0);
+  const totalWithin= entries.reduce((s,[,v])=>s+v.withinSla,0);
+  const totalOut   = entries.reduce((s,[,v])=>s+v.outOfSla,0);
+
+  $('modalStats').innerHTML = [
+    [dim==='ent'?'Enterprises':'Teams', num(distinct), 'blue'],
+    ['Total records', num(totalAll), ''],
+    ['Delivered',  num(totalDeliv),  'green'],
+    ['Rejected',   num(totalRej),    'red'],
+    ['Within SLA', num(totalWithin), 'green'],
+    ['Out of SLA', num(totalOut),    'orange'],
+  ].map(([l,v,c])=>`<div class="modal-stat"><span class="modal-stat-label">${esc(l)}</span><span class="modal-stat-value ${c}">${v}</span></div>`).join('');
+
+  if (!entries.length){
     $('modalBody').innerHTML = '<div class="empty">No data in current view.</div>';
-    $('modalCount').textContent = '';
-    return;
+    $('modalCount').textContent = ''; return;
   }
 
   $('modalBody').innerHTML = `
     <table>
       <thead><tr>
-        <th>${dim==='enterprise'?'Enterprise':'Team'}</th>
+        <th>${dim==='ent'?'Enterprise':'Team'}</th>
         <th class="num-cell">Total</th>
         <th class="num-cell">Delivered</th>
         <th class="num-cell">Rejected</th>
         <th class="num-cell">Pending</th>
         <th class="num-cell">Within SLA</th>
         <th class="num-cell">Out of SLA</th>
+        <th class="num-cell">SLA %</th>
         <th class="num-cell">Delivery rate</th>
       </tr></thead>
       <tbody>${entries.map(([name,v])=>{
-        const rate = v.total ? (v.delivered/v.total)*100 : 0;
-        return `<tr class="breakdown-row" data-name="${esc(name)}" data-dim="${dim}" title="Click to filter by ${esc(name)}">
+        const dRate = v.total ? (v.delivered/v.total)*100 : 0;
+        const slaPct = v.delivered ? (v.withinSla/v.delivered)*100 : null;
+        return `<tr class="breakdown-row" data-name="${esc(name)}" data-dim="${dim}" title="Click to filter">
           <td class="breakdown-name">${esc(name)}</td>
           <td class="num-cell">${num(v.total)}</td>
           <td class="num-cell" style="color:var(--green)">${num(v.delivered)}</td>
@@ -1106,46 +1284,149 @@ function renderBreakdown(dim, data){
           <td class="num-cell" style="color:var(--amber)">${num(v.pending)}</td>
           <td class="num-cell" style="color:var(--green)">${num(v.withinSla)}</td>
           <td class="num-cell" style="color:var(--orange)">${num(v.outOfSla)}</td>
-          <td class="num-cell">${rate.toFixed(1)}%<span class="pct-bar"><span class="pct-bar-fill" style="width:${rate.toFixed(1)}%"></span></span></td>
+          <td class="num-cell">${slaPct!=null?slaPct.toFixed(1)+'%':'—'}</td>
+          <td class="num-cell">${dRate.toFixed(1)}%<span class="pct-bar"><span class="pct-bar-fill" style="width:${dRate.toFixed(1)}%"></span></span></td>
         </tr>`;
       }).join('')}</tbody>
     </table>`;
-  $('modalCount').textContent = `${num(entries.length)} ${dim==='enterprise'?'enterprises':'teams'}`;
+  $('modalCount').textContent = `${num(entries.length)} ${dim==='ent'?'enterprises':'teams'}`;
 
   $('modalBody').querySelectorAll('.breakdown-row').forEach(tr=>{
-    tr.addEventListener('click',()=>{
+    tr.addEventListener('click', ()=>{
       const name=tr.dataset.name, d=tr.dataset.dim;
-      if(d==='enterprise'){ F.enterprise=name; F.team='all'; }
-      else                { F.team=name; }
+      if (d==='ent'){ F.enterprise=name; F.team='all'; $('fEnt').value=name; $('fTeam').value='all'; }
+      else          { F.team=name; $('fTeam').value=name; }
       closeModal();
-      fetchAndRender('Filtering…');
+      refresh();
     });
   });
 }
 
-function closeModal(){$('modal').classList.remove('show');}
-$('modalClose').addEventListener('click',closeModal);
-$('modal').addEventListener('click',e=>{if(e.target===$('modal'))closeModal();});
-document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('modal').classList.contains('show'))closeModal();});
+function closeModal(){ $('modal').classList.remove('show'); }
+$('modalClose').addEventListener('click', closeModal);
+$('modal').addEventListener('click', e=>{ if (e.target===$('modal')) closeModal(); });
+document.addEventListener('keydown', e=>{ if (e.key==='Escape' && $('modal').classList.contains('show')) closeModal(); });
 
-// SLA panel cells → drill-down
-function bindSlaCells(){
-  const inCell = $('slaCellIn'), outCell = $('slaCellOut');
-  const openIn  = ()=>openDrill({label:'Within SLA',  sub:'records delivered within SLA',     view:'within_sla', kind:'records'});
-  const openOut = ()=>openDrill({label:'Out of SLA',  sub:'records breached SLA',             view:'out_of_sla', kind:'records'});
-  if (inCell)  { inCell.addEventListener('click', openIn);
-                 inCell.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openIn();}}); }
-  if (outCell) { outCell.addEventListener('click', openOut);
-                 outCell.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openOut();}}); }
+// ─────────────────────────────────────────────────────────────
+// THEME
+// ─────────────────────────────────────────────────────────────
+function applyTheme(dark){
+  isDark = dark;
+  document.documentElement.setAttribute('data-theme', dark?'dark':'light');
+  $('themeLabel').textContent = dark?'Light':'Dark';
+  $('themeIcon').innerHTML = dark?`<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>`:
+    `<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>`;
+  try { localStorage.setItem('opsDash_theme', dark?'dark':'light'); } catch(e){}
+  // Recolor charts
+  if (RAW.length) refresh();
+}
+$('themeBtn').addEventListener('click', ()=> applyTheme(!isDark));
+
+// ─────────────────────────────────────────────────────────────
+// LAYOUT / EDIT MODE
+// ─────────────────────────────────────────────────────────────
+function applyLayout(){
+  const grid = $('panelGrid');
+  // Append in saved order; set size attribute
+  for (const item of LAYOUT){
+    const el = grid.querySelector(`[data-panel="${item.id}"]`);
+    if (!el) continue;
+    el.dataset.size = item.size;
+    grid.appendChild(el);
+  }
 }
 
-// ── Init ──────────────────────────────────────────────────────
-let savedTheme=null; try{savedTheme=localStorage.getItem('opsDash_theme');}catch(e){}
-if(savedTheme==='dark') applyTheme(true);
+function movePanel(id, dir){
+  const idx = LAYOUT.findIndex(p=>p.id===id);
+  if (idx < 0) return;
+  const newIdx = idx + dir;
+  if (newIdx < 0 || newIdx >= LAYOUT.length) return;
+  [LAYOUT[idx], LAYOUT[newIdx]] = [LAYOUT[newIdx], LAYOUT[idx]];
+  saveLayout(); applyLayout(); renderEditControls();
+  // Charts need redraw after DOM move
+  refresh();
+}
+function togglePanelSize(id){
+  const item = LAYOUT.find(p=>p.id===id);
+  if (!item) return;
+  item.size = item.size==='full' ? 'half' : 'full';
+  saveLayout(); applyLayout(); renderEditControls();
+  // resize → chart canvas size changed
+  refresh();
+}
+
+function renderEditControls(){
+  document.querySelectorAll('[data-panel-ctl]').forEach(host=>{
+    const id = host.dataset.panelCtl;
+    const idx = LAYOUT.findIndex(p=>p.id===id);
+    const cur = LAYOUT[idx];
+    if (!cur) { host.innerHTML=''; return; }
+    host.innerHTML = `
+      <button class="ec-btn" data-act="up"     title="Move up"     ${idx===0?'disabled':''}>↑</button>
+      <button class="ec-btn" data-act="down"   title="Move down"   ${idx===LAYOUT.length-1?'disabled':''}>↓</button>
+      <button class="ec-btn size-btn" data-act="size" title="Toggle size">${cur.size==='full'?'½':'1'}</button>
+    `;
+    host.querySelectorAll('button').forEach(b=>{
+      b.addEventListener('click', e=>{
+        e.stopPropagation();
+        if (b.dataset.act==='up')   movePanel(id, -1);
+        if (b.dataset.act==='down') movePanel(id,  1);
+        if (b.dataset.act==='size') togglePanelSize(id);
+      });
+    });
+  });
+}
+
+$('editBtn').addEventListener('click', ()=>{
+  editMode = !editMode;
+  document.body.classList.toggle('edit-mode', editMode);
+  $('editBtn').classList.toggle('active', editMode);
+  $('editLabel').textContent = editMode ? 'Done' : 'Customize';
+  if (editMode) renderEditControls();
+});
+
+// ─────────────────────────────────────────────────────────────
+// AUTO-SYNC — 30 minutes
+// ─────────────────────────────────────────────────────────────
+const AUTO_MS = 30 * 60 * 1000;
+let autoTimer = null, cdTimer = null, nextAt = null;
+function startCD(){
+  if (cdTimer) clearInterval(cdTimer);
+  nextAt = Date.now() + AUTO_MS;
+  cdTimer = setInterval(()=>{
+    const rem = nextAt - Date.now();
+    if (rem <= 0){ $('autoSyncBadge').textContent='Syncing…'; return; }
+    const m = Math.floor(rem/60000), s = Math.floor((rem%60000)/1000);
+    $('autoSyncBadge').textContent = `Next sync in ${m}:${String(s).padStart(2,'0')}`;
+  }, 1000);
+}
+function schedAuto(){
+  if (autoTimer) clearTimeout(autoTimer);
+  startCD();
+  autoTimer = setTimeout(async()=>{ await syncFromServer({silent:true, force:true}); schedAuto(); }, AUTO_MS);
+}
+$('syncBtn').addEventListener('click', async()=>{
+  await syncFromServer({force:true});
+  schedAuto();
+});
+
+function setLoading(on, msg='Loading…'){ $('loadOverlay').classList.toggle('show', on); $('loadMsg').textContent = msg; }
+
+// ─────────────────────────────────────────────────────────────
+// INIT
+// ─────────────────────────────────────────────────────────────
+let savedTheme = null; try { savedTheme = localStorage.getItem('opsDash_theme'); } catch(e){}
+if (savedTheme === 'dark') applyTheme(true);
+
+// Set default date filter to This Month
+const r0 = presetRange('this_month');
+F.from = r0.from; F.to = r0.to;
+
 renderKpiCards();
 bindSlaCells();
 syncDateUI();
-fetchAndRender('Loading dashboard…');
+applyLayout();
+syncFromServer();
 schedAuto();
 </script>
 </body>
