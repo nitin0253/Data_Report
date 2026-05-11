@@ -882,10 +882,11 @@ function aggregate(rows){
       bump(teamBreak, r.team, kind);
       if (kind === 'delivered' && r.sla === 1) teamBreak[r.team].withinSla++;
       else if (kind === 'delivered' && r.sla === 0) teamBreak[r.team].outOfSla++;
-      if (!teamPoc[r.team]) teamPoc[r.team] = { ob:r.poc_ob||'', cs:r.poc_cs||'' };
+      if (!teamPoc[r.team]) teamPoc[r.team] = { ob:r.poc_ob||'', cs:r.poc_cs||'', ent:r.ent||'' };
       else {
-        if (!teamPoc[r.team].ob && r.poc_ob) teamPoc[r.team].ob = r.poc_ob;
-        if (!teamPoc[r.team].cs && r.poc_cs) teamPoc[r.team].cs = r.poc_cs;
+        if (!teamPoc[r.team].ob  && r.poc_ob) teamPoc[r.team].ob  = r.poc_ob;
+        if (!teamPoc[r.team].cs  && r.poc_cs) teamPoc[r.team].cs  = r.poc_cs;
+        if (!teamPoc[r.team].ent && r.ent)    teamPoc[r.team].ent = r.ent;
       }
     }
   }
@@ -1154,8 +1155,10 @@ function mkBar(id, canvas, map, opts={}){
       scales:{
         x:{ grid:{color:PAL.line, display:!opts.h}, ticks:{font:{size:11},color:PAL.muted}, beginAtZero:opts.h },
         // y reversed so the FIRST (largest, desc-sorted) bar appears at the TOP
+        // Data is passed in DESC order, so default category-axis rendering
+        // (first label at top) puts the largest bar on top. Do NOT reverse.
         y:{ grid:{color:PAL.line, display:opts.h}, ticks:{font:{size:11},color:PAL.muted, autoSkip:false},
-            beginAtZero:!opts.h, reverse: opts.h ? true : false },
+            beginAtZero:!opts.h },
       },
     },
   });
@@ -1810,6 +1813,9 @@ function drillSubset(rows, view){
   }
 }
 
+// Holds the current drill-down context so we can re-render on sort changes
+let _modalCtx = null;
+
 function openDrill(kpi){
   if (!kpi) return;
   const filtered = RAW.filter(passesFilters);
@@ -1821,7 +1827,8 @@ function openDrill(kpi){
   $('modal').classList.add('show');
 
   if (kpi.kind === 'breakdown'){
-    renderBreakdownView(kpi.dim, k);
+    _modalCtx = { type:'breakdown', dim:kpi.dim, k, sort:{col:null, dir:null} };
+    renderBreakdownView();
     return;
   }
 
@@ -1837,21 +1844,73 @@ function openDrill(kpi){
     ['Avg TAT',     fmtTatHrs(k.avgTat),                 ''],
   ].map(([l,v,c])=>`<div class="modal-stat"><span class="modal-stat-label">${esc(l)}</span><span class="modal-stat-value ${c}">${v}</span></div>`).join('');
 
-  const shown = rows.slice(0, 500);
-  // For the "Rejected" view, surface the Rejected Reason prominently next to Video ID.
+  _modalCtx = { type:'records', kpi, rows, sort:{col:null, dir:null} };
+  renderRecordsModal();
+}
+
+// Build a sort-aware <th> for any modal table column.
+function sortableTh(col, label, extraCls=''){
+  const s = _modalCtx?.sort || {col:null,dir:null};
+  const isSorted = s.col === col;
+  const sortedCls = isSorted ? 'sorted' : '';
+  const arrow = isSorted ? (s.dir === 'asc' ? '↑' : '↓') : '↕';
+  return `<th class="sortable ${sortedCls} ${extraCls}" data-sort="${col}">${label}<span class="sort-ind">${arrow}</span></th>`;
+}
+
+// Handle a sort click in the modal: cycle asc → desc → none, then re-render.
+function modalSortClick(col){
+  if (!_modalCtx) return;
+  const s = _modalCtx.sort;
+  if (s.col !== col){ s.col = col; s.dir = 'asc'; }
+  else if (s.dir === 'asc'){ s.dir = 'desc'; }
+  else { s.col = null; s.dir = null; }
+  if (_modalCtx.type === 'records')   renderRecordsModal();
+  else if (_modalCtx.type === 'breakdown') renderBreakdownView();
+}
+
+function renderRecordsModal(){
+  if (!_modalCtx || _modalCtx.type !== 'records') return;
+  const { kpi, rows, sort } = _modalCtx;
   const isRejView = kpi.view === 'rejected';
+
+  // Sort rows
+  let sorted = rows.slice();
+  if (sort.col){
+    sorted.sort((a,b)=>{
+      const av = getRowSortVal(a, sort.col);
+      const bv = getRowSortVal(b, sort.col);
+      let cmp = (typeof av === 'number' && typeof bv === 'number')
+        ? av - bv
+        : String(av).localeCompare(String(bv), undefined, {numeric:true, sensitivity:'base'});
+      return sort.dir === 'asc' ? cmp : -cmp;
+    });
+  }
+  const shown = sorted.slice(0, 500);
+
+  // Build header columns array — preserves the rejected-view column reorder
+  const reasonTh = sortableTh('rej', 'Rejected Reason');
+  const headHTML = [
+    sortableTh('_created', 'Created'),
+    sortableTh('ent',      'Enterprise'),
+    sortableTh('team',     'Team'),
+    sortableTh('qc',       'QC User'),
+    sortableTh('poc_ob',   'POC OB'),
+    sortableTh('poc_cs',   'POC CS'),
+    sortableTh('_status',  'Status'),
+    sortableTh('sla',      'SLA'),
+    sortableTh('tat',      'TAT'),
+    isRejView ? reasonTh : '',
+    sortableTh('vid',      'Video ID'),
+    !isRejView ? reasonTh : '',
+    sortableTh('vin',      'VIN'),
+    sortableTh('sku',      'SKU ID'),
+    sortableTh('_updated', 'Updated'),
+  ].filter(Boolean).join('');
+
   $('modalBody').innerHTML = `
     <table>
-      <thead><tr>
-        <th>Created</th><th>Enterprise</th><th>Team</th><th>QC User</th>
-        <th>POC OB</th><th>POC CS</th>
-        <th>Status</th><th>SLA</th><th>TAT</th>
-        ${isRejView ? '<th style="min-width:180px">Rejected Reason</th>' : ''}
-        <th>Video ID</th>
-        ${!isRejView ? '<th>Rejected Reason</th>' : ''}
-        <th>VIN</th><th>SKU ID</th><th>Updated</th>
-      </tr></thead>
-      <tbody>${shown.length===0?`<tr><td colspan="${isRejView?14:14}" class="empty">No records match.</td></tr>`:shown.map(r=>{
+      <thead><tr>${headHTML}</tr></thead>
+      <tbody>${shown.length===0?`<tr><td colspan="14" class="empty">No records match.</td></tr>`:shown.map(r=>{
         const isD=isDelivered(r), isR=isRejected(r);
         const pill = isD?'<span class="pill delivered">Delivered</span>':isR?'<span class="pill rejected">Rejected</span>':'<span class="pill pending">Pending</span>';
         const slaPill = r.sla===1?'<span class="pill sla-in">In</span>':r.sla===0?'<span class="pill sla-out">Out</span>':'<span class="pill">—</span>';
@@ -1862,11 +1921,45 @@ function openDrill(kpi){
   $('modalCount').textContent = `Showing ${num(shown.length)} of ${num(rows.length)}` + (shown.length>=500 && rows.length>500 ? ' (latest 500)' : '');
 }
 
-function renderBreakdownView(dim, k){
+function renderBreakdownView(){
+  if (!_modalCtx || _modalCtx.type !== 'breakdown') return;
+  const { dim, k, sort } = _modalCtx;
   const map = dim==='ent' ? k.entBreak : k.teamBreak;
-  const entries = Object.entries(map).sort((a,b)=>b[1].total-a[1].total);
-  const totalAll = entries.reduce((s,[,v])=>s+v.total, 0);
-  const distinct = dim==='ent' ? k.enterpriseCount : k.teamCount;
+  const pocMap = dim==='ent' ? k.entPoc : k.teamPoc;
+
+  // Resolve a sort value for each row
+  const valueOf = (name, v, col) => {
+    if (col === 'name')       return name.toLowerCase();
+    if (col === 'enterprise') return ((pocMap[name]||{}).ent || '').toLowerCase();
+    if (col === 'pocOb')      return ((pocMap[name]||{}).ob || '').toLowerCase();
+    if (col === 'pocCs')      return ((pocMap[name]||{}).cs || '').toLowerCase();
+    if (col === 'total')      return v.total;
+    if (col === 'delivered')  return v.delivered;
+    if (col === 'rejected')   return v.rejected;
+    if (col === 'pending')    return v.pending;
+    if (col === 'withinSla')  return v.withinSla;
+    if (col === 'outOfSla')   return v.outOfSla;
+    if (col === 'slaPct')     return v.delivered ? (v.withinSla/v.delivered)*100 : -1;
+    if (col === 'delivRate')  return v.total ? (v.delivered/v.total)*100 : 0;
+    return 0;
+  };
+
+  let entries = Object.entries(map);
+  if (sort.col){
+    entries.sort((a,b)=>{
+      const av = valueOf(a[0], a[1], sort.col);
+      const bv = valueOf(b[0], b[1], sort.col);
+      const cmp = (typeof av === 'number' && typeof bv === 'number')
+        ? av - bv
+        : String(av).localeCompare(String(bv), undefined, {numeric:true, sensitivity:'base'});
+      return sort.dir === 'asc' ? cmp : -cmp;
+    });
+  } else {
+    entries.sort((a,b)=>b[1].total - a[1].total); // default: total desc
+  }
+
+  const totalAll   = entries.reduce((s,[,v])=>s+v.total, 0);
+  const distinct   = dim==='ent' ? k.enterpriseCount : k.teamCount;
   const totalDeliv = entries.reduce((s,[,v])=>s+v.delivered,0);
   const totalRej   = entries.reduce((s,[,v])=>s+v.rejected,0);
   const totalWithin= entries.reduce((s,[,v])=>s+v.withinSla,0);
@@ -1886,27 +1979,33 @@ function renderBreakdownView(dim, k){
     $('modalCount').textContent = ''; return;
   }
 
+  // Build header (Team view gets an extra Enterprise column)
+  const headParts = [
+    sortableTh('name', dim==='ent'?'Enterprise':'Team'),
+    dim==='team' ? sortableTh('enterprise', 'Enterprise') : '',
+    sortableTh('pocOb',     'POC OB'),
+    sortableTh('pocCs',     'POC CS'),
+    sortableTh('total',     'Total',       'num-cell'),
+    sortableTh('delivered', 'Delivered',   'num-cell'),
+    sortableTh('rejected',  'Rejected',    'num-cell'),
+    sortableTh('pending',   'Pending',     'num-cell'),
+    sortableTh('withinSla', 'Within SLA',  'num-cell'),
+    sortableTh('outOfSla',  'Out of SLA',  'num-cell'),
+    sortableTh('slaPct',    'SLA %',       'num-cell'),
+    sortableTh('delivRate', 'Delivery rate','num-cell'),
+  ].filter(Boolean).join('');
+
   $('modalBody').innerHTML = `
     <table>
-      <thead><tr>
-        <th>${dim==='ent'?'Enterprise':'Team'}</th>
-        <th>POC OB</th>
-        <th>POC CS</th>
-        <th class="num-cell">Total</th>
-        <th class="num-cell">Delivered</th>
-        <th class="num-cell">Rejected</th>
-        <th class="num-cell">Pending</th>
-        <th class="num-cell">Within SLA</th>
-        <th class="num-cell">Out of SLA</th>
-        <th class="num-cell">SLA %</th>
-        <th class="num-cell">Delivery rate</th>
-      </tr></thead>
+      <thead><tr>${headParts}</tr></thead>
       <tbody>${entries.map(([name,v])=>{
         const dRate = v.total ? (v.delivered/v.total)*100 : 0;
         const slaPct = v.delivered ? (v.withinSla/v.delivered)*100 : null;
-        const poc = (dim==='ent' ? k.entPoc : k.teamPoc)[name] || {ob:'',cs:''};
+        const poc = pocMap[name] || {ob:'',cs:'',ent:''};
+        const entCol = dim==='team' ? `<td>${esc(poc.ent||'—')}</td>` : '';
         return `<tr class="breakdown-row" data-name="${esc(name)}" data-dim="${dim}" title="Click to filter">
           <td class="breakdown-name">${esc(name)}</td>
+          ${entCol}
           <td>${esc(poc.ob||'—')}</td>
           <td>${esc(poc.cs||'—')}</td>
           <td class="num-cell">${num(v.total)}</td>
@@ -1923,7 +2022,9 @@ function renderBreakdownView(dim, k){
   $('modalCount').textContent = `${num(entries.length)} ${dim==='ent'?'enterprises':'teams'}`;
 
   $('modalBody').querySelectorAll('.breakdown-row').forEach(tr=>{
-    tr.addEventListener('click', ()=>{
+    tr.addEventListener('click', e=>{
+      // Don't trigger row-filter if user is clicking a header (delegated below)
+      if (e.target.closest('th.sortable')) return;
       const name=tr.dataset.name, d=tr.dataset.dim;
       if (d==='ent'){ F.ent = new Set([name]); F.team = null; }
       else          { F.team = new Set([name]); }
@@ -1934,7 +2035,15 @@ function renderBreakdownView(dim, k){
   });
 }
 
-function closeModal(){ $('modal').classList.remove('show'); }
+// Single delegated click handler for ALL modal-body sortable headers
+$('modalBody').addEventListener('click', e=>{
+  const th = e.target.closest('th.sortable');
+  if (!th) return;
+  e.stopPropagation();
+  modalSortClick(th.dataset.sort);
+});
+
+function closeModal(){ $('modal').classList.remove('show'); _modalCtx = null; }
 $('modalClose').addEventListener('click', closeModal);
 $('modal').addEventListener('click', e=>{ if (e.target===$('modal')) closeModal(); });
 document.addEventListener('keydown', e=>{ if (e.key==='Escape' && $('modal').classList.contains('show')) closeModal(); });
