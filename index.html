@@ -16,6 +16,8 @@
     --amber:#b27a00;--red:#b3261e;--orange:#c2410c;--purple:#5b21b6;--teal:#0e7490;
     --theme-btn-bg:#0b0b0c;--theme-btn-fg:#ffffff;
     --shadow:rgba(0,0,0,0.05);--shadow-md:rgba(0,0,0,0.08);--shadow-lg:rgba(0,0,0,0.18);
+    /* chart label colors */
+    --chart-label-color:#404045;
   }
   [data-theme="dark"]{
     --bg:#111113;--surface:#1c1c1f;--surface-2:#222226;--ink:#f0efe9;--ink-2:#b0b0b8;
@@ -23,6 +25,7 @@
     --amber:#f5c265;--red:#f87171;--orange:#fb923c;--purple:#c084fc;--teal:#22d3ee;
     --theme-btn-bg:#f0efe9;--theme-btn-fg:#111113;
     --shadow:rgba(0,0,0,0.3);--shadow-md:rgba(0,0,0,0.4);--shadow-lg:rgba(0,0,0,0.6);
+    --chart-label-color:#b0b0b8;
   }
   *{box-sizing:border-box;}
   body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased;font-size:14px;min-height:100vh;transition:background .25s,color .25s;}
@@ -51,6 +54,30 @@
   .f-select:focus{border-color:var(--ink);}.f-select:disabled{opacity:.45;cursor:not-allowed;}
   .btn-reset{align-self:flex-end;background:transparent;border:1px solid var(--line);padding:7px 14px;border-radius:6px;font-size:13px;cursor:pointer;color:var(--ink-2);height:34px;transition:background .15s;}
   .btn-reset:hover{background:var(--bg);}
+
+  /* MULTI-SELECT DROPDOWN — for Enterprise/Team exclusion picker */
+  .ms-wrap{position:relative;display:flex;flex-direction:column;gap:4px;}
+  .ms-trigger{display:flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:7px 10px;font:400 13px 'Inter';color:var(--ink);cursor:pointer;min-width:180px;user-select:none;transition:border-color .15s;white-space:nowrap;}
+  .ms-trigger:hover,.ms-trigger.open{border-color:var(--accent);}
+  .ms-trigger-label{flex:1;overflow:hidden;text-overflow:ellipsis;}
+  .ms-chev{opacity:.4;transition:transform .2s;flex-shrink:0;}
+  .ms-trigger.open .ms-chev{transform:rotate(180deg);}
+  .ms-badge{background:var(--accent);color:var(--surface);border-radius:999px;font:600 10px 'JetBrains Mono';padding:1px 6px;min-width:18px;text-align:center;flex-shrink:0;}
+  .ms-panel{display:none;position:absolute;top:calc(100%+4px);left:0;z-index:600;background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 32px var(--shadow-lg);min-width:220px;max-height:320px;overflow-y:auto;}
+  .ms-panel.open{display:block;}
+  .ms-search{padding:8px 10px;border-bottom:1px solid var(--line);}
+  .ms-search input{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:6px 10px;font:400 12px 'Inter';color:var(--ink);outline:none;}
+  .ms-search input:focus{border-color:var(--accent);}
+  .ms-actions{display:flex;gap:0;border-bottom:1px solid var(--line);}
+  .ms-act{flex:1;background:none;border:none;border-right:1px solid var(--line);padding:6px 8px;font:500 11px 'JetBrains Mono';color:var(--muted);cursor:pointer;text-transform:uppercase;letter-spacing:.06em;transition:background .12s,color .12s;}
+  .ms-act:last-child{border-right:none;}
+  .ms-act:hover{background:var(--bg);color:var(--ink);}
+  .ms-list{padding:4px 0;}
+  .ms-item{display:flex;align-items:center;gap:10px;padding:8px 12px;cursor:pointer;transition:background .1s;font:400 13px 'Inter';color:var(--ink-2);}
+  .ms-item:hover{background:var(--bg);}
+  .ms-item input[type=checkbox]{width:14px;height:14px;accent-color:var(--accent);cursor:pointer;flex-shrink:0;}
+  .ms-item span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .ms-empty{padding:16px 12px;text-align:center;font:400 12px 'JetBrains Mono';color:var(--muted);}
 
   /* DATE PICKER */
   .date-filter{position:relative;display:flex;flex-direction:column;gap:4px;}
@@ -115,7 +142,7 @@
   .kpi:hover .kpi-arrow{opacity:.7;transform:translate(2px,-2px);}
   .kpi-arrow svg{width:14px;height:14px;display:block;}
 
-  /* PANEL GRID — customizable */
+  /* PANEL GRID */
   .panel-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-bottom:16px;}
   .panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px;min-width:0;transition:background .25s,border-color .25s;position:relative;}
   .panel[data-size="full"]{grid-column:span 2;}
@@ -138,6 +165,10 @@
   .trend-legend-item .ldot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
   .trend-legend-item .lval{color:var(--ink);font-weight:500;}
 
+  /* SLA + DELIVERY RATE SIDE BY SIDE */
+  .sla-delivery-row{display:grid;grid-template-columns:1fr 1fr;gap:0;}
+  .sla-divider{width:1px;background:var(--line);margin:0;}
+
   /* SLA PANEL */
   .sla-content{display:flex;flex-direction:column;gap:14px;padding-top:6px;}
   .sla-cells{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
@@ -155,6 +186,24 @@
   .sla-tick{display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);}
   .sla-bottom{display:flex;justify-content:space-between;align-items:center;padding-top:8px;border-top:1px solid var(--line);font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);}
   .sla-bottom strong{color:var(--ink);font-weight:600;font-variant-numeric:tabular-nums;}
+
+  /* DELIVERY RATE PANEL (mirrors SLA) */
+  .dr-content{display:flex;flex-direction:column;gap:14px;padding-top:6px;}
+  .dr-cells{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .dr-cell{padding:14px 16px;border-radius:10px;background:var(--surface-2);border:1px solid var(--line);display:flex;flex-direction:column;align-items:flex-start;gap:4px;cursor:pointer;transition:transform .15s,box-shadow .15s,border-color .15s;}
+  .dr-cell:hover{transform:translateY(-2px);box-shadow:0 4px 14px var(--shadow-md);border-color:var(--line-2);}
+  .dr-cell.dr-delivered{border-left:3px solid var(--green);}
+  .dr-cell.dr-pending{border-left:3px solid var(--amber);}
+  .dr-num{font-family:'Bricolage Grotesque',serif;font-size:30px;font-weight:600;letter-spacing:-.025em;line-height:1;font-variant-numeric:tabular-nums;}
+  .dr-num.green{color:var(--green);}.dr-num.amber{color:var(--amber);}
+  .dr-pct{font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--ink-2);font-variant-numeric:tabular-nums;font-weight:500;}
+  .dr-cell-label{font-family:'JetBrains Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-top:2px;}
+  .dr-bar{display:flex;height:14px;border-radius:7px;overflow:hidden;background:var(--bg);border:1px solid var(--line);}
+  .dr-bar-delivered{background:var(--green);transition:width .4s ease;height:100%;width:0;}
+  .dr-bar-pending{background:var(--amber);transition:width .4s ease;height:100%;width:0;}
+  .dr-tick{display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);}
+  .dr-bottom{display:flex;justify-content:space-between;align-items:center;padding-top:8px;border-top:1px solid var(--line);font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);}
+  .dr-bottom strong{color:var(--ink);font-weight:600;font-variant-numeric:tabular-nums;}
 
   /* TABLE */
   .table-wrap{background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden;transition:background .25s,border-color .25s;}
@@ -238,7 +287,7 @@
   body.edit-mode .edit-hint{display:flex;align-items:center;gap:8px;}
   [data-theme="dark"] .edit-hint{background:rgba(107,158,255,0.1);border-color:rgba(107,158,255,0.3);color:var(--accent);}
 
-  @media(max-width:900px){.panel-grid{grid-template-columns:1fr;}.panel[data-size="full"],.panel[data-size="half"]{grid-column:span 1;}.modal-panel{width:100vw;}}
+  @media(max-width:900px){.panel-grid{grid-template-columns:1fr;}.panel[data-size="full"],.panel[data-size="half"]{grid-column:span 1;}.modal-panel{width:100vw;}.sla-delivery-row{grid-template-columns:1fr;}}
   @media(max-width:600px){header,.filters,main{padding-left:16px;padding-right:16px;}.kpi-value{font-size:30px;}.modal-stats{gap:14px;padding:12px 18px;}.date-panel{min-width:0;width:calc(100vw - 32px);flex-direction:column;}.dp-presets{width:100%;border-right:none;border-bottom:1px solid var(--line);display:flex;flex-wrap:wrap;}}
 </style>
 </head>
@@ -322,6 +371,49 @@
         <option value="0">Out of SLA</option>
       </select>
     </div>
+    <!-- POC OB filter (#6) -->
+    <div class="f-group"><label class="f-label">POC OB</label><select class="f-select" id="fPocOb"><option value="all">All POC OB</option></select></div>
+    <!-- POC CS filter (#6) -->
+    <div class="f-group"><label class="f-label">POC CS</label><select class="f-select" id="fPocCs"><option value="all">All POC CS</option></select></div>
+
+    <!-- Enterprise multi-deselect (#4) -->
+    <div class="ms-wrap" id="msEntWrap">
+      <label class="f-label">Exclude Enterprise</label>
+      <div class="ms-trigger" id="msEntTrigger" tabindex="0">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="8" cy="8" r="6"/><line x1="5" y1="8" x2="11" y2="8"/></svg>
+        <span class="ms-trigger-label" id="msEntLabel">None excluded</span>
+        <span class="ms-badge" id="msEntBadge" style="display:none">0</span>
+        <svg class="ms-chev" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="2,4 6,8 10,4"/></svg>
+      </div>
+      <div class="ms-panel" id="msEntPanel">
+        <div class="ms-search"><input type="text" placeholder="Search enterprises…" id="msEntSearch"></div>
+        <div class="ms-actions">
+          <button class="ms-act" id="msEntSelAll">Select all</button>
+          <button class="ms-act" id="msEntClear">Clear</button>
+        </div>
+        <div class="ms-list" id="msEntList"></div>
+      </div>
+    </div>
+
+    <!-- Team multi-deselect (#4) -->
+    <div class="ms-wrap" id="msTeamWrap">
+      <label class="f-label">Exclude Team</label>
+      <div class="ms-trigger" id="msTeamTrigger" tabindex="0">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="8" cy="8" r="6"/><line x1="5" y1="8" x2="11" y2="8"/></svg>
+        <span class="ms-trigger-label" id="msTeamLabel">None excluded</span>
+        <span class="ms-badge" id="msTeamBadge" style="display:none">0</span>
+        <svg class="ms-chev" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="2,4 6,8 10,4"/></svg>
+      </div>
+      <div class="ms-panel" id="msTeamPanel">
+        <div class="ms-search"><input type="text" placeholder="Search teams…" id="msTeamSearch"></div>
+        <div class="ms-actions">
+          <button class="ms-act" id="msTeamSelAll">Select all</button>
+          <button class="ms-act" id="msTeamClear">Clear</button>
+        </div>
+        <div class="ms-list" id="msTeamList"></div>
+      </div>
+    </div>
+
     <button class="btn-reset" id="resetBtn">Reset</button>
   </div>
 </div>
@@ -357,32 +449,69 @@
       <div class="trend-legend" id="trendLegend"></div>
     </div>
 
-    <div class="panel" data-panel="sla" data-size="half">
-      <div class="panel-header">
-        <div class="panel-title-wrap">
-          <h3>SLA performance</h3>
-          <div class="panel-sub">within / out of SLA · click to drill</div>
-        </div>
-        <div class="edit-controls" data-panel-ctl="sla"></div>
-      </div>
-      <div class="sla-content">
-        <div class="sla-cells">
-          <div class="sla-cell sla-in" id="slaCellIn" tabindex="0" role="button">
-            <div class="sla-num green" id="slaNumIn">—</div>
-            <div class="sla-pct" id="slaPctIn">—%</div>
-            <div class="sla-cell-label">Within SLA</div>
+    <!-- SLA + Delivery Rate side-by-side panel (#8) -->
+    <div class="panel" data-panel="sladr" data-size="full" style="padding:0;">
+      <div class="sla-delivery-row">
+        <!-- LEFT: SLA Performance -->
+        <div style="padding:18px;">
+          <div class="panel-header">
+            <div class="panel-title-wrap">
+              <h3>SLA Performance</h3>
+              <div class="panel-sub">within / out of SLA · click to drill</div>
+            </div>
+            <div class="edit-controls" data-panel-ctl="sladr"></div>
           </div>
-          <div class="sla-cell sla-out" id="slaCellOut" tabindex="0" role="button">
-            <div class="sla-num orange" id="slaNumOut">—</div>
-            <div class="sla-pct" id="slaPctOut">—%</div>
-            <div class="sla-cell-label">Out of SLA</div>
+          <div class="sla-content">
+            <div class="sla-cells">
+              <div class="sla-cell sla-in" id="slaCellIn" tabindex="0" role="button">
+                <div class="sla-num green" id="slaNumIn">—</div>
+                <div class="sla-pct" id="slaPctIn">—%</div>
+                <div class="sla-cell-label">Within SLA</div>
+              </div>
+              <div class="sla-cell sla-out" id="slaCellOut" tabindex="0" role="button">
+                <div class="sla-num orange" id="slaNumOut">—</div>
+                <div class="sla-pct" id="slaPctOut">—%</div>
+                <div class="sla-cell-label">Out of SLA</div>
+              </div>
+            </div>
+            <div class="sla-bar"><div class="sla-bar-in" id="slaBarIn"></div><div class="sla-bar-out" id="slaBarOut"></div></div>
+            <div class="sla-tick"><span>0%</span><span>100%</span></div>
+            <div class="sla-bottom">
+              <span>SLA compliance: <strong id="slaDeliveryRate">—</strong></span>
+              <span id="slaMeta">—</span>
+            </div>
           </div>
         </div>
-        <div class="sla-bar"><div class="sla-bar-in" id="slaBarIn"></div><div class="sla-bar-out" id="slaBarOut"></div></div>
-        <div class="sla-tick"><span>0%</span><span>100%</span></div>
-        <div class="sla-bottom">
-          <span>Delivery rate: <strong id="slaDeliveryRate">—</strong></span>
-          <span id="slaMeta">—</span>
+        <!-- divider -->
+        <div style="width:1px;background:var(--line);"></div>
+        <!-- RIGHT: Delivery Rate (#8) -->
+        <div style="padding:18px;">
+          <div class="panel-header">
+            <div class="panel-title-wrap">
+              <h3>Delivery Rate</h3>
+              <div class="panel-sub">delivered · pending · of all received</div>
+            </div>
+          </div>
+          <div class="dr-content">
+            <div class="dr-cells">
+              <div class="dr-cell dr-delivered" id="drCellDelivered" tabindex="0" role="button">
+                <div class="dr-num green" id="drNumDelivered">—</div>
+                <div class="dr-pct" id="drPctDelivered">—%</div>
+                <div class="dr-cell-label">Delivered</div>
+              </div>
+              <div class="dr-cell dr-pending" id="drCellPending" tabindex="0" role="button">
+                <div class="dr-num amber" id="drNumPending">—</div>
+                <div class="dr-pct" id="drPctPending">—%</div>
+                <div class="dr-cell-label">Pending</div>
+              </div>
+            </div>
+            <div class="dr-bar"><div class="dr-bar-delivered" id="drBarDelivered"></div><div class="dr-bar-pending" id="drBarPending"></div></div>
+            <div class="dr-tick"><span>0%</span><span>100%</span></div>
+            <div class="dr-bottom">
+              <span>Delivery rate: <strong id="drRate">—</strong></span>
+              <span id="drMeta">—</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -418,6 +547,18 @@
         <div class="edit-controls" data-panel-ctl="topQc"></div>
       </div>
       <div class="chart-wrap"><canvas id="cQc"></canvas></div>
+    </div>
+
+    <!-- (#1) Rejected Reason chart -->
+    <div class="panel" data-panel="rejReason" data-size="half">
+      <div class="panel-header">
+        <div class="panel-title-wrap">
+          <h3>Rejection reasons</h3>
+          <div class="panel-sub">count by reason · filtered view</div>
+        </div>
+        <div class="edit-controls" data-panel-ctl="rejReason"></div>
+      </div>
+      <div class="chart-wrap"><canvas id="cRejReason"></canvas></div>
     </div>
 
     <div class="panel" data-panel="records" data-size="full" style="padding:0;">
@@ -465,22 +606,16 @@ const isoDate = d => d?d.toISOString().slice(0,10):'';
 const fmtShort = d => d?d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}):'';
 const fmtDate = s => { if(!s) return '—'; const d=new Date(s); return isNaN(d)?s:d.toLocaleDateString(undefined,{month:'short',day:'2-digit'})+' '+d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}); };
 
-// Parse "YYYY-MM-DD[T ]HH:MM:SS[Z]" as NAIVE LOCAL time (ignore any Z / offset).
-// Source data is already in the source DB's timezone; using new Date() on a
-// "...Z" string would convert UTC→local and drift records across month
-// boundaries in non-UTC locales. Extract calendar parts directly.
 function parseTs(s){
   if (!s) return null;
   const m = /^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2}):(\d{2})/.exec(s);
   if (m) return new Date(+m[1], +m[2]-1, +m[3], +m[4], +m[5], +m[6]);
-  // Date-only fallback "YYYY-MM-DD"
   const m2 = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
   if (m2) return new Date(+m2[1], +m2[2]-1, +m2[3]);
   const d = new Date(s);
   return isNaN(d.getTime()) ? null : d;
 }
 
-// TAT now stored in HOURS (matching SQL TAT_Hrs)
 function fmtTatHrs(h){
   if(h==null||isNaN(+h)) return '—';
   const v = +h;
@@ -492,30 +627,33 @@ function fmtTatHrs(h){
 // ─────────────────────────────────────────────────────────────
 // STATE
 // ─────────────────────────────────────────────────────────────
-const RAW = [];                 // all rows from server (parsed once)
+const RAW = [];
 let lastSynced = null;
 let isDark = false;
 let editMode = false;
-let trendRange = 'months';      // 'week' | 'weeks' | 'months' | 'year'
+let trendRange = 'months';
 const charts = {};
 
-// Default filter = This Month
 const F = {
   preset:'this_month', from:null, to:null,
   enterprise:'all', team:'all', user:'all', verified:'all', sla:'all',
+  pocOb:'all', pocCs:'all',
+  // (#4) sets of excluded values
+  excludedEnterprises: new Set(),
+  excludedTeams: new Set(),
 };
 
-// Layout — saved to localStorage
 const DEFAULT_LAYOUT = [
-  { id:'trend',   size:'full' },
-  { id:'sla',     size:'half' },
-  { id:'topEnt',  size:'half' },
-  { id:'topTeam', size:'half' },
-  { id:'topQc',   size:'half' },
-  { id:'records', size:'full' },
+  { id:'trend',     size:'full' },
+  { id:'sladr',     size:'full' },
+  { id:'topEnt',    size:'half' },
+  { id:'topTeam',   size:'half' },
+  { id:'topQc',     size:'half' },
+  { id:'rejReason', size:'half' },
+  { id:'records',   size:'full' },
 ];
-let LAYOUT = (()=>{try{const s=JSON.parse(localStorage.getItem('opsDash_layout_v2'));if(Array.isArray(s)&&s.length)return s;}catch(e){}return DEFAULT_LAYOUT.slice();})();
-const saveLayout = ()=>{try{localStorage.setItem('opsDash_layout_v2',JSON.stringify(LAYOUT));}catch(e){}};
+let LAYOUT = (()=>{try{const s=JSON.parse(localStorage.getItem('opsDash_layout_v3'));if(Array.isArray(s)&&s.length)return s;}catch(e){}return DEFAULT_LAYOUT.slice();})();
+const saveLayout = ()=>{try{localStorage.setItem('opsDash_layout_v3',JSON.stringify(LAYOUT));}catch(e){}};
 
 // ─────────────────────────────────────────────────────────────
 // PRESET RANGES
@@ -538,7 +676,7 @@ function presetRange(p){
 }
 
 // ─────────────────────────────────────────────────────────────
-// FILTERING & AGGREGATION  (client-side, instant)
+// FILTERING
 // ─────────────────────────────────────────────────────────────
 function isDelivered(r){ return r.crm==='qc_done' && r.ver==='verified'; }
 function isRejected(r){  return r.crm==='qc_done' && (r.ver==='rejected' || !r.ver || r.ver==='none'); }
@@ -551,14 +689,18 @@ function passesFilters(r){
   if (F.verified  !=='all' && r.ver !== F.verified)   return false;
   if (F.sla==='1' && r.sla !== 1) return false;
   if (F.sla==='0' && r.sla !== 0) return false;
+  // POC filters (#6)
+  if (F.pocOb!=='all' && r.poc_ob !== F.pocOb) return false;
+  if (F.pocCs!=='all' && r.poc_cs !== F.pocCs) return false;
+  // (#4) exclusion sets
+  if (F.excludedEnterprises.size && r.ent && F.excludedEnterprises.has(r.ent)) return false;
+  if (F.excludedTeams.size && r.team && F.excludedTeams.has(r.team)) return false;
   if (F.from){
     if (!r._created) return false;
     if (r._created.getTime() < F.from.getTime()) return false;
   }
   if (F.to){
     if (!r._created) return false;
-    // 'to' is set to midnight of the end day; include the whole day
-    // by comparing against the start of the next day.
     const toExclusive = F.to.getTime() + 86400000;
     if (r._created.getTime() >= toExclusive) return false;
   }
@@ -566,33 +708,39 @@ function passesFilters(r){
 }
 
 function buildFilterScopes(){
-  // For each dropdown, list values that exist in the dataset (full).
-  // Doesn't shrink as filters apply, so users can always pivot.
-  const ent=new Set(),team=new Set(),user=new Set(),ver=new Set();
+  const ent=new Set(),team=new Set(),user=new Set(),ver=new Set(),pocOb=new Set(),pocCs=new Set();
   for (const r of RAW){
-    if (r.ent) ent.add(r.ent);
-    if (r.team) team.add(r.team);
-    if (r.qc) user.add(r.qc);
-    if (r.ver) ver.add(r.ver);
+    if (r.ent)    ent.add(r.ent);
+    if (r.team)   team.add(r.team);
+    if (r.qc)     user.add(r.qc);
+    if (r.ver)    ver.add(r.ver);
+    if (r.poc_ob) pocOb.add(r.poc_ob);
+    if (r.poc_cs) pocCs.add(r.poc_cs);
   }
   return {
     enterpriseList: [...ent].sort(),
     teamList:       [...team].sort(),
     userList:       [...user].sort(),
     verifiedList:   [...ver].sort(),
+    pocObList:      [...pocOb].sort(),
+    pocCsList:      [...pocCs].sort(),
   };
 }
 
+// ─────────────────────────────────────────────────────────────
+// AGGREGATION
+// ─────────────────────────────────────────────────────────────
 function aggregate(rows){
   let totalReceived=0,totalDelivered=0,totalRejected=0,totalPending=0;
-  let withinSla=0,outOfSla=0;       // computed ONLY among delivered records
+  let withinSla=0,outOfSla=0;
   let tatSum=0,tatCount=0;
   const entCount={},teamCount={},qcCount={};
-  // Breakdowns per dimension — useful for the drill-down view
   const entBreak={},teamBreak={};
+  // (#1) rejection reason counts
+  const rejReasonCount={};
 
   function bump(map,key,kind){
-    if(!map[key]) map[key]={total:0,delivered:0,rejected:0,pending:0,withinSla:0,outOfSla:0};
+    if(!map[key]) map[key]={total:0,delivered:0,rejected:0,pending:0,withinSla:0,outOfSla:0,poc_ob:'',poc_cs:''};
     map[key].total++; map[key][kind]++;
   }
 
@@ -601,11 +749,13 @@ function aggregate(rows){
     let kind='pending';
     if (isDelivered(r)){
       totalDelivered++; kind='delivered';
-      // SLA only meaningful for delivered records
       if (r.sla === 1) withinSla++;
       else if (r.sla === 0) outOfSla++;
     } else if (isRejected(r)){
       totalRejected++; kind='rejected';
+      // (#1) count rejection reasons
+      const reason = r.rej_reason || r.rejection_reason || r.reject_reason || 'Unknown';
+      rejReasonCount[reason] = (rejReasonCount[reason]||0)+1;
     } else {
       totalPending++;
     }
@@ -622,15 +772,19 @@ function aggregate(rows){
       bump(entBreak, r.ent, kind);
       if (kind === 'delivered' && r.sla === 1) entBreak[r.ent].withinSla++;
       else if (kind === 'delivered' && r.sla === 0) entBreak[r.ent].outOfSla++;
+      // store poc info (#7)
+      if (r.poc_ob && !entBreak[r.ent].poc_ob) entBreak[r.ent].poc_ob = r.poc_ob;
+      if (r.poc_cs && !entBreak[r.ent].poc_cs) entBreak[r.ent].poc_cs = r.poc_cs;
     }
     if (r.team){
       bump(teamBreak, r.team, kind);
       if (kind === 'delivered' && r.sla === 1) teamBreak[r.team].withinSla++;
       else if (kind === 'delivered' && r.sla === 0) teamBreak[r.team].outOfSla++;
+      if (r.poc_ob && !teamBreak[r.team].poc_ob) teamBreak[r.team].poc_ob = r.poc_ob;
+      if (r.poc_cs && !teamBreak[r.team].poc_cs) teamBreak[r.team].poc_cs = r.poc_cs;
     }
   }
 
-  // Top-N sorted DESC by count (server already did this; we re-sort here just in case)
   const sortDesc = obj => Object.fromEntries(Object.entries(obj).sort((a,b)=>b[1]-a[1]));
   const slice = (obj, n) => Object.fromEntries(Object.entries(obj).slice(0, n));
 
@@ -648,19 +802,19 @@ function aggregate(rows){
     topTeam: slice(sortDesc(teamCount), 12),
     topQc:   slice(sortDesc(qcCount),   15),
     entBreak, teamBreak,
+    rejReasonCount: sortDesc(rejReasonCount), // (#1)
   };
 }
 
 // ─────────────────────────────────────────────────────────────
-// TREND BUCKETING  (independent of date filter)
+// TREND BUCKETING
 // ─────────────────────────────────────────────────────────────
 function bucketTrend(rows, range){
   const now = new Date();
   const buckets = [];
 
   if (range === 'week'){
-    // current week, Monday→Sunday, 7 day buckets
-    const dow = now.getDay() || 7; // Sun→7
+    const dow = now.getDay() || 7;
     const mon = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dow + 1);
     for (let i = 0; i < 7; i++){
       const s = new Date(mon); s.setDate(mon.getDate()+i); s.setHours(0,0,0,0);
@@ -668,7 +822,6 @@ function bucketTrend(rows, range){
       buckets.push({ start:s, end:e, label: s.toLocaleDateString('en-US',{weekday:'short'})+' '+s.getDate() });
     }
   } else if (range === 'weeks'){
-    // last 6 weeks ending this week
     const dow = now.getDay() || 7;
     const mon = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dow + 1);
     for (let i = -5; i <= 0; i++){
@@ -677,7 +830,6 @@ function bucketTrend(rows, range){
       buckets.push({ start:s, end:e, label: s.toLocaleDateString('en-US',{month:'short',day:'2-digit'}) });
     }
   } else if (range === 'months'){
-    // last 6 months including current
     for (let i = -5; i <= 0; i++){
       const s = new Date(now.getFullYear(), now.getMonth()+i, 1);
       const e = new Date(now.getFullYear(), now.getMonth()+i+1, 1);
@@ -685,7 +837,6 @@ function bucketTrend(rows, range){
       buckets.push({ start:s, end:e, label: s.toLocaleDateString('en-US', sameYear?{month:'short'}:{month:'short',year:'2-digit'}) });
     }
   } else if (range === 'year'){
-    // last 12 months including current
     for (let i = -11; i <= 0; i++){
       const s = new Date(now.getFullYear(), now.getMonth()+i, 1);
       const e = new Date(now.getFullYear(), now.getMonth()+i+1, 1);
@@ -745,58 +896,90 @@ function renderKpiCards(){
 // CHART HELPERS
 // ─────────────────────────────────────────────────────────────
 Chart.defaults.font.family="'Inter',sans-serif";
+
 function getPal(){
   const s=getComputedStyle(document.documentElement);
   return Object.fromEntries(['ink','muted','line','accent','green','amber','red','orange','purple','teal'].map(k=>[k,s.getPropertyValue('--'+k).trim()]));
 }
 function killChart(id){if(charts[id]){charts[id].destroy();delete charts[id];}}
 
+// (#2) & (#3): trend chart with visible data labels that respect theme
 function mkTrend(canvas, buckets){
   killChart('trend');
   if (!buckets || !buckets.length) return;
   const PAL = getPal();
+  const labelColor = getComputedStyle(document.documentElement).getPropertyValue('--chart-label-color').trim() || PAL.muted;
+
   const labels = buckets.map(b=>b.label);
   const recv = buckets.map(b=>b.received);
   const dlvd = buckets.map(b=>b.delivered);
   const rejd = buckets.map(b=>b.rejected);
 
-  // Gradient fill for the primary "Received" line, gold-price style
   const ctx = canvas.getContext('2d');
   const grad = ctx.createLinearGradient(0, 0, 0, canvas.height || 320);
-  grad.addColorStop(0, 'rgba(31,63,114,0.18)');
-  grad.addColorStop(1, 'rgba(31,63,114,0)');
+  grad.addColorStop(0, isDark ? 'rgba(107,158,255,0.22)' : 'rgba(31,63,114,0.18)');
+  grad.addColorStop(1, isDark ? 'rgba(107,158,255,0)' : 'rgba(31,63,114,0)');
 
-  // For a single-point bucket (e.g. "this week" with one day having data),
-  // Chart.js still draws nicely; we just configure scales for the count.
   charts.trend = new Chart(canvas, {
     type:'line', plugins:[ChartDataLabels],
     data:{ labels, datasets:[
       { label:'Received',  data:recv, borderColor:PAL.accent, backgroundColor:grad,
-        borderWidth:2.2, tension:0.35, pointRadius:0, pointHoverRadius:5, pointHoverBackgroundColor:PAL.accent,
+        borderWidth:2.2, tension:0.35,
+        // (#2) show points so labels have anchors
+        pointRadius:4, pointBackgroundColor:PAL.accent, pointBorderColor: isDark ? '#1c1c1f' : '#fff', pointBorderWidth:2,
+        pointHoverRadius:6, pointHoverBackgroundColor:PAL.accent,
         pointHoverBorderColor:'#fff', pointHoverBorderWidth:2, fill:true,
-        datalabels:{display:false} },
-      { label:'Delivered', data:dlvd, borderColor:PAL.green,  backgroundColor:'transparent',
-        borderWidth:2, tension:0.35, pointRadius:0, pointHoverRadius:5, pointHoverBackgroundColor:PAL.green,
+        datalabels:{
+          display: ctx => ctx.dataset.data[ctx.dataIndex] > 0,
+          anchor:'end', align:'top', offset:4,
+          color: labelColor,
+          font:{family:"'JetBrains Mono',monospace", size:10, weight:'500'},
+          formatter: v => v > 0 ? v.toLocaleString() : '',
+        }
+      },
+      { label:'Delivered', data:dlvd, borderColor:PAL.green, backgroundColor:'transparent',
+        borderWidth:2, tension:0.35,
+        pointRadius:4, pointBackgroundColor:PAL.green, pointBorderColor: isDark ? '#1c1c1f' : '#fff', pointBorderWidth:2,
+        pointHoverRadius:6, pointHoverBackgroundColor:PAL.green,
         pointHoverBorderColor:'#fff', pointHoverBorderWidth:2, fill:false,
-        datalabels:{display:false} },
-      { label:'Rejected',  data:rejd, borderColor:PAL.red,    backgroundColor:'transparent',
-        borderWidth:2, tension:0.35, pointRadius:0, pointHoverRadius:5, pointHoverBackgroundColor:PAL.red,
+        datalabels:{
+          display: ctx => ctx.dataset.data[ctx.dataIndex] > 0,
+          anchor:'end', align:'bottom', offset:4,
+          color: labelColor,
+          font:{family:"'JetBrains Mono',monospace", size:10, weight:'500'},
+          formatter: v => v > 0 ? v.toLocaleString() : '',
+        }
+      },
+      { label:'Rejected',  data:rejd, borderColor:PAL.red, backgroundColor:'transparent',
+        borderWidth:2, tension:0.35,
+        pointRadius:4, pointBackgroundColor:PAL.red, pointBorderColor: isDark ? '#1c1c1f' : '#fff', pointBorderWidth:2,
+        pointHoverRadius:6, pointHoverBackgroundColor:PAL.red,
         pointHoverBorderColor:'#fff', pointHoverBorderWidth:2, fill:false,
-        datalabels:{display:false} },
+        datalabels:{
+          display: ctx => ctx.dataset.data[ctx.dataIndex] > 0,
+          anchor:'start', align:'bottom', offset:6,
+          color: labelColor,
+          font:{family:"'JetBrains Mono',monospace", size:10, weight:'500'},
+          formatter: v => v > 0 ? v.toLocaleString() : '',
+        }
+      },
     ] },
     options:{
       responsive:true, maintainAspectRatio:false,
+      layout:{ padding:{ top:24, bottom:8 } },
       interaction:{ mode:'index', intersect:false },
       plugins:{
         legend:{display:false},
         tooltip:{
-          backgroundColor:PAL.ink, titleColor:'#fff', bodyColor:'#fff',
+          backgroundColor: isDark ? '#2a2a2f' : PAL.ink,
+          titleColor: isDark ? PAL.ink : '#fff',
+          bodyColor:  isDark ? PAL.ink : '#fff',
           padding:10, displayColors:true, boxPadding:4, cornerRadius:6,
           callbacks:{
             label:(ctx)=> `${ctx.dataset.label}: ${ctx.parsed.y.toLocaleString()}`,
           },
         },
-        datalabels:{display:false},
+        datalabels:{ display:true },
       },
       scales:{
         x:{ grid:{display:false}, ticks:{font:{size:11},color:PAL.muted, autoSkip:true, maxRotation:0} },
@@ -806,7 +989,6 @@ function mkTrend(canvas, buckets){
     },
   });
 
-  // Update legend with current totals
   const totals = { Received: recv.reduce((a,b)=>a+b,0), Delivered: dlvd.reduce((a,b)=>a+b,0), Rejected: rejd.reduce((a,b)=>a+b,0) };
   const cols = { Received: PAL.accent, Delivered: PAL.green, Rejected: PAL.red };
   $('trendLegend').innerHTML = Object.entries(totals).map(([k,v])=>
@@ -817,12 +999,11 @@ function mkTrend(canvas, buckets){
 function mkBar(id, canvas, map, opts={}){
   killChart(id);
   if (!map || !Object.keys(map).length){
-    // Show empty state by clearing the canvas
-    const ctx = canvas.getContext('2d');
-    ctx.clearRect(0,0,canvas.width,canvas.height);
+    const ctx = canvas.getContext('2d'); ctx.clearRect(0,0,canvas.width,canvas.height);
     return;
   }
   const PAL = getPal();
+  const labelColor = getComputedStyle(document.documentElement).getPropertyValue('--chart-label-color').trim() || PAL.muted;
   const labels = Object.keys(map);
   const values = Object.values(map);
   charts[id] = new Chart(canvas, {
@@ -830,8 +1011,12 @@ function mkBar(id, canvas, map, opts={}){
     data:{ labels, datasets:[{
       data:values, backgroundColor: opts.color || PAL.accent,
       borderRadius:4, maxBarThickness:22,
-      datalabels:{ anchor:'end', align:opts.h?'end':'top', color:PAL.muted,
-        font:{family:"'JetBrains Mono',monospace",size:10}, formatter:v=>v.toLocaleString() },
+      datalabels:{
+        anchor:'end', align: opts.h ? 'end' : 'top',
+        color: labelColor,   // (#3) theme-aware label color
+        font:{family:"'JetBrains Mono',monospace",size:10,weight:'500'},
+        formatter:v=>v.toLocaleString()
+      },
     }] },
     options:{
       responsive:true, maintainAspectRatio:false,
@@ -840,7 +1025,6 @@ function mkBar(id, canvas, map, opts={}){
       onClick:(_, items)=>{ if (!items.length || !opts.onPick) return; opts.onPick(labels[items[0].index]); },
       scales:{
         x:{ grid:{color:PAL.line, display:!opts.h}, ticks:{font:{size:11},color:PAL.muted}, beginAtZero:opts.h },
-        // y reversed so the FIRST (largest, desc-sorted) bar appears at the TOP
         y:{ grid:{color:PAL.line, display:opts.h}, ticks:{font:{size:11},color:PAL.muted, autoSkip:false},
             beginAtZero:!opts.h, reverse: opts.h ? true : false },
       },
@@ -848,8 +1032,52 @@ function mkBar(id, canvas, map, opts={}){
   });
 }
 
+// (#1) Rejection reason doughnut/bar chart
+function mkRejReason(canvas, reasonMap){
+  killChart('rejReason');
+  if (!reasonMap || !Object.keys(reasonMap).length){
+    const ctx = canvas.getContext('2d'); ctx.clearRect(0,0,canvas.width,canvas.height);
+    return;
+  }
+  const PAL = getPal();
+  const labelColor = getComputedStyle(document.documentElement).getPropertyValue('--chart-label-color').trim() || PAL.muted;
+  const labels = Object.keys(reasonMap);
+  const values = Object.values(reasonMap);
+
+  // Use multiple colors for distinct reasons
+  const COLORS = [PAL.red, PAL.orange, PAL.amber, PAL.purple, PAL.teal, PAL.accent,
+    '#e11d48','#7c3aed','#0891b2','#059669','#d97706','#dc2626'];
+  const bgColors = labels.map((_,i) => COLORS[i % COLORS.length]);
+
+  charts.rejReason = new Chart(canvas, {
+    type:'bar', plugins:[ChartDataLabels],
+    data:{ labels, datasets:[{
+      data:values,
+      backgroundColor: bgColors,
+      borderRadius:4, maxBarThickness:28,
+      datalabels:{
+        anchor:'end', align:'top',
+        color: labelColor,
+        font:{family:"'JetBrains Mono',monospace",size:10,weight:'600'},
+        formatter: v => v.toLocaleString(),
+      },
+    }] },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      indexAxis:'y',
+      layout:{ padding:{ right:40 } },
+      plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label: ctx => ` ${ctx.parsed.x.toLocaleString()} rejections` } }, datalabels:{display:true} },
+      scales:{
+        x:{ grid:{color:PAL.line}, ticks:{font:{size:11},color:PAL.muted}, beginAtZero:true },
+        y:{ grid:{display:false}, ticks:{font:{size:11},color:PAL.muted, autoSkip:false},
+            reverse:true },
+      },
+    },
+  });
+}
+
 // ─────────────────────────────────────────────────────────────
-// SLA + KPI PAINT
+// SLA + DELIVERY RATE PAINT (#8)
 // ─────────────────────────────────────────────────────────────
 function paintSla(k){
   const within = k.withinSla||0, out = k.outOfSla||0, total = within + out;
@@ -861,23 +1089,34 @@ function paintSla(k){
   $('slaPctOut').textContent = total ? pctOut.toFixed(1)+'%' : '—%';
   $('slaBarIn').style.width  = pctIn+'%';
   $('slaBarOut').style.width = pctOut+'%';
-  $('slaDeliveryRate').textContent = k.deliveryRate!=null ? k.deliveryRate.toFixed(1)+'%' : '—';
-  $('slaMeta').textContent = total
-    ? `${num(total)} delivered records`
-    : 'No delivered records in view';
+  $('slaDeliveryRate').textContent = k.slaCompliance!=null ? k.slaCompliance.toFixed(1)+'%' : '—';
+  $('slaMeta').textContent = total ? `${num(total)} delivered records` : 'No delivered records in view';
 }
 
+function paintDeliveryRate(k){
+  const delivered = k.totalDelivered||0, pending = k.totalPending||0, total = k.totalReceived||0;
+  const pctDel  = total ? (delivered/total)*100 : 0;
+  const pctPend = total ? (pending/total)*100   : 0;
+  $('drNumDelivered').textContent = num(delivered);
+  $('drNumPending').textContent   = num(pending);
+  $('drPctDelivered').textContent = total ? pctDel.toFixed(1)+'%'  : '—%';
+  $('drPctPending').textContent   = total ? pctPend.toFixed(1)+'%' : '—%';
+  $('drBarDelivered').style.width = pctDel+'%';
+  $('drBarPending').style.width   = pctPend+'%';
+  $('drRate').textContent = k.deliveryRate!=null ? k.deliveryRate.toFixed(1)+'%' : '—';
+  $('drMeta').textContent = total ? `${num(total)} total received` : 'No records in view';
+}
+
+// ─────────────────────────────────────────────────────────────
+// PAINT
+// ─────────────────────────────────────────────────────────────
 function paint(){
   if (!RAW.length) return;
   const t0 = performance.now();
 
-  // Filter
   const filtered = RAW.filter(passesFilters);
-
-  // Aggregate
   const k = aggregate(filtered);
 
-  // KPI values
   $('kv-ent').textContent       = num(k.enterpriseCount);
   $('kv-team').textContent      = num(k.teamCount);
   $('kv-received').textContent  = num(k.totalReceived);
@@ -887,23 +1126,18 @@ function paint(){
   $('kv-sla').textContent       = k.slaCompliance!=null ? k.slaCompliance.toFixed(1)+'%' : '—';
   $('kv-tat').textContent       = fmtTatHrs(k.avgTat);
 
-  // % under delivered/rejected/pending
   $('kp-delivered').textContent = k.deliveryRate!=null  ? k.deliveryRate.toFixed(1)+'% of received'  : '';
   $('kp-rejected').textContent  = k.rejectionRate!=null ? k.rejectionRate.toFixed(1)+'% of received' : '';
   const pendingPct = k.totalReceived ? (k.totalPending/k.totalReceived)*100 : null;
   $('kp-pending').textContent   = pendingPct!=null ? pendingPct.toFixed(1)+'% of received' : '';
   $('kp-sla').textContent       = k.totalDelivered ? `${num(k.withinSla)} of ${num(k.totalDelivered)}` : '';
   $('kp-tat').textContent       = k.tatRecordCount ? `from ${num(k.tatRecordCount)} records` : '';
-  // Clear pct on cards without one
   $('kp-ent').textContent = ''; $('kp-team').textContent = ''; $('kp-received').textContent = '';
-
-  // Sub text
   $('ks-tat').textContent = k.tatRecordCount ? 'avg turnaround in hours' : 'no TAT data in view';
 
-  // SLA panel
   paintSla(k);
+  paintDeliveryRate(k); // (#8)
 
-  // Top-X charts — data already in DESC order (largest first)
   const PAL = getPal();
   mkBar('ent',  $('cEnt'),  k.topEnt,  { h:true, color:PAL.accent,
     onPick:label=>{ F.enterprise=label; F.team='all'; $('fEnt').value=label; $('fTeam').value='all'; refresh(); } });
@@ -912,8 +1146,9 @@ function paint(){
   mkBar('qc',   $('cQc'),   k.topQc,   { h:true, color:PAL.ink,
     onPick:label=>{ F.user=label; $('fUser').value=label; refresh(); } });
 
-  // Trend chart — uses FILTERED rows (so enterprise/team/etc. apply)
-  // but ignores the date filter so the timeline view is meaningful.
+  // (#1) Rejection reason chart
+  mkRejReason($('cRejReason'), k.rejReasonCount);
+
   const trendRows = RAW.filter(r => {
     if (F.enterprise!=='all' && r.ent !== F.enterprise) return false;
     if (F.team      !=='all' && r.team !== F.team)      return false;
@@ -921,6 +1156,8 @@ function paint(){
     if (F.verified  !=='all' && r.ver !== F.verified)   return false;
     if (F.sla==='1' && r.sla !== 1) return false;
     if (F.sla==='0' && r.sla !== 0) return false;
+    if (F.excludedEnterprises.size && r.ent && F.excludedEnterprises.has(r.ent)) return false;
+    if (F.excludedTeams.size && r.team && F.excludedTeams.has(r.team)) return false;
     return true;
   });
   const buckets = bucketTrend(trendRows, trendRange);
@@ -928,7 +1165,6 @@ function paint(){
   $('trendSub').textContent =
     `${{week:'this week, by day',weeks:'last 6 weeks',months:'last 6 months',year:'last 12 months'}[trendRange]} · independent of date filter`;
 
-  // Recent records
   const recent = filtered.slice().sort((a,b)=>(b._created?.getTime()||0)-(a._created?.getTime()||0)).slice(0, 500);
   $('tCount').textContent = `${num(recent.length)} of ${num(filtered.length)} filtered (${num(RAW.length)} total)`;
   $('tBody').innerHTML = !recent.length
@@ -961,12 +1197,6 @@ async function syncFromServer({silent=false, force=false}={}){
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Request failed');
 
-    // Parse dates once on receipt — filters then become fast.
-    // IMPORTANT: the CSV timestamps come as "2026-05-11T08:54:58Z" but the
-    // values are already in the DB's session timezone (effectively naive).
-    // Using new Date() would convert UTC→local and shift records across
-    // month boundaries (e.g. 306 records from Apr 30 would land in May in IST).
-    // Parse the calendar parts directly so months match the source CSV exactly.
     RAW.length = 0;
     for (const r of (data.rows||[])){
       r._created = parseTs(r.c);
@@ -976,8 +1206,6 @@ async function syncFromServer({silent=false, force=false}={}){
     lastSynced = data.lastSynced ? new Date(data.lastSynced) : new Date();
     $('syncInfo').textContent = 'Synced '+ new Date().toLocaleTimeString() + ' · ' + num(RAW.length) + ' rows';
 
-    // Diagnostic: log monthly counts so you can compare against the source CSV.
-    // Open the browser console to see it.
     (function logMonthly(){
       const buckets = {};
       for (const r of RAW){
@@ -993,12 +1221,16 @@ async function syncFromServer({silent=false, force=false}={}){
       console.table(buckets);
     })();
 
-    // Populate filter dropdowns from the FULL dataset (won't shrink as user filters)
     const sc = buildFilterScopes();
     populateSel($('fEnt'),      sc.enterpriseList, F.enterprise);
     populateSel($('fTeam'),     sc.teamList,       F.team);
     populateSel($('fUser'),     sc.userList,       F.user);
     populateSel($('fVerified'), sc.verifiedList,   F.verified);
+    populateSel($('fPocOb'),    sc.pocObList,      F.pocOb);   // (#6)
+    populateSel($('fPocCs'),    sc.pocCsList,      F.pocCs);   // (#6)
+    // (#4) rebuild multi-select panels
+    buildMsPanel('ent', sc.enterpriseList);
+    buildMsPanel('team', sc.teamList);
 
     refresh();
   } catch (err) {
@@ -1017,20 +1249,108 @@ function populateSel(sel, items, curVal){
 }
 
 // ─────────────────────────────────────────────────────────────
-// FILTER EVENT HANDLERS  (no network — instant)
+// (#4) MULTI-SELECT EXCLUDE PANELS
+// ─────────────────────────────────────────────────────────────
+function buildMsPanel(dim, items){
+  const listEl = $(dim==='ent' ? 'msEntList' : 'msTeamList');
+  const excluded = dim==='ent' ? F.excludedEnterprises : F.excludedTeams;
+  if (!items.length){ listEl.innerHTML = '<div class="ms-empty">No items</div>'; return; }
+  listEl.innerHTML = items.map(v=>`
+    <label class="ms-item">
+      <input type="checkbox" value="${esc(v)}" ${excluded.has(v)?'':'checked'} data-dim="${dim}">
+      <span title="${esc(v)}">${esc(v)}</span>
+    </label>
+  `).join('');
+  listEl.querySelectorAll('input[type=checkbox]').forEach(cb=>{
+    cb.addEventListener('change', ()=>{ onMsChange(dim); });
+  });
+}
+
+function onMsChange(dim){
+  const listEl = $(dim==='ent' ? 'msEntList' : 'msTeamList');
+  const excluded = dim==='ent' ? F.excludedEnterprises : F.excludedTeams;
+  excluded.clear();
+  listEl.querySelectorAll('input[type=checkbox]').forEach(cb=>{
+    if (!cb.checked) excluded.add(cb.value);
+  });
+  updateMsTrigger(dim);
+  refresh();
+}
+
+function updateMsTrigger(dim){
+  const excluded = dim==='ent' ? F.excludedEnterprises : F.excludedTeams;
+  const label  = $(dim==='ent' ? 'msEntLabel' : 'msTeamLabel');
+  const badge  = $(dim==='ent' ? 'msEntBadge' : 'msTeamBadge');
+  const n = excluded.size;
+  label.textContent = n === 0 ? 'None excluded' : `${n} excluded`;
+  badge.textContent = n;
+  badge.style.display = n > 0 ? 'inline-block' : 'none';
+}
+
+function setupMsDropdown(dim){
+  const trigger = $(dim==='ent' ? 'msEntTrigger' : 'msTeamTrigger');
+  const panel   = $(dim==='ent' ? 'msEntPanel'   : 'msTeamPanel');
+  const search  = $(dim==='ent' ? 'msEntSearch'  : 'msTeamSearch');
+  const listEl  = $(dim==='ent' ? 'msEntList'    : 'msTeamList');
+  const selAll  = $(dim==='ent' ? 'msEntSelAll'  : 'msTeamSelAll');
+  const clear   = $(dim==='ent' ? 'msEntClear'   : 'msTeamClear');
+
+  trigger.addEventListener('click', e=>{
+    e.stopPropagation();
+    const opening = !panel.classList.contains('open');
+    panel.classList.toggle('open', opening);
+    trigger.classList.toggle('open', opening);
+  });
+  panel.addEventListener('click', e=>e.stopPropagation());
+  document.addEventListener('mousedown', e=>{
+    if (!trigger.closest('.ms-wrap').contains(e.target)){
+      panel.classList.remove('open'); trigger.classList.remove('open');
+    }
+  });
+
+  search.addEventListener('input', ()=>{
+    const q = search.value.toLowerCase();
+    listEl.querySelectorAll('.ms-item').forEach(li=>{
+      li.style.display = li.querySelector('span').textContent.toLowerCase().includes(q) ? '' : 'none';
+    });
+  });
+
+  selAll.addEventListener('click', ()=>{
+    listEl.querySelectorAll('input[type=checkbox]').forEach(cb=>{ cb.checked=true; });
+    onMsChange(dim);
+  });
+  clear.addEventListener('click', ()=>{
+    listEl.querySelectorAll('input[type=checkbox]').forEach(cb=>{ cb.checked=false; });
+    onMsChange(dim);
+  });
+}
+setupMsDropdown('ent');
+setupMsDropdown('team');
+
+// ─────────────────────────────────────────────────────────────
+// FILTER EVENT HANDLERS
 // ─────────────────────────────────────────────────────────────
 $('fEnt').addEventListener('change',()=>{ F.enterprise=$('fEnt').value; F.team='all'; $('fTeam').value='all'; refresh(); });
 $('fTeam').addEventListener('change',()=>{ F.team=$('fTeam').value; refresh(); });
 $('fUser').addEventListener('change',()=>{ F.user=$('fUser').value; refresh(); });
 $('fVerified').addEventListener('change',()=>{ F.verified=$('fVerified').value; refresh(); });
 $('fSla').addEventListener('change',()=>{ F.sla=$('fSla').value; refresh(); });
+$('fPocOb').addEventListener('change',()=>{ F.pocOb=$('fPocOb').value; refresh(); }); // (#6)
+$('fPocCs').addEventListener('change',()=>{ F.pocCs=$('fPocCs').value; refresh(); }); // (#6)
+
 $('resetBtn').addEventListener('click',()=>{
-  // Reset to defaults (this month, no other filters)
   const r = presetRange('this_month');
   Object.assign(F, { preset:'this_month', from:r.from, to:r.to,
-    enterprise:'all', team:'all', user:'all', verified:'all', sla:'all' });
-  ['fEnt','fTeam','fUser','fVerified'].forEach(id=>$(id).value='all');
+    enterprise:'all', team:'all', user:'all', verified:'all', sla:'all', pocOb:'all', pocCs:'all' });
+  F.excludedEnterprises.clear();
+  F.excludedTeams.clear();
+  ['fEnt','fTeam','fUser','fVerified','fPocOb','fPocCs'].forEach(id=>$(id).value='all');
   $('fSla').value = 'all';
+  // Reset checkboxes
+  ['msEntList','msTeamList'].forEach(lid=>{
+    $(lid).querySelectorAll('input[type=checkbox]').forEach(cb=>{ cb.checked=true; });
+  });
+  updateMsTrigger('ent'); updateMsTrigger('team');
   syncDateUI();
   refresh();
 });
@@ -1063,9 +1383,6 @@ dtTrigger.addEventListener('click', e=>{
   }
 });
 
-// IMPORTANT: prevent clicks INSIDE the date panel from bubbling to the document
-// close-on-outside-click handler. This was causing the panel to close after the
-// first date click because the calendar re-renders and the old target leaves DOM.
 $('datePanel').addEventListener('click', e=>e.stopPropagation());
 $('datePanel').addEventListener('mousedown', e=>e.stopPropagation());
 
@@ -1097,7 +1414,6 @@ $('dpClear').addEventListener('click', e=>{
   calRender(); $('dpPreviewText').textContent = 'Pick a date to begin';
 });
 
-// ── Calendar ──
 const cal = { view: new Date(), rangeStart: null, rangeEnd: null, _cells: [] };
 function midnight(d){ return new Date(d.getFullYear(), d.getMonth(), d.getDate()); }
 
@@ -1148,24 +1464,19 @@ function onCalDayClick(e){
   const day = midnight(d);
 
   if (!cal.rangeStart || cal.rangeEnd){
-    // Fresh selection (either no start yet, or a complete range exists — start over)
-    cal.rangeStart = day;
-    cal.rangeEnd   = null;
-    // Move view if user clicked muted day from adjacent month
+    cal.rangeStart = day; cal.rangeEnd = null;
     if (d.getMonth() !== cal.view.getMonth() || d.getFullYear() !== cal.view.getFullYear()){
       cal.view = new Date(d.getFullYear(), d.getMonth(), 1);
     }
     calRender();
     $('dpPreviewText').textContent = 'From '+fmtShort(cal.rangeStart);
   } else {
-    // Second click → set end, auto-apply, close panel
     if (day.getTime() < cal.rangeStart.getTime()){
       cal.rangeEnd = cal.rangeStart; cal.rangeStart = day;
     } else {
       cal.rangeEnd = day;
     }
     calRender();
-    // Apply
     F.preset = 'custom'; F.from = new Date(cal.rangeStart); F.to = new Date(cal.rangeEnd);
     syncDateUI();
     dtPanel.classList.remove('open'); dtTrigger.classList.remove('open');
@@ -1192,7 +1503,7 @@ document.querySelectorAll('.trend-tab').forEach(btn=>{
 });
 
 // ─────────────────────────────────────────────────────────────
-// SLA PANEL → DRILL-DOWN
+// SLA PANEL + DELIVERY RATE PANEL DRILL-DOWN
 // ─────────────────────────────────────────────────────────────
 function bindSlaCells(){
   const openIn  = ()=>openDrill({label:'Within SLA', sub:'delivered within SLA', view:'within_sla', kind:'records'});
@@ -1201,6 +1512,13 @@ function bindSlaCells(){
   $('slaCellOut').addEventListener('click', openOut);
   $('slaCellIn').addEventListener('keydown',  e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openIn();}});
   $('slaCellOut').addEventListener('keydown', e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openOut();}});
+  // Delivery rate drill-down (#8)
+  const openDR  = ()=>openDrill({label:'Delivered',  sub:'delivered records', view:'delivered', kind:'records'});
+  const openPend= ()=>openDrill({label:'Pending',     sub:'pending records',   view:'pending',   kind:'records'});
+  $('drCellDelivered').addEventListener('click', openDR);
+  $('drCellPending').addEventListener('click', openPend);
+  $('drCellDelivered').addEventListener('keydown', e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openDR();}});
+  $('drCellPending').addEventListener('keydown',   e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openPend();}});
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -1214,6 +1532,10 @@ function activeFilterChips(){
   if(F.user!=='all')      chips.push(`<span class="chip">User <strong>${esc(F.user)}</strong></span>`);
   if(F.verified!=='all')  chips.push(`<span class="chip">Verified <strong>${esc(F.verified)}</strong></span>`);
   if(F.sla!=='all')       chips.push(`<span class="chip">SLA <strong>${F.sla==='1'?'Within':'Out of'}</strong></span>`);
+  if(F.pocOb!=='all')     chips.push(`<span class="chip">POC OB <strong>${esc(F.pocOb)}</strong></span>`);
+  if(F.pocCs!=='all')     chips.push(`<span class="chip">POC CS <strong>${esc(F.pocCs)}</strong></span>`);
+  if(F.excludedEnterprises.size) chips.push(`<span class="chip">Excl. <strong>${F.excludedEnterprises.size} ent</strong></span>`);
+  if(F.excludedTeams.size)       chips.push(`<span class="chip">Excl. <strong>${F.excludedTeams.size} teams</strong></span>`);
   return chips.length?chips.join(''):'<span class="chip">No filters</span>';
 }
 
@@ -1244,7 +1566,6 @@ function openDrill(kpi){
     return;
   }
 
-  // Records view
   const rows = drillSubset(filtered, kpi.view);
   $('modalStats').innerHTML = [
     ['In view',     num(rows.length),                    ''],
@@ -1257,18 +1578,24 @@ function openDrill(kpi){
   ].map(([l,v,c])=>`<div class="modal-stat"><span class="modal-stat-label">${esc(l)}</span><span class="modal-stat-value ${c}">${v}</span></div>`).join('');
 
   const shown = rows.slice(0, 500);
+  // (#5) For rejected view, show rejection reason column
+  const isRejView = kpi.view === 'rejected';
   $('modalBody').innerHTML = `
     <table>
       <thead><tr>
         <th>Created</th><th>Enterprise</th><th>Team</th><th>QC User</th>
         <th>Status</th><th>CRM</th><th>Verified</th><th>SLA</th><th>TAT</th>
-        <th>Video ID</th><th>VIN</th><th>SKU ID</th><th>Updated</th>
+        <th>Video ID</th><th>VIN</th><th>SKU ID</th>
+        ${isRejView ? '<th style="color:var(--red)">Rej. Reason</th>' : ''}
+        <th>Updated</th>
       </tr></thead>
-      <tbody>${shown.length===0?`<tr><td colspan="13" class="empty">No records match.</td></tr>`:shown.map(r=>{
+      <tbody>${shown.length===0?`<tr><td colspan="${isRejView?14:13}" class="empty">No records match.</td></tr>`:shown.map(r=>{
         const isD=isDelivered(r), isR=isRejected(r);
         const pill = isD?'<span class="pill delivered">Delivered</span>':isR?'<span class="pill rejected">Rejected</span>':'<span class="pill pending">Pending</span>';
         const slaPill = r.sla===1?'<span class="pill sla-in">In</span>':r.sla===0?'<span class="pill sla-out">Out</span>':'<span class="pill">—</span>';
-        return `<tr><td class="mono">${esc(fmtDate(r.c))}</td><td>${esc(r.ent||'—')}</td><td>${esc(r.team||'—')}</td><td>${esc(r.qc||'—')}</td><td>${esc(r.status||'—')}</td><td>${esc(r.crm||'—')}</td><td>${pill}</td><td>${slaPill}</td><td class="mono">${esc(fmtTatHrs(r.tat))}</td><td class="mono">${esc(r.vid||'—')}</td><td class="mono">${esc(r.vin||'—')}</td><td class="mono">${esc(r.sku||'—')}</td><td class="mono">${esc(fmtDate(r.u))}</td></tr>`;
+        const rejReason = r.rej_reason || r.rejection_reason || r.reject_reason || '';
+        const rejCell = isRejView ? `<td style="color:var(--red);font-size:12px;max-width:180px">${esc(rejReason||'—')}</td>` : '';
+        return `<tr><td class="mono">${esc(fmtDate(r.c))}</td><td>${esc(r.ent||'—')}</td><td>${esc(r.team||'—')}</td><td>${esc(r.qc||'—')}</td><td>${esc(r.status||'—')}</td><td>${esc(r.crm||'—')}</td><td>${pill}</td><td>${slaPill}</td><td class="mono">${esc(fmtTatHrs(r.tat))}</td><td class="mono">${esc(r.vid||'—')}</td><td class="mono">${esc(r.vin||'—')}</td><td class="mono">${esc(r.sku||'—')}</td>${rejCell}<td class="mono">${esc(fmtDate(r.u))}</td></tr>`;
       }).join('')}</tbody>
     </table>`;
   $('modalCount').textContent = `Showing ${num(shown.length)} of ${num(rows.length)}` + (shown.length>=500 && rows.length>500 ? ' (latest 500)' : '');
@@ -1277,8 +1604,8 @@ function openDrill(kpi){
 function renderBreakdownView(dim, k){
   const map = dim==='ent' ? k.entBreak : k.teamBreak;
   const entries = Object.entries(map).sort((a,b)=>b[1].total-a[1].total);
-  const totalAll = entries.reduce((s,[,v])=>s+v.total, 0);
   const distinct = dim==='ent' ? k.enterpriseCount : k.teamCount;
+  const totalAll = entries.reduce((s,[,v])=>s+v.total, 0);
   const totalDeliv = entries.reduce((s,[,v])=>s+v.delivered,0);
   const totalRej   = entries.reduce((s,[,v])=>s+v.rejected,0);
   const totalWithin= entries.reduce((s,[,v])=>s+v.withinSla,0);
@@ -1298,6 +1625,7 @@ function renderBreakdownView(dim, k){
     $('modalCount').textContent = ''; return;
   }
 
+  // (#7) Include POC OB and POC CS columns in breakdown
   $('modalBody').innerHTML = `
     <table>
       <thead><tr>
@@ -1310,6 +1638,8 @@ function renderBreakdownView(dim, k){
         <th class="num-cell">Out of SLA</th>
         <th class="num-cell">SLA %</th>
         <th class="num-cell">Delivery rate</th>
+        <th>POC OB</th>
+        <th>POC CS</th>
       </tr></thead>
       <tbody>${entries.map(([name,v])=>{
         const dRate = v.total ? (v.delivered/v.total)*100 : 0;
@@ -1324,6 +1654,8 @@ function renderBreakdownView(dim, k){
           <td class="num-cell" style="color:var(--orange)">${num(v.outOfSla)}</td>
           <td class="num-cell">${slaPct!=null?slaPct.toFixed(1)+'%':'—'}</td>
           <td class="num-cell">${dRate.toFixed(1)}%<span class="pct-bar"><span class="pct-bar-fill" style="width:${dRate.toFixed(1)}%"></span></span></td>
+          <td style="color:var(--teal);font-size:12px">${esc(v.poc_ob||'—')}</td>
+          <td style="color:var(--purple);font-size:12px">${esc(v.poc_cs||'—')}</td>
         </tr>`;
       }).join('')}</tbody>
     </table>`;
@@ -1346,7 +1678,7 @@ $('modal').addEventListener('click', e=>{ if (e.target===$('modal')) closeModal(
 document.addEventListener('keydown', e=>{ if (e.key==='Escape' && $('modal').classList.contains('show')) closeModal(); });
 
 // ─────────────────────────────────────────────────────────────
-// THEME
+// THEME — (#3) redraw all charts on theme change to update label colors
 // ─────────────────────────────────────────────────────────────
 function applyTheme(dark){
   isDark = dark;
@@ -1355,7 +1687,7 @@ function applyTheme(dark){
   $('themeIcon').innerHTML = dark?`<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>`:
     `<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>`;
   try { localStorage.setItem('opsDash_theme', dark?'dark':'light'); } catch(e){}
-  // Recolor charts
+  // (#3) Force full chart redraw to pick up new --chart-label-color
   if (RAW.length) refresh();
 }
 $('themeBtn').addEventListener('click', ()=> applyTheme(!isDark));
@@ -1365,7 +1697,6 @@ $('themeBtn').addEventListener('click', ()=> applyTheme(!isDark));
 // ─────────────────────────────────────────────────────────────
 function applyLayout(){
   const grid = $('panelGrid');
-  // Append in saved order; set size attribute
   for (const item of LAYOUT){
     const el = grid.querySelector(`[data-panel="${item.id}"]`);
     if (!el) continue;
@@ -1381,7 +1712,6 @@ function movePanel(id, dir){
   if (newIdx < 0 || newIdx >= LAYOUT.length) return;
   [LAYOUT[idx], LAYOUT[newIdx]] = [LAYOUT[newIdx], LAYOUT[idx]];
   saveLayout(); applyLayout(); renderEditControls();
-  // Charts need redraw after DOM move
   refresh();
 }
 function togglePanelSize(id){
@@ -1389,7 +1719,6 @@ function togglePanelSize(id){
   if (!item) return;
   item.size = item.size==='full' ? 'half' : 'full';
   saveLayout(); applyLayout(); renderEditControls();
-  // resize → chart canvas size changed
   refresh();
 }
 
@@ -1456,7 +1785,6 @@ function setLoading(on, msg='Loading…'){ $('loadOverlay').classList.toggle('sh
 let savedTheme = null; try { savedTheme = localStorage.getItem('opsDash_theme'); } catch(e){}
 if (savedTheme === 'dark') applyTheme(true);
 
-// Set default date filter to This Month
 const r0 = presetRange('this_month');
 F.from = r0.from; F.to = r0.to;
 
