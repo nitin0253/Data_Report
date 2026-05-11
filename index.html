@@ -465,6 +465,21 @@ const isoDate = d => d?d.toISOString().slice(0,10):'';
 const fmtShort = d => d?d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}):'';
 const fmtDate = s => { if(!s) return '—'; const d=new Date(s); return isNaN(d)?s:d.toLocaleDateString(undefined,{month:'short',day:'2-digit'})+' '+d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}); };
 
+// Parse "YYYY-MM-DD[T ]HH:MM:SS[Z]" as NAIVE LOCAL time (ignore any Z / offset).
+// Source data is already in the source DB's timezone; using new Date() on a
+// "...Z" string would convert UTC→local and drift records across month
+// boundaries in non-UTC locales. Extract calendar parts directly.
+function parseTs(s){
+  if (!s) return null;
+  const m = /^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2}):(\d{2})/.exec(s);
+  if (m) return new Date(+m[1], +m[2]-1, +m[3], +m[4], +m[5], +m[6]);
+  // Date-only fallback "YYYY-MM-DD"
+  const m2 = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
+  if (m2) return new Date(+m2[1], +m2[2]-1, +m2[3]);
+  const d = new Date(s);
+  return isNaN(d.getTime()) ? null : d;
+}
+
 // TAT now stored in HOURS (matching SQL TAT_Hrs)
 function fmtTatHrs(h){
   if(h==null||isNaN(+h)) return '—';
@@ -542,7 +557,10 @@ function passesFilters(r){
   }
   if (F.to){
     if (!r._created) return false;
-    if (r._created.getTime() > F.to.getTime()) return false;
+    // 'to' is set to midnight of the end day; include the whole day
+    // by comparing against the start of the next day.
+    const toExclusive = F.to.getTime() + 86400000;
+    if (r._created.getTime() >= toExclusive) return false;
   }
   return true;
 }
@@ -943,17 +961,37 @@ async function syncFromServer({silent=false, force=false}={}){
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Request failed');
 
-    // Parse dates once on receipt — filters then become fast
+    // Parse dates once on receipt — filters then become fast.
+    // IMPORTANT: the CSV timestamps come as "2026-05-11T08:54:58Z" but the
+    // values are already in the DB's session timezone (effectively naive).
+    // Using new Date() would convert UTC→local and shift records across
+    // month boundaries (e.g. 306 records from Apr 30 would land in May in IST).
+    // Parse the calendar parts directly so months match the source CSV exactly.
     RAW.length = 0;
     for (const r of (data.rows||[])){
-      r._created = r.c ? new Date(r.c.includes('T')?r.c:r.c.replace(' ','T')) : null;
-      r._updated = r.u ? new Date(r.u.includes('T')?r.u:r.u.replace(' ','T')) : null;
-      if (r._created && isNaN(r._created.getTime())) r._created = null;
-      if (r._updated && isNaN(r._updated.getTime())) r._updated = null;
+      r._created = parseTs(r.c);
+      r._updated = parseTs(r.u);
       RAW.push(r);
     }
     lastSynced = data.lastSynced ? new Date(data.lastSynced) : new Date();
     $('syncInfo').textContent = 'Synced '+ new Date().toLocaleTimeString() + ' · ' + num(RAW.length) + ' rows';
+
+    // Diagnostic: log monthly counts so you can compare against the source CSV.
+    // Open the browser console to see it.
+    (function logMonthly(){
+      const buckets = {};
+      for (const r of RAW){
+        if (!r._created) continue;
+        const k = r._created.getFullYear() + '-' + String(r._created.getMonth()+1).padStart(2,'0');
+        if (!buckets[k]) buckets[k] = {recv:0,deliv:0,rej:0,pend:0,inSla:0,outSla:0};
+        buckets[k].recv++;
+        if (isDelivered(r)) { buckets[k].deliv++; if (r.sla===1) buckets[k].inSla++; else if (r.sla===0) buckets[k].outSla++; }
+        else if (isRejected(r)) buckets[k].rej++;
+        else buckets[k].pend++;
+      }
+      console.log('[monthly counts — should match CSV]');
+      console.table(buckets);
+    })();
 
     // Populate filter dropdowns from the FULL dataset (won't shrink as user filters)
     const sc = buildFilterScopes();
