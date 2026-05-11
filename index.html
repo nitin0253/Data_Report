@@ -2,7 +2,7 @@
 <html lang="en" data-theme="light">
 <head>
 <meta charset="UTF-8" />
-<title>Ops Dashboard</title>
+<title>OPS Dashboard</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -258,7 +258,7 @@
 
 <div id="sticky-top">
   <header>
-    <div class="brand"><h1>Ops Dashboard</h1><span class="tag">QC · Throughput · SLA</span></div>
+    <div class="brand"><h1>OPS Dashboard</h1><span class="tag">QC · Throughput · SLA</span></div>
     <div class="actions">
       <span class="autosync-badge" id="autoSyncBadge">Next sync in —</span>
       <span class="sync-info" id="syncInfo">—</span>
@@ -340,12 +340,12 @@
     <div class="panel" data-panel="trend" data-size="full">
       <div class="panel-header">
         <div class="panel-title-wrap">
-          <h3>Throughput trend</h3>
+          <h3>Throughput Trend</h3>
           <div class="panel-sub" id="trendSub">received · delivered · rejected</div>
         </div>
         <div style="display:flex;align-items:center;gap:8px;">
           <div class="trend-tabs" id="trendTabs">
-            <button class="trend-tab" data-r="week">This week</button>
+            <button class="trend-tab" data-r="week">This Week</button>
             <button class="trend-tab" data-r="weeks">6 Weeks</button>
             <button class="trend-tab sel" data-r="months">6 Months</button>
             <button class="trend-tab" data-r="year">1 Year</button>
@@ -360,7 +360,7 @@
     <div class="panel" data-panel="sla" data-size="half">
       <div class="panel-header">
         <div class="panel-title-wrap">
-          <h3>SLA performance</h3>
+          <h3>SLA Performance</h3>
           <div class="panel-sub">within / out of SLA · click to drill</div>
         </div>
         <div class="edit-controls" data-panel-ctl="sla"></div>
@@ -389,8 +389,8 @@
 
     <div class="panel" data-panel="topEnt" data-size="half">
       <div class="panel-header">
-        <div class="panel-title-wrap">
-          <h3>Top enterprises</h3>
+        <div class="panel-title-wrap">Top Teams
+          <h3>Top Enterprises</h3>
           <div class="panel-sub">by job count · click to filter</div>
         </div>
         <div class="edit-controls" data-panel-ctl="topEnt"></div>
@@ -401,7 +401,7 @@
     <div class="panel" data-panel="topTeam" data-size="half">
       <div class="panel-header">
         <div class="panel-title-wrap">
-          <h3>Top teams</h3>
+          <h3>Top Teams</h3>
           <div class="panel-sub">by job count · click to filter</div>
         </div>
         <div class="edit-controls" data-panel-ctl="topTeam"></div>
@@ -422,7 +422,7 @@
 
     <div class="panel" data-panel="records" data-size="full" style="padding:0;">
       <div class="panel-header" style="padding:14px 18px 12px;border-bottom:1px solid var(--line);margin-bottom:0;">
-        <div class="panel-title-wrap"><h3>Recent records</h3><div class="panel-sub" id="tCount">—</div></div>
+        <div class="panel-title-wrap"><h3>Recent Records</h3><div class="panel-sub" id="tCount">—</div></div>
         <div class="edit-controls" data-panel-ctl="records"></div>
       </div>
       <div class="table-scroll">
@@ -928,7 +928,7 @@ function paint(){
   $('trendSub').textContent =
     `${{week:'this week, by day',weeks:'last 6 weeks',months:'last 6 months',year:'last 12 months'}[trendRange]} · independent of date filter`;
 
-  // Recent records
+  // Recent Records
   const recent = filtered.slice().sort((a,b)=>(b._created?.getTime()||0)-(a._created?.getTime()||0)).slice(0, 500);
   $('tCount').textContent = `${num(recent.length)} of ${num(filtered.length)} filtered (${num(RAW.length)} total)`;
   $('tBody').innerHTML = !recent.length
