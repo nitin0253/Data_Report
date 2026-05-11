@@ -2,7 +2,7 @@
 <html lang="en" data-theme="light">
 <head>
 <meta charset="UTF-8" />
-<title>OPS Dashboard</title>
+<title>Ops Dashboard</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -72,7 +72,31 @@
   .dp-preview .dp-clear{background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer;padding:2px 6px;border-radius:4px;}
   .dp-preview .dp-clear:hover{background:var(--surface);color:var(--ink);}
 
-  /* CALENDAR */
+  /* MULTI-SELECT (enterprise & team) */
+  .ms-wrap{position:relative;display:flex;flex-direction:column;gap:4px;min-width:0;}
+  .ms-trigger{display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:7px 10px;font:400 13px 'Inter';color:var(--ink);cursor:pointer;min-width:170px;max-width:240px;user-select:none;transition:border-color .15s;white-space:nowrap;height:34px;}
+  .ms-trigger:hover,.ms-trigger.open{border-color:var(--accent);}
+  .ms-text{flex:1;overflow:hidden;text-overflow:ellipsis;}
+  .ms-chev{opacity:.4;flex-shrink:0;transition:transform .2s;}
+  .ms-trigger.open .ms-chev{transform:rotate(180deg);}
+  .ms-pill{display:inline-flex;align-items:center;justify-content:center;background:var(--accent);color:var(--surface);font-family:'JetBrains Mono',monospace;font-size:10px;border-radius:999px;padding:1px 6px;margin-left:4px;min-width:18px;font-variant-numeric:tabular-nums;}
+  .ms-panel{display:none;position:absolute;top:calc(100% + 6px);left:0;z-index:600;background:var(--surface);border:1px solid var(--line);border-radius:8px;box-shadow:0 8px 32px var(--shadow-lg);min-width:280px;max-width:340px;flex-direction:column;overflow:hidden;}
+  .ms-panel.open{display:flex;}
+  .ms-search-wrap{padding:8px 10px;border-bottom:1px solid var(--line);background:var(--bg);}
+  .ms-search{width:100%;background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:6px 10px;font:400 13px 'Inter';color:var(--ink);outline:none;}
+  .ms-search:focus{border-color:var(--accent);}
+  .ms-actions{padding:6px 10px;display:flex;gap:8px;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:10px;border-bottom:1px solid var(--line);background:var(--bg);}
+  .ms-action{background:none;border:none;color:var(--accent);cursor:pointer;font-family:inherit;font-size:inherit;text-transform:uppercase;letter-spacing:.06em;padding:2px 4px;border-radius:3px;}
+  .ms-action:hover{background:var(--surface);}
+  .ms-action.muted{color:var(--muted);}
+  .ms-list{max-height:240px;overflow:auto;padding:4px 0;}
+  .ms-item{display:flex;align-items:center;gap:9px;padding:6px 12px;cursor:pointer;font:400 13px 'Inter';color:var(--ink);user-select:none;transition:background .1s;}
+  .ms-item:hover{background:var(--bg);}
+  .ms-item input[type=checkbox]{width:14px;height:14px;cursor:pointer;accent-color:var(--accent);margin:0;flex-shrink:0;}
+  .ms-item-label{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .ms-item-count{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);font-variant-numeric:tabular-nums;}
+  .ms-empty{padding:16px;color:var(--muted);font-size:12px;text-align:center;}
+
   .cal-wrap{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;gap:6px;}
   .cal-header{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 2px 4px;}
   .cal-month-label{font-family:'Bricolage Grotesque',serif;font-size:14px;font-weight:600;color:var(--ink);letter-spacing:-.01em;flex:1;text-align:center;}
@@ -258,7 +282,7 @@
 
 <div id="sticky-top">
   <header>
-    <div class="brand"><h1>OPS Dashboard</h1><span class="tag">QC · Throughput · SLA</span></div>
+    <div class="brand"><h1>Ops Dashboard</h1><span class="tag">QC · Throughput · SLA</span></div>
     <div class="actions">
       <span class="autosync-badge" id="autoSyncBadge">Next sync in —</span>
       <span class="sync-info" id="syncInfo">—</span>
@@ -311,9 +335,39 @@
       </div>
     </div>
 
-    <div class="f-group"><label class="f-label">Enterprise</label><select class="f-select" id="fEnt"><option value="all">All enterprises</option></select></div>
-    <div class="f-group"><label class="f-label">Team</label><select class="f-select" id="fTeam"><option value="all">All teams</option></select></div>
+    <div class="f-group ms-wrap" id="msEntWrap">
+      <label class="f-label">Enterprise</label>
+      <div class="ms-trigger" id="msEntTrigger" tabindex="0">
+        <span class="ms-text" id="msEntText">All enterprises</span>
+        <svg class="ms-chev" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="2,4 6,8 10,4"/></svg>
+      </div>
+      <div class="ms-panel" id="msEntPanel">
+        <div class="ms-search-wrap"><input type="text" class="ms-search" id="msEntSearch" placeholder="Search enterprises…"></div>
+        <div class="ms-actions">
+          <button class="ms-action" type="button" data-act="all" data-ms="ent">Select all</button>
+          <button class="ms-action muted" type="button" data-act="none" data-ms="ent">Clear all</button>
+        </div>
+        <div class="ms-list" id="msEntList"></div>
+      </div>
+    </div>
+    <div class="f-group ms-wrap" id="msTeamWrap">
+      <label class="f-label">Team</label>
+      <div class="ms-trigger" id="msTeamTrigger" tabindex="0">
+        <span class="ms-text" id="msTeamText">All teams</span>
+        <svg class="ms-chev" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="2,4 6,8 10,4"/></svg>
+      </div>
+      <div class="ms-panel" id="msTeamPanel">
+        <div class="ms-search-wrap"><input type="text" class="ms-search" id="msTeamSearch" placeholder="Search teams…"></div>
+        <div class="ms-actions">
+          <button class="ms-action" type="button" data-act="all" data-ms="team">Select all</button>
+          <button class="ms-action muted" type="button" data-act="none" data-ms="team">Clear all</button>
+        </div>
+        <div class="ms-list" id="msTeamList"></div>
+      </div>
+    </div>
     <div class="f-group"><label class="f-label">User (QC)</label><select class="f-select" id="fUser"><option value="all">All</option></select></div>
+    <div class="f-group"><label class="f-label">POC OB</label><select class="f-select" id="fPocOb"><option value="all">All</option></select></div>
+    <div class="f-group"><label class="f-label">POC CS</label><select class="f-select" id="fPocCs"><option value="all">All</option></select></div>
     <div class="f-group"><label class="f-label">Verified</label><select class="f-select" id="fVerified"><option value="all">All</option></select></div>
     <div class="f-group"><label class="f-label">SLA</label>
       <select class="f-select" id="fSla">
@@ -340,12 +394,12 @@
     <div class="panel" data-panel="trend" data-size="full">
       <div class="panel-header">
         <div class="panel-title-wrap">
-          <h3>Throughput Trend</h3>
+          <h3>Throughput trend</h3>
           <div class="panel-sub" id="trendSub">received · delivered · rejected</div>
         </div>
         <div style="display:flex;align-items:center;gap:8px;">
           <div class="trend-tabs" id="trendTabs">
-            <button class="trend-tab" data-r="week">This Week</button>
+            <button class="trend-tab" data-r="week">This week</button>
             <button class="trend-tab" data-r="weeks">6 Weeks</button>
             <button class="trend-tab sel" data-r="months">6 Months</button>
             <button class="trend-tab" data-r="year">1 Year</button>
@@ -360,7 +414,7 @@
     <div class="panel" data-panel="sla" data-size="half">
       <div class="panel-header">
         <div class="panel-title-wrap">
-          <h3>SLA Performance</h3>
+          <h3>SLA performance</h3>
           <div class="panel-sub">within / out of SLA · click to drill</div>
         </div>
         <div class="edit-controls" data-panel-ctl="sla"></div>
@@ -387,10 +441,51 @@
       </div>
     </div>
 
+    <div class="panel" data-panel="delivery" data-size="half">
+      <div class="panel-header">
+        <div class="panel-title-wrap">
+          <h3>Delivery rate</h3>
+          <div class="panel-sub">delivered / received · click to drill</div>
+        </div>
+        <div class="edit-controls" data-panel-ctl="delivery"></div>
+      </div>
+      <div class="sla-content">
+        <div class="sla-cells">
+          <div class="sla-cell sla-in" id="delvCellDone" tabindex="0" role="button">
+            <div class="sla-num green" id="delvNumDone">—</div>
+            <div class="sla-pct" id="delvPctDone">—%</div>
+            <div class="sla-cell-label">Delivered</div>
+          </div>
+          <div class="sla-cell sla-out" id="delvCellRej" tabindex="0" role="button" style="border-left-color:var(--red);">
+            <div class="sla-num" id="delvNumRej" style="color:var(--red);">—</div>
+            <div class="sla-pct" id="delvPctRej">—%</div>
+            <div class="sla-cell-label">Not delivered</div>
+          </div>
+        </div>
+        <div class="sla-bar"><div class="sla-bar-in" id="delvBarDone"></div><div class="sla-bar-out" id="delvBarRej" style="background:var(--red);"></div></div>
+        <div class="sla-tick"><span>0%</span><span>100%</span></div>
+        <div class="sla-bottom">
+          <span>Rejected: <strong id="delvRejCount">—</strong> · Pending: <strong id="delvPendCount">—</strong></span>
+          <span id="delvMeta">—</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel" data-panel="reasons" data-size="full">
+      <div class="panel-header">
+        <div class="panel-title-wrap">
+          <h3>Rejection reasons</h3>
+          <div class="panel-sub" id="reasonsSub">top reasons by count · respects all filters</div>
+        </div>
+        <div class="edit-controls" data-panel-ctl="reasons"></div>
+      </div>
+      <div class="chart-wrap tall"><canvas id="cReasons"></canvas></div>
+    </div>
+
     <div class="panel" data-panel="topEnt" data-size="half">
       <div class="panel-header">
-        <div class="panel-title-wrap">Top Teams
-          <h3>Top Enterprises</h3>
+        <div class="panel-title-wrap">
+          <h3>Top enterprises</h3>
           <div class="panel-sub">by job count · click to filter</div>
         </div>
         <div class="edit-controls" data-panel-ctl="topEnt"></div>
@@ -401,7 +496,7 @@
     <div class="panel" data-panel="topTeam" data-size="half">
       <div class="panel-header">
         <div class="panel-title-wrap">
-          <h3>Top Teams</h3>
+          <h3>Top teams</h3>
           <div class="panel-sub">by job count · click to filter</div>
         </div>
         <div class="edit-controls" data-panel-ctl="topTeam"></div>
@@ -422,14 +517,16 @@
 
     <div class="panel" data-panel="records" data-size="full" style="padding:0;">
       <div class="panel-header" style="padding:14px 18px 12px;border-bottom:1px solid var(--line);margin-bottom:0;">
-        <div class="panel-title-wrap"><h3>Recent Records</h3><div class="panel-sub" id="tCount">—</div></div>
+        <div class="panel-title-wrap"><h3>Recent records</h3><div class="panel-sub" id="tCount">—</div></div>
         <div class="edit-controls" data-panel-ctl="records"></div>
       </div>
       <div class="table-scroll">
         <table>
           <thead><tr>
             <th>Created</th><th>Enterprise</th><th>Team</th><th>QC User</th>
-            <th>Status</th><th>CRM</th><th>Verified</th><th>SLA</th><th>TAT</th>
+            <th>POC OB</th><th>POC CS</th>
+            <th>Status</th><th>SLA</th><th>TAT</th>
+            <th>Rejected Reason</th>
             <th>Video ID</th><th>VIN</th><th>SKU ID</th><th>Updated</th>
           </tr></thead>
           <tbody id="tBody"></tbody>
@@ -500,22 +597,38 @@ let trendRange = 'months';      // 'week' | 'weeks' | 'months' | 'year'
 const charts = {};
 
 // Default filter = This Month
+// ent/team are inclusion Sets: null means "include everything" (default).
+// Non-null Set means "include only these". Multi-select keeps these in sync.
 const F = {
   preset:'this_month', from:null, to:null,
-  enterprise:'all', team:'all', user:'all', verified:'all', sla:'all',
+  ent:null, team:null,         // null = all
+  user:'all', pocOb:'all', pocCs:'all',
+  verified:'all', sla:'all',
 };
 
-// Layout — saved to localStorage
+// Layout — saved to localStorage. Bump key to v3 because schema changed (new panels).
 const DEFAULT_LAYOUT = [
-  { id:'trend',   size:'full' },
-  { id:'sla',     size:'half' },
-  { id:'topEnt',  size:'half' },
-  { id:'topTeam', size:'half' },
-  { id:'topQc',   size:'half' },
-  { id:'records', size:'full' },
+  { id:'trend',    size:'full' },
+  { id:'sla',      size:'half' },
+  { id:'delivery', size:'half' },
+  { id:'reasons',  size:'full' },
+  { id:'topEnt',   size:'half' },
+  { id:'topTeam',  size:'half' },
+  { id:'topQc',    size:'half' },
+  { id:'records',  size:'full' },
 ];
-let LAYOUT = (()=>{try{const s=JSON.parse(localStorage.getItem('opsDash_layout_v2'));if(Array.isArray(s)&&s.length)return s;}catch(e){}return DEFAULT_LAYOUT.slice();})();
-const saveLayout = ()=>{try{localStorage.setItem('opsDash_layout_v2',JSON.stringify(LAYOUT));}catch(e){}};
+let LAYOUT = (()=>{try{const s=JSON.parse(localStorage.getItem('opsDash_layout_v3'));if(Array.isArray(s)&&s.length)return s;}catch(e){}return DEFAULT_LAYOUT.slice();})();
+const saveLayout = ()=>{try{localStorage.setItem('opsDash_layout_v3',JSON.stringify(LAYOUT));}catch(e){}};
+
+// Merge any missing panels (e.g. older saved layout) so new panels show up automatically.
+(function reconcileLayout(){
+  const have = new Set(LAYOUT.map(p=>p.id));
+  for (const p of DEFAULT_LAYOUT) if (!have.has(p.id)) LAYOUT.push({...p});
+  // Drop ids we no longer have markup for
+  const validIds = new Set(DEFAULT_LAYOUT.map(p=>p.id));
+  LAYOUT = LAYOUT.filter(p => validIds.has(p.id));
+  saveLayout();
+})();
 
 // ─────────────────────────────────────────────────────────────
 // PRESET RANGES
@@ -545,10 +658,12 @@ function isRejected(r){  return r.crm==='qc_done' && (r.ver==='rejected' || !r.v
 function isPending(r){   return r.crm!=='qc_done'; }
 
 function passesFilters(r){
-  if (F.enterprise!=='all' && r.ent !== F.enterprise) return false;
-  if (F.team      !=='all' && r.team !== F.team)      return false;
-  if (F.user      !=='all' && r.qc !== F.user)        return false;
-  if (F.verified  !=='all' && r.ver !== F.verified)   return false;
+  if (F.ent  && !F.ent.has(r.ent))   return false;
+  if (F.team && !F.team.has(r.team)) return false;
+  if (F.user      !=='all' && r.qc      !== F.user)      return false;
+  if (F.pocOb     !=='all' && (r.poc_ob||'') !== F.pocOb) return false;
+  if (F.pocCs     !=='all' && (r.poc_cs||'') !== F.pocCs) return false;
+  if (F.verified  !=='all' && r.ver     !== F.verified)  return false;
   if (F.sla==='1' && r.sla !== 1) return false;
   if (F.sla==='0' && r.sla !== 0) return false;
   if (F.from){
@@ -557,8 +672,6 @@ function passesFilters(r){
   }
   if (F.to){
     if (!r._created) return false;
-    // 'to' is set to midnight of the end day; include the whole day
-    // by comparing against the start of the next day.
     const toExclusive = F.to.getTime() + 86400000;
     if (r._created.getTime() >= toExclusive) return false;
   }
@@ -566,53 +679,71 @@ function passesFilters(r){
 }
 
 function buildFilterScopes(){
-  // For each dropdown, list values that exist in the dataset (full).
-  // Doesn't shrink as filters apply, so users can always pivot.
-  const ent=new Set(),team=new Set(),user=new Set(),ver=new Set();
+  // Build option lists from the full dataset so dropdowns don't shrink as filters apply.
+  const ent=new Set(),team=new Set(),user=new Set(),ver=new Set(),pocOb=new Set(),pocCs=new Set();
   for (const r of RAW){
     if (r.ent) ent.add(r.ent);
     if (r.team) team.add(r.team);
     if (r.qc) user.add(r.qc);
     if (r.ver) ver.add(r.ver);
+    if (r.poc_ob) pocOb.add(r.poc_ob);
+    if (r.poc_cs) pocCs.add(r.poc_cs);
   }
   return {
     enterpriseList: [...ent].sort(),
     teamList:       [...team].sort(),
     userList:       [...user].sort(),
     verifiedList:   [...ver].sort(),
+    pocObList:      [...pocOb].sort(),
+    pocCsList:      [...pocCs].sort(),
   };
 }
 
 function aggregate(rows){
   let totalReceived=0,totalDelivered=0,totalRejected=0,totalPending=0;
-  let withinSla=0,outOfSla=0;       // computed ONLY among delivered records
+  let withinSla=0,outOfSla=0;
   let tatSum=0,tatCount=0;
   const entCount={},teamCount={},qcCount={};
-  // Breakdowns per dimension — useful for the drill-down view
   const entBreak={},teamBreak={};
+  const reasonsCount={};                 // case-normalized rejected reason counts
+
+  // Per-enterprise / per-team POC samples (first observed, since usually a 1:1 mapping)
+  const entPoc={}, teamPoc={};
 
   function bump(map,key,kind){
     if(!map[key]) map[key]={total:0,delivered:0,rejected:0,pending:0,withinSla:0,outOfSla:0};
     map[key].total++; map[key][kind]++;
   }
 
+  // Normalize reason text (collapse case + whitespace) for cleaner grouping.
+  function normReason(s){
+    if (!s) return '';
+    return String(s).trim().replace(/\s+/g,' ').toLowerCase();
+  }
+  const reasonDisplay = {}; // norm → first-seen display string
+
   for (const r of rows){
     totalReceived++;
     let kind='pending';
     if (isDelivered(r)){
       totalDelivered++; kind='delivered';
-      // SLA only meaningful for delivered records
       if (r.sla === 1) withinSla++;
       else if (r.sla === 0) outOfSla++;
     } else if (isRejected(r)){
       totalRejected++; kind='rejected';
+      const k = normReason(r.rej);
+      if (k){
+        reasonsCount[k] = (reasonsCount[k]||0)+1;
+        if (!reasonDisplay[k]) reasonDisplay[k] = r.rej.trim();
+      } else {
+        reasonsCount['(unspecified)'] = (reasonsCount['(unspecified)']||0)+1;
+        reasonDisplay['(unspecified)'] = '(no reason recorded)';
+      }
     } else {
       totalPending++;
     }
 
-    if (typeof r.tat === 'number' && isFinite(r.tat)) {
-      tatSum += r.tat; tatCount++;
-    }
+    if (typeof r.tat === 'number' && isFinite(r.tat)) { tatSum += r.tat; tatCount++; }
 
     if (r.ent)  entCount[r.ent]   = (entCount[r.ent]||0)+1;
     if (r.team) teamCount[r.team] = (teamCount[r.team]||0)+1;
@@ -622,17 +753,36 @@ function aggregate(rows){
       bump(entBreak, r.ent, kind);
       if (kind === 'delivered' && r.sla === 1) entBreak[r.ent].withinSla++;
       else if (kind === 'delivered' && r.sla === 0) entBreak[r.ent].outOfSla++;
+      if (!entPoc[r.ent]) entPoc[r.ent] = { ob:r.poc_ob||'', cs:r.poc_cs||'' };
+      else {
+        if (!entPoc[r.ent].ob && r.poc_ob) entPoc[r.ent].ob = r.poc_ob;
+        if (!entPoc[r.ent].cs && r.poc_cs) entPoc[r.ent].cs = r.poc_cs;
+      }
     }
     if (r.team){
       bump(teamBreak, r.team, kind);
       if (kind === 'delivered' && r.sla === 1) teamBreak[r.team].withinSla++;
       else if (kind === 'delivered' && r.sla === 0) teamBreak[r.team].outOfSla++;
+      if (!teamPoc[r.team]) teamPoc[r.team] = { ob:r.poc_ob||'', cs:r.poc_cs||'' };
+      else {
+        if (!teamPoc[r.team].ob && r.poc_ob) teamPoc[r.team].ob = r.poc_ob;
+        if (!teamPoc[r.team].cs && r.poc_cs) teamPoc[r.team].cs = r.poc_cs;
+      }
     }
   }
 
-  // Top-N sorted DESC by count (server already did this; we re-sort here just in case)
   const sortDesc = obj => Object.fromEntries(Object.entries(obj).sort((a,b)=>b[1]-a[1]));
   const slice = (obj, n) => Object.fromEntries(Object.entries(obj).slice(0, n));
+
+  // Build display-keyed rejection reasons (top 10) for the chart
+  const reasonsDisplay = {};
+  for (const [k,v] of Object.entries(reasonsCount).sort((a,b)=>b[1]-a[1])){
+    const disp = reasonDisplay[k] || k;
+    // truncate very long reasons for chart readability
+    const label = disp.length > 60 ? disp.slice(0,57)+'…' : disp;
+    reasonsDisplay[label] = v;
+  }
+  const topReasons = slice(reasonsDisplay, 10);
 
   return {
     totalReceived, totalDelivered, totalRejected, totalPending,
@@ -647,7 +797,8 @@ function aggregate(rows){
     topEnt:  slice(sortDesc(entCount),  12),
     topTeam: slice(sortDesc(teamCount), 12),
     topQc:   slice(sortDesc(qcCount),   15),
-    entBreak, teamBreak,
+    topReasons,
+    entBreak, teamBreak, entPoc, teamPoc,
   };
 }
 
@@ -760,43 +911,76 @@ function mkTrend(canvas, buckets){
   const dlvd = buckets.map(b=>b.delivered);
   const rejd = buckets.map(b=>b.rejected);
 
-  // Gradient fill for the primary "Received" line, gold-price style
+  // Theme-aware gradient under the Received line. The fill must use the CURRENT
+  // accent color (light=navy, dark=blue) so the chart re-renders correctly on toggle.
+  // Convert "#rrggbb" to "rgba(r,g,b,a)" so we can apply opacity stops.
+  function hexToRgba(hex, a){
+    const h = String(hex||'').trim().replace('#','');
+    if (h.length !== 6) return `rgba(31,63,114,${a})`;
+    const r=parseInt(h.slice(0,2),16), g=parseInt(h.slice(2,4),16), b=parseInt(h.slice(4,6),16);
+    return `rgba(${r},${g},${b},${a})`;
+  }
   const ctx = canvas.getContext('2d');
   const grad = ctx.createLinearGradient(0, 0, 0, canvas.height || 320);
-  grad.addColorStop(0, 'rgba(31,63,114,0.18)');
-  grad.addColorStop(1, 'rgba(31,63,114,0)');
+  grad.addColorStop(0, hexToRgba(PAL.accent, 0.22));
+  grad.addColorStop(1, hexToRgba(PAL.accent, 0));
 
-  // For a single-point bucket (e.g. "this week" with one day having data),
-  // Chart.js still draws nicely; we just configure scales for the count.
+  // Theme-aware point hover border: light bg for light theme, dark bg for dark theme.
+  const pointBorder = isDark ? PAL.ink : '#ffffff';
+
+  // Labels above each Received point, in the body text color (so they adapt to theme).
+  // Hide labels on points with value 0 to avoid clutter.
+  const labelColor = PAL.ink;
+
   charts.trend = new Chart(canvas, {
     type:'line', plugins:[ChartDataLabels],
     data:{ labels, datasets:[
       { label:'Received',  data:recv, borderColor:PAL.accent, backgroundColor:grad,
-        borderWidth:2.2, tension:0.35, pointRadius:0, pointHoverRadius:5, pointHoverBackgroundColor:PAL.accent,
-        pointHoverBorderColor:'#fff', pointHoverBorderWidth:2, fill:true,
-        datalabels:{display:false} },
+        borderWidth:2.2, tension:0.35, pointRadius:3, pointHoverRadius:6,
+        pointBackgroundColor:PAL.accent, pointBorderColor:pointBorder, pointBorderWidth:0,
+        pointHoverBackgroundColor:PAL.accent, pointHoverBorderColor:pointBorder, pointHoverBorderWidth:2,
+        fill:true,
+        datalabels:{
+          align:'top', anchor:'end', clamp:true,
+          color:labelColor,
+          font:{family:"'JetBrains Mono',monospace", size:10, weight:'600'},
+          formatter:v=> v>0 ? v.toLocaleString() : '',
+          padding:{top:2, bottom:2},
+        },
+      },
       { label:'Delivered', data:dlvd, borderColor:PAL.green,  backgroundColor:'transparent',
-        borderWidth:2, tension:0.35, pointRadius:0, pointHoverRadius:5, pointHoverBackgroundColor:PAL.green,
-        pointHoverBorderColor:'#fff', pointHoverBorderWidth:2, fill:false,
-        datalabels:{display:false} },
+        borderWidth:2, tension:0.35, pointRadius:2.5, pointHoverRadius:5.5,
+        pointBackgroundColor:PAL.green, pointBorderColor:pointBorder, pointBorderWidth:0,
+        pointHoverBackgroundColor:PAL.green, pointHoverBorderColor:pointBorder, pointHoverBorderWidth:2,
+        fill:false,
+        datalabels:{
+          align:'bottom', anchor:'end',
+          color:PAL.green,
+          font:{family:"'JetBrains Mono',monospace", size:9, weight:'600'},
+          formatter:v=> v>0 ? v.toLocaleString() : '',
+          padding:{top:1, bottom:1},
+        },
+      },
       { label:'Rejected',  data:rejd, borderColor:PAL.red,    backgroundColor:'transparent',
-        borderWidth:2, tension:0.35, pointRadius:0, pointHoverRadius:5, pointHoverBackgroundColor:PAL.red,
-        pointHoverBorderColor:'#fff', pointHoverBorderWidth:2, fill:false,
-        datalabels:{display:false} },
+        borderWidth:2, tension:0.35, pointRadius:2.5, pointHoverRadius:5.5,
+        pointBackgroundColor:PAL.red, pointBorderColor:pointBorder, pointBorderWidth:0,
+        pointHoverBackgroundColor:PAL.red, pointHoverBorderColor:pointBorder, pointHoverBorderWidth:2,
+        fill:false,
+        datalabels:{ display:false }, // skip to avoid label crowding near 0
+      },
     ] },
     options:{
       responsive:true, maintainAspectRatio:false,
       interaction:{ mode:'index', intersect:false },
+      layout:{ padding:{ top:18 } },   // room for the "Received" point labels
       plugins:{
         legend:{display:false},
         tooltip:{
-          backgroundColor:PAL.ink, titleColor:'#fff', bodyColor:'#fff',
+          backgroundColor:PAL.ink, titleColor:isDark?'#0b0b0c':'#fff',
+          bodyColor:isDark?'#0b0b0c':'#fff',
           padding:10, displayColors:true, boxPadding:4, cornerRadius:6,
-          callbacks:{
-            label:(ctx)=> `${ctx.dataset.label}: ${ctx.parsed.y.toLocaleString()}`,
-          },
+          callbacks:{ label:(ctx)=> `${ctx.dataset.label}: ${ctx.parsed.y.toLocaleString()}` },
         },
-        datalabels:{display:false},
       },
       scales:{
         x:{ grid:{display:false}, ticks:{font:{size:11},color:PAL.muted, autoSkip:true, maxRotation:0} },
@@ -806,7 +990,6 @@ function mkTrend(canvas, buckets){
     },
   });
 
-  // Update legend with current totals
   const totals = { Received: recv.reduce((a,b)=>a+b,0), Delivered: dlvd.reduce((a,b)=>a+b,0), Rejected: rejd.reduce((a,b)=>a+b,0) };
   const cols = { Received: PAL.accent, Delivered: PAL.green, Rejected: PAL.red };
   $('trendLegend').innerHTML = Object.entries(totals).map(([k,v])=>
@@ -867,14 +1050,27 @@ function paintSla(k){
     : 'No delivered records in view';
 }
 
+function paintDelivery(k){
+  const deliv = k.totalDelivered||0;
+  const notDeliv = (k.totalRejected||0) + (k.totalPending||0);
+  const total = k.totalReceived || 0;
+  const pctDone = total ? (deliv/total)*100 : 0;
+  const pctNot  = total ? (notDeliv/total)*100 : 0;
+  $('delvNumDone').textContent = num(deliv);
+  $('delvNumRej').textContent  = num(notDeliv);
+  $('delvPctDone').textContent = total ? pctDone.toFixed(1)+'%' : '—%';
+  $('delvPctRej').textContent  = total ? pctNot.toFixed(1)+'%'  : '—%';
+  $('delvBarDone').style.width = pctDone+'%';
+  $('delvBarRej').style.width  = pctNot+'%';
+  $('delvRejCount').textContent  = num(k.totalRejected||0);
+  $('delvPendCount').textContent = num(k.totalPending||0);
+  $('delvMeta').textContent = total ? `${num(total)} received in view` : 'No records in view';
+}
+
 function paint(){
   if (!RAW.length) return;
   const t0 = performance.now();
-
-  // Filter
   const filtered = RAW.filter(passesFilters);
-
-  // Aggregate
   const k = aggregate(filtered);
 
   // KPI values
@@ -887,38 +1083,44 @@ function paint(){
   $('kv-sla').textContent       = k.slaCompliance!=null ? k.slaCompliance.toFixed(1)+'%' : '—';
   $('kv-tat').textContent       = fmtTatHrs(k.avgTat);
 
-  // % under delivered/rejected/pending
   $('kp-delivered').textContent = k.deliveryRate!=null  ? k.deliveryRate.toFixed(1)+'% of received'  : '';
   $('kp-rejected').textContent  = k.rejectionRate!=null ? k.rejectionRate.toFixed(1)+'% of received' : '';
   const pendingPct = k.totalReceived ? (k.totalPending/k.totalReceived)*100 : null;
   $('kp-pending').textContent   = pendingPct!=null ? pendingPct.toFixed(1)+'% of received' : '';
   $('kp-sla').textContent       = k.totalDelivered ? `${num(k.withinSla)} of ${num(k.totalDelivered)}` : '';
   $('kp-tat').textContent       = k.tatRecordCount ? `from ${num(k.tatRecordCount)} records` : '';
-  // Clear pct on cards without one
   $('kp-ent').textContent = ''; $('kp-team').textContent = ''; $('kp-received').textContent = '';
-
-  // Sub text
   $('ks-tat').textContent = k.tatRecordCount ? 'avg turnaround in hours' : 'no TAT data in view';
 
-  // SLA panel
+  // SLA + Delivery panels
   paintSla(k);
+  paintDelivery(k);
 
-  // Top-X charts — data already in DESC order (largest first)
+  // Top-X horizontal bars
   const PAL = getPal();
   mkBar('ent',  $('cEnt'),  k.topEnt,  { h:true, color:PAL.accent,
-    onPick:label=>{ F.enterprise=label; F.team='all'; $('fEnt').value=label; $('fTeam').value='all'; refresh(); } });
+    onPick:label=>{ F.ent = new Set([label]); F.team = null; refreshMsTriggers(); refresh(); } });
   mkBar('team', $('cTeam'), k.topTeam, { h:true, color:PAL.purple,
-    onPick:label=>{ F.team=label; $('fTeam').value=label; refresh(); } });
+    onPick:label=>{ F.team = new Set([label]); refreshMsTriggers(); refresh(); } });
   mkBar('qc',   $('cQc'),   k.topQc,   { h:true, color:PAL.ink,
     onPick:label=>{ F.user=label; $('fUser').value=label; refresh(); } });
 
-  // Trend chart — uses FILTERED rows (so enterprise/team/etc. apply)
-  // but ignores the date filter so the timeline view is meaningful.
+  // Rejection reasons — horizontal bar of normalized reasons (top 10)
+  mkBar('reasons', $('cReasons'), k.topReasons, { h:true, color:PAL.red });
+  const reasonTotal = Object.values(k.topReasons||{}).reduce((a,b)=>a+b,0);
+  $('reasonsSub').textContent = reasonTotal
+    ? `top reasons across ${num(k.totalRejected)} rejections · ${num(Object.keys(k.topReasons).length)} shown`
+    : 'no rejected records in view';
+
+  // Trend chart — same filter as the main filtered set MINUS the date filter,
+  // so the timeline always shows the full historical context.
   const trendRows = RAW.filter(r => {
-    if (F.enterprise!=='all' && r.ent !== F.enterprise) return false;
-    if (F.team      !=='all' && r.team !== F.team)      return false;
-    if (F.user      !=='all' && r.qc !== F.user)        return false;
-    if (F.verified  !=='all' && r.ver !== F.verified)   return false;
+    if (F.ent  && !F.ent.has(r.ent))   return false;
+    if (F.team && !F.team.has(r.team)) return false;
+    if (F.user     !=='all' && r.qc      !== F.user)     return false;
+    if (F.pocOb    !=='all' && (r.poc_ob||'') !== F.pocOb) return false;
+    if (F.pocCs    !=='all' && (r.poc_cs||'') !== F.pocCs) return false;
+    if (F.verified !=='all' && r.ver     !== F.verified) return false;
     if (F.sla==='1' && r.sla !== 1) return false;
     if (F.sla==='0' && r.sla !== 0) return false;
     return true;
@@ -928,11 +1130,11 @@ function paint(){
   $('trendSub').textContent =
     `${{week:'this week, by day',weeks:'last 6 weeks',months:'last 6 months',year:'last 12 months'}[trendRange]} · independent of date filter`;
 
-  // Recent Records
+  // Recent records (now includes POC OB/CS and Rejected Reason columns)
   const recent = filtered.slice().sort((a,b)=>(b._created?.getTime()||0)-(a._created?.getTime()||0)).slice(0, 500);
   $('tCount').textContent = `${num(recent.length)} of ${num(filtered.length)} filtered (${num(RAW.length)} total)`;
   $('tBody').innerHTML = !recent.length
-    ? `<tr><td colspan="13" class="empty">No records match these filters.</td></tr>`
+    ? `<tr><td colspan="15" class="empty">No records match these filters.</td></tr>`
     : recent.map(r=>{
         const isD=isDelivered(r), isR=isRejected(r);
         const pill = isD?'<span class="pill delivered">Delivered</span>'
@@ -941,7 +1143,7 @@ function paint(){
         const slaPill = r.sla===1?'<span class="pill sla-in">In</span>'
                        :r.sla===0?'<span class="pill sla-out">Out</span>'
                                  :'<span class="pill">—</span>';
-        return `<tr><td class="mono">${esc(fmtDate(r.c))}</td><td>${esc(r.ent||'—')}</td><td>${esc(r.team||'—')}</td><td>${esc(r.qc||'—')}</td><td>${esc(r.status||'—')}</td><td>${esc(r.crm||'—')}</td><td>${pill}</td><td>${slaPill}</td><td class="mono">${esc(fmtTatHrs(r.tat))}</td><td class="mono">${esc(r.vid||'—')}</td><td class="mono">${esc(r.vin||'—')}</td><td class="mono">${esc(r.sku||'—')}</td><td class="mono">${esc(fmtDate(r.u))}</td></tr>`;
+        return `<tr><td class="mono">${esc(fmtDate(r.c))}</td><td>${esc(r.ent||'—')}</td><td>${esc(r.team||'—')}</td><td>${esc(r.qc||'—')}</td><td>${esc(r.poc_ob||'—')}</td><td>${esc(r.poc_cs||'—')}</td><td>${pill}</td><td>${slaPill}</td><td class="mono">${esc(fmtTatHrs(r.tat))}</td><td title="${esc(r.rej||'')}">${esc(r.rej||'—')}</td><td class="mono">${esc(r.vid||'—')}</td><td class="mono">${esc(r.vin||'—')}</td><td class="mono">${esc(r.sku||'—')}</td><td class="mono">${esc(fmtDate(r.u))}</td></tr>`;
       }).join('');
 
   console.log(`[paint] ${filtered.length} rows in ${(performance.now()-t0).toFixed(1)}ms`);
@@ -995,10 +1197,12 @@ async function syncFromServer({silent=false, force=false}={}){
 
     // Populate filter dropdowns from the FULL dataset (won't shrink as user filters)
     const sc = buildFilterScopes();
-    populateSel($('fEnt'),      sc.enterpriseList, F.enterprise);
-    populateSel($('fTeam'),     sc.teamList,       F.team);
+    msEnt.setOptions(sc.enterpriseList);
+    msTeam.setOptions(sc.teamList);
     populateSel($('fUser'),     sc.userList,       F.user);
     populateSel($('fVerified'), sc.verifiedList,   F.verified);
+    populateSel($('fPocOb'),    sc.pocObList,      F.pocOb);
+    populateSel($('fPocCs'),    sc.pocCsList,      F.pocCs);
 
     refresh();
   } catch (err) {
@@ -1017,20 +1221,148 @@ function populateSel(sel, items, curVal){
 }
 
 // ─────────────────────────────────────────────────────────────
+// MULTI-SELECT COMPONENT
+// ─────────────────────────────────────────────────────────────
+// Each instance manages one filter Set on F. The Set is null when "all selected"
+// (no filter applied), or a Set of values when only specific items are included.
+function createMultiSelect({
+  field,                      // F key (e.g. 'ent' or 'team')
+  triggerId, panelId, textId, // DOM ids
+  searchId, listId,
+  singularLabel,              // 'enterprise' / 'team'
+  pluralLabel,                // 'enterprises' / 'teams'
+  onChange,                   // fn called after every change
+}){
+  let options = [];           // string[] (sorted)
+  let search = '';
+
+  const trigger = $(triggerId), panel = $(panelId);
+  const text = $(textId), searchEl = $(searchId), list = $(listId);
+
+  function setOptions(items){
+    options = items.slice();
+    renderList();
+    refreshTrigger();
+  }
+  function close(){ panel.classList.remove('open'); trigger.classList.remove('open'); }
+  function open(){
+    panel.classList.add('open');
+    trigger.classList.add('open');
+    searchEl.value = ''; search = '';
+    renderList();
+    setTimeout(()=>searchEl.focus(), 30);
+  }
+  function isOpen(){ return panel.classList.contains('open'); }
+
+  function refreshTrigger(){
+    const sel = F[field]; // Set | null
+    if (!sel) { text.textContent = `All ${pluralLabel}`; return; }
+    if (sel.size === 0) { text.textContent = `No ${pluralLabel} selected`; return; }
+    if (sel.size === 1) { text.textContent = [...sel][0]; return; }
+    if (sel.size === options.length) { text.textContent = `All ${pluralLabel}`; return; }
+    text.innerHTML = `${sel.size} ${pluralLabel} <span class="ms-pill">${options.length - sel.size} hidden</span>`;
+  }
+
+  function renderList(){
+    const sel = F[field];
+    const q = search.toLowerCase();
+    const filtered = q ? options.filter(o => o.toLowerCase().includes(q)) : options;
+    if (!filtered.length) { list.innerHTML = `<div class="ms-empty">No matches</div>`; return; }
+    list.innerHTML = filtered.map(v => {
+      const checked = !sel || sel.has(v);
+      return `<label class="ms-item">
+        <input type="checkbox" data-val="${esc(v)}" ${checked?'checked':''}>
+        <span class="ms-item-label" title="${esc(v)}">${esc(v)}</span>
+      </label>`;
+    }).join('');
+    list.querySelectorAll('input[type=checkbox]').forEach(cb=>{
+      cb.addEventListener('change', e=>{
+        e.stopPropagation();
+        toggle(cb.dataset.val, cb.checked);
+      });
+    });
+  }
+
+  function toggle(value, on){
+    let sel = F[field];
+    if (!sel) {
+      // Was 'all'. Materialize the set as everything-currently-known, then mutate.
+      sel = new Set(options);
+    } else {
+      sel = new Set(sel);
+    }
+    if (on) sel.add(value); else sel.delete(value);
+    // If user re-selected everything, collapse back to null (= all)
+    if (sel.size === options.length) F[field] = null;
+    else F[field] = sel;
+    refreshTrigger();
+    onChange && onChange();
+  }
+
+  function selectAll(){ F[field] = null; refreshTrigger(); renderList(); onChange && onChange(); }
+  function clearAll(){ F[field] = new Set(); refreshTrigger(); renderList(); onChange && onChange(); }
+
+  // Wire up DOM events
+  trigger.addEventListener('click', e=>{
+    e.stopPropagation();
+    if (isOpen()) close(); else open();
+  });
+  trigger.addEventListener('keydown', e=>{
+    if (e.key==='Enter' || e.key===' ') { e.preventDefault(); if (isOpen()) close(); else open(); }
+  });
+  panel.addEventListener('click', e=>e.stopPropagation());
+  panel.addEventListener('mousedown', e=>e.stopPropagation());
+  searchEl.addEventListener('input', ()=>{ search = searchEl.value; renderList(); });
+  panel.querySelectorAll('.ms-action').forEach(b=>{
+    b.addEventListener('click', e=>{
+      e.stopPropagation();
+      if (b.dataset.act==='all')  selectAll();
+      if (b.dataset.act==='none') clearAll();
+    });
+  });
+
+  return { setOptions, close, refreshTrigger };
+}
+
+const msEnt  = createMultiSelect({
+  field:'ent',  triggerId:'msEntTrigger',  panelId:'msEntPanel',
+  textId:'msEntText', searchId:'msEntSearch', listId:'msEntList',
+  singularLabel:'enterprise', pluralLabel:'enterprises',
+  onChange: ()=> refresh(),
+});
+const msTeam = createMultiSelect({
+  field:'team', triggerId:'msTeamTrigger', panelId:'msTeamPanel',
+  textId:'msTeamText', searchId:'msTeamSearch', listId:'msTeamList',
+  singularLabel:'team', pluralLabel:'teams',
+  onChange: ()=> refresh(),
+});
+
+// Close any open multi-select on outside click
+document.addEventListener('mousedown', e=>{
+  if (!$('msEntWrap').contains(e.target))  msEnt.close();
+  if (!$('msTeamWrap').contains(e.target)) msTeam.close();
+});
+
+function refreshMsTriggers(){ msEnt.refreshTrigger(); msTeam.refreshTrigger(); }
+
+// ─────────────────────────────────────────────────────────────
 // FILTER EVENT HANDLERS  (no network — instant)
 // ─────────────────────────────────────────────────────────────
-$('fEnt').addEventListener('change',()=>{ F.enterprise=$('fEnt').value; F.team='all'; $('fTeam').value='all'; refresh(); });
-$('fTeam').addEventListener('change',()=>{ F.team=$('fTeam').value; refresh(); });
-$('fUser').addEventListener('change',()=>{ F.user=$('fUser').value; refresh(); });
-$('fVerified').addEventListener('change',()=>{ F.verified=$('fVerified').value; refresh(); });
-$('fSla').addEventListener('change',()=>{ F.sla=$('fSla').value; refresh(); });
-$('resetBtn').addEventListener('click',()=>{
-  // Reset to defaults (this month, no other filters)
+$('fUser').addEventListener('change',     ()=>{ F.user     = $('fUser').value;     refresh(); });
+$('fVerified').addEventListener('change', ()=>{ F.verified = $('fVerified').value; refresh(); });
+$('fPocOb').addEventListener('change',    ()=>{ F.pocOb    = $('fPocOb').value;    refresh(); });
+$('fPocCs').addEventListener('change',    ()=>{ F.pocCs    = $('fPocCs').value;    refresh(); });
+$('fSla').addEventListener('change',      ()=>{ F.sla      = $('fSla').value;      refresh(); });
+$('resetBtn').addEventListener('click', ()=>{
   const r = presetRange('this_month');
-  Object.assign(F, { preset:'this_month', from:r.from, to:r.to,
-    enterprise:'all', team:'all', user:'all', verified:'all', sla:'all' });
-  ['fEnt','fTeam','fUser','fVerified'].forEach(id=>$(id).value='all');
+  Object.assign(F, {
+    preset:'this_month', from:r.from, to:r.to,
+    ent:null, team:null,
+    user:'all', verified:'all', pocOb:'all', pocCs:'all', sla:'all',
+  });
+  ['fUser','fVerified','fPocOb','fPocCs'].forEach(id=>$(id).value='all');
   $('fSla').value = 'all';
+  refreshMsTriggers();
   syncDateUI();
   refresh();
 });
@@ -1201,6 +1533,14 @@ function bindSlaCells(){
   $('slaCellOut').addEventListener('click', openOut);
   $('slaCellIn').addEventListener('keydown',  e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openIn();}});
   $('slaCellOut').addEventListener('keydown', e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openOut();}});
+
+  // Delivery rate cells
+  const openDelv = ()=>openDrill({label:'Delivered', sub:'qc_done & verified', view:'delivered', kind:'records'});
+  const openNot  = ()=>openDrill({label:'Not delivered', sub:'rejected + pending', view:'not_delivered', kind:'records'});
+  $('delvCellDone').addEventListener('click', openDelv);
+  $('delvCellRej').addEventListener('click', openNot);
+  $('delvCellDone').addEventListener('keydown', e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openDelv();}});
+  $('delvCellRej').addEventListener('keydown',  e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openNot();}});
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -1208,10 +1548,18 @@ function bindSlaCells(){
 // ─────────────────────────────────────────────────────────────
 function activeFilterChips(){
   const chips=[];
+  const setChip = (label, sel) => {
+    if (!sel) return;
+    if (sel.size === 0) chips.push(`<span class="chip">${label} <strong>none</strong></span>`);
+    else if (sel.size === 1) chips.push(`<span class="chip">${label} <strong>${esc([...sel][0])}</strong></span>`);
+    else chips.push(`<span class="chip">${label} <strong>${sel.size} selected</strong></span>`);
+  };
   if(F.from||F.to)        chips.push(`<span class="chip">Date <strong>${esc(F.preset==='custom'?(F.from?fmtShort(F.from):'')+(F.from&&F.to?' → ':'')+(F.to?fmtShort(F.to):''):PLABELS[F.preset]||'')}</strong></span>`);
-  if(F.enterprise!=='all')chips.push(`<span class="chip">Enterprise <strong>${esc(F.enterprise)}</strong></span>`);
-  if(F.team!=='all')      chips.push(`<span class="chip">Team <strong>${esc(F.team)}</strong></span>`);
+  setChip('Enterprise', F.ent);
+  setChip('Team',       F.team);
   if(F.user!=='all')      chips.push(`<span class="chip">User <strong>${esc(F.user)}</strong></span>`);
+  if(F.pocOb!=='all')     chips.push(`<span class="chip">POC OB <strong>${esc(F.pocOb)}</strong></span>`);
+  if(F.pocCs!=='all')     chips.push(`<span class="chip">POC CS <strong>${esc(F.pocCs)}</strong></span>`);
   if(F.verified!=='all')  chips.push(`<span class="chip">Verified <strong>${esc(F.verified)}</strong></span>`);
   if(F.sla!=='all')       chips.push(`<span class="chip">SLA <strong>${F.sla==='1'?'Within':'Out of'}</strong></span>`);
   return chips.length?chips.join(''):'<span class="chip">No filters</span>';
@@ -1219,13 +1567,14 @@ function activeFilterChips(){
 
 function drillSubset(rows, view){
   switch(view){
-    case 'delivered':  return rows.filter(isDelivered);
-    case 'rejected':   return rows.filter(isRejected);
-    case 'pending':    return rows.filter(isPending);
-    case 'within_sla': return rows.filter(r => isDelivered(r) && r.sla===1);
-    case 'out_of_sla': return rows.filter(r => isDelivered(r) && r.sla===0);
-    case 'tat':        return rows.filter(r => typeof r.tat==='number').sort((a,b)=>(b.tat||0)-(a.tat||0));
-    default:           return rows;
+    case 'delivered':     return rows.filter(isDelivered);
+    case 'rejected':      return rows.filter(isRejected);
+    case 'pending':       return rows.filter(isPending);
+    case 'not_delivered': return rows.filter(r => !isDelivered(r));
+    case 'within_sla':    return rows.filter(r => isDelivered(r) && r.sla===1);
+    case 'out_of_sla':    return rows.filter(r => isDelivered(r) && r.sla===0);
+    case 'tat':           return rows.filter(r => typeof r.tat==='number').sort((a,b)=>(b.tat||0)-(a.tat||0));
+    default:              return rows;
   }
 }
 
@@ -1257,18 +1606,25 @@ function openDrill(kpi){
   ].map(([l,v,c])=>`<div class="modal-stat"><span class="modal-stat-label">${esc(l)}</span><span class="modal-stat-value ${c}">${v}</span></div>`).join('');
 
   const shown = rows.slice(0, 500);
+  // For the "Rejected" view, surface the Rejected Reason prominently next to Video ID.
+  const isRejView = kpi.view === 'rejected';
   $('modalBody').innerHTML = `
     <table>
       <thead><tr>
         <th>Created</th><th>Enterprise</th><th>Team</th><th>QC User</th>
-        <th>Status</th><th>CRM</th><th>Verified</th><th>SLA</th><th>TAT</th>
-        <th>Video ID</th><th>VIN</th><th>SKU ID</th><th>Updated</th>
+        <th>POC OB</th><th>POC CS</th>
+        <th>Status</th><th>SLA</th><th>TAT</th>
+        ${isRejView ? '<th style="min-width:180px">Rejected Reason</th>' : ''}
+        <th>Video ID</th>
+        ${!isRejView ? '<th>Rejected Reason</th>' : ''}
+        <th>VIN</th><th>SKU ID</th><th>Updated</th>
       </tr></thead>
-      <tbody>${shown.length===0?`<tr><td colspan="13" class="empty">No records match.</td></tr>`:shown.map(r=>{
+      <tbody>${shown.length===0?`<tr><td colspan="${isRejView?14:14}" class="empty">No records match.</td></tr>`:shown.map(r=>{
         const isD=isDelivered(r), isR=isRejected(r);
         const pill = isD?'<span class="pill delivered">Delivered</span>':isR?'<span class="pill rejected">Rejected</span>':'<span class="pill pending">Pending</span>';
         const slaPill = r.sla===1?'<span class="pill sla-in">In</span>':r.sla===0?'<span class="pill sla-out">Out</span>':'<span class="pill">—</span>';
-        return `<tr><td class="mono">${esc(fmtDate(r.c))}</td><td>${esc(r.ent||'—')}</td><td>${esc(r.team||'—')}</td><td>${esc(r.qc||'—')}</td><td>${esc(r.status||'—')}</td><td>${esc(r.crm||'—')}</td><td>${pill}</td><td>${slaPill}</td><td class="mono">${esc(fmtTatHrs(r.tat))}</td><td class="mono">${esc(r.vid||'—')}</td><td class="mono">${esc(r.vin||'—')}</td><td class="mono">${esc(r.sku||'—')}</td><td class="mono">${esc(fmtDate(r.u))}</td></tr>`;
+        const reasonCell = `<td title="${esc(r.rej||'')}" style="max-width:240px;white-space:normal;">${esc(r.rej||'—')}</td>`;
+        return `<tr><td class="mono">${esc(fmtDate(r.c))}</td><td>${esc(r.ent||'—')}</td><td>${esc(r.team||'—')}</td><td>${esc(r.qc||'—')}</td><td>${esc(r.poc_ob||'—')}</td><td>${esc(r.poc_cs||'—')}</td><td>${pill}</td><td>${slaPill}</td><td class="mono">${esc(fmtTatHrs(r.tat))}</td>${isRejView?reasonCell:''}<td class="mono">${esc(r.vid||'—')}</td>${!isRejView?reasonCell:''}<td class="mono">${esc(r.vin||'—')}</td><td class="mono">${esc(r.sku||'—')}</td><td class="mono">${esc(fmtDate(r.u))}</td></tr>`;
       }).join('')}</tbody>
     </table>`;
   $('modalCount').textContent = `Showing ${num(shown.length)} of ${num(rows.length)}` + (shown.length>=500 && rows.length>500 ? ' (latest 500)' : '');
@@ -1302,6 +1658,8 @@ function renderBreakdownView(dim, k){
     <table>
       <thead><tr>
         <th>${dim==='ent'?'Enterprise':'Team'}</th>
+        <th>POC OB</th>
+        <th>POC CS</th>
         <th class="num-cell">Total</th>
         <th class="num-cell">Delivered</th>
         <th class="num-cell">Rejected</th>
@@ -1314,8 +1672,11 @@ function renderBreakdownView(dim, k){
       <tbody>${entries.map(([name,v])=>{
         const dRate = v.total ? (v.delivered/v.total)*100 : 0;
         const slaPct = v.delivered ? (v.withinSla/v.delivered)*100 : null;
+        const poc = (dim==='ent' ? k.entPoc : k.teamPoc)[name] || {ob:'',cs:''};
         return `<tr class="breakdown-row" data-name="${esc(name)}" data-dim="${dim}" title="Click to filter">
           <td class="breakdown-name">${esc(name)}</td>
+          <td>${esc(poc.ob||'—')}</td>
+          <td>${esc(poc.cs||'—')}</td>
           <td class="num-cell">${num(v.total)}</td>
           <td class="num-cell" style="color:var(--green)">${num(v.delivered)}</td>
           <td class="num-cell" style="color:var(--red)">${num(v.rejected)}</td>
@@ -1332,8 +1693,9 @@ function renderBreakdownView(dim, k){
   $('modalBody').querySelectorAll('.breakdown-row').forEach(tr=>{
     tr.addEventListener('click', ()=>{
       const name=tr.dataset.name, d=tr.dataset.dim;
-      if (d==='ent'){ F.enterprise=name; F.team='all'; $('fEnt').value=name; $('fTeam').value='all'; }
-      else          { F.team=name; $('fTeam').value=name; }
+      if (d==='ent'){ F.ent = new Set([name]); F.team = null; }
+      else          { F.team = new Set([name]); }
+      refreshMsTriggers();
       closeModal();
       refresh();
     });
