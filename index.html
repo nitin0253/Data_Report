@@ -295,6 +295,10 @@
   .pill.pending{background:rgba(178,122,0,.1);color:var(--amber);border-color:rgba(178,122,0,.3);}
   .pill.sla-in{background:rgba(31,122,82,.1);color:var(--green);border-color:rgba(31,122,82,.3);}
   .pill.sla-out{background:rgba(194,65,12,.1);color:var(--orange);border-color:rgba(194,65,12,.3);}
+  /* Inline video link in records tables */
+  .v-link{display:inline-flex;align-items:center;gap:4px;color:var(--accent);text-decoration:none;font-family:'JetBrains Mono',monospace;font-size:11px;white-space:nowrap;max-width:160px;overflow:hidden;text-overflow:ellipsis;transition:opacity .12s;}
+  .v-link:hover{text-decoration:underline;opacity:.85;}
+  .v-link svg{flex-shrink:0;opacity:.65;}
 
   #errBox{margin-bottom:12px;}
   .err{background:rgba(179,38,30,.07);border:1px solid rgba(179,38,30,.25);color:var(--red);padding:12px 16px;border-radius:8px;font-size:13px;}
@@ -728,6 +732,7 @@
             <th class="sortable" data-sort="tat">TAT<span class="sort-ind">↕</span></th>
             <th class="sortable" data-sort="rej">Rejected Reason<span class="sort-ind">↕</span></th>
             <th class="sortable" data-sort="vid">Video ID<span class="sort-ind">↕</span></th>
+            <th class="sortable" data-sort="vurl">Video URL<span class="sort-ind">↕</span></th>
             <th class="sortable" data-sort="vin">VIN<span class="sort-ind">↕</span></th>
             <th class="sortable" data-sort="sku">SKU ID<span class="sort-ind">↕</span></th>
             <th class="sortable" data-sort="_updated">Updated<span class="sort-ind">↕</span></th>
@@ -961,6 +966,22 @@ function fmtTatHrs(h){
   if (v < 1)  return (v*60).toFixed(0)+'m';
   if (v < 24) return v.toFixed(2)+'h';
   return (v/24).toFixed(1)+'d';
+}
+
+// Render a video_url cell as a small clickable link.
+// Falls back to a plain dash when missing. Truncates the visible text but keeps
+// the full URL in the title attribute for hover preview, and opens in a new tab.
+function videoLink(url){
+  if (!url) return '<span class="mono">—</span>';
+  const safe = esc(url);
+  // Show last segment of the URL as the visible text — usually the filename or ID.
+  // If the URL doesn't have a useful tail, fall back to "Open".
+  let label = url.split('?')[0].split('/').filter(Boolean).pop() || 'Open';
+  if (label.length > 22) label = label.slice(0, 19) + '…';
+  return `<a class="v-link" href="${safe}" target="_blank" rel="noopener noreferrer" title="${safe}">
+    <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2h4v4M14 2L7 9M6 3H4a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h7a2 2 0 0 0 2-2v-2"/></svg>
+    ${esc(label)}
+  </a>`;
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -1630,7 +1651,7 @@ function paint(){
         const slaPill = r.sla===1?'<span class="pill sla-in">In</span>'
                        :r.sla===0?'<span class="pill sla-out">Out</span>'
                                  :'<span class="pill">—</span>';
-        return `<tr><td class="mono">${esc(fmtDate(r.c))}</td><td>${esc(r.ent||'—')}</td><td>${esc(r.team||'—')}</td><td>${esc(r.qc||'—')}</td><td>${esc(r.poc_ob||'—')}</td><td>${esc(r.poc_cs||'—')}</td><td>${pill}</td><td>${slaPill}</td><td class="mono">${esc(fmtTatHrs(r.tat))}</td><td title="${esc(r.rej||'')}">${esc(r.rej||'—')}</td><td class="mono">${esc(r.vid||'—')}</td><td class="mono">${esc(r.vin||'—')}</td><td class="mono">${esc(r.sku||'—')}</td><td class="mono">${esc(fmtDate(r.u))}</td></tr>`;
+        return `<tr><td class="mono">${esc(fmtDate(r.c))}</td><td>${esc(r.ent||'—')}</td><td>${esc(r.team||'—')}</td><td>${esc(r.qc||'—')}</td><td>${esc(r.poc_ob||'—')}</td><td>${esc(r.poc_cs||'—')}</td><td>${pill}</td><td>${slaPill}</td><td class="mono">${esc(fmtTatHrs(r.tat))}</td><td title="${esc(r.rej||'')}">${esc(r.rej||'—')}</td><td class="mono">${esc(r.vid||'—')}</td><td>${videoLink(r.vurl)}</td><td class="mono">${esc(r.vin||'—')}</td><td class="mono">${esc(r.sku||'—')}</td><td class="mono">${esc(fmtDate(r.u))}</td></tr>`;
       }).join('');
 
   console.log(`[paint] ${filtered.length} rows in ${(performance.now()-t0).toFixed(1)}ms`);
@@ -2183,6 +2204,7 @@ function renderRecordsModal(){
     isRejView ? reasonTh : '',
     sortableTh('vid',      'Video ID'),
     !isRejView ? reasonTh : '',
+    sortableTh('vurl',     'Video URL'),
     sortableTh('vin',      'VIN'),
     sortableTh('sku',      'SKU ID'),
     sortableTh('_updated', 'Updated'),
@@ -2191,12 +2213,12 @@ function renderRecordsModal(){
   $('modalBody').innerHTML = `
     <table>
       <thead><tr>${headHTML}</tr></thead>
-      <tbody>${shown.length===0?`<tr><td colspan="14" class="empty">No records match.</td></tr>`:shown.map(r=>{
+      <tbody>${shown.length===0?`<tr><td colspan="15" class="empty">No records match.</td></tr>`:shown.map(r=>{
         const isD=isDelivered(r), isR=isRejected(r);
         const pill = isD?'<span class="pill delivered">Delivered</span>':isR?'<span class="pill rejected">Rejected</span>':'<span class="pill pending">Pending</span>';
         const slaPill = r.sla===1?'<span class="pill sla-in">In</span>':r.sla===0?'<span class="pill sla-out">Out</span>':'<span class="pill">—</span>';
         const reasonCell = `<td title="${esc(r.rej||'')}" style="max-width:240px;white-space:normal;">${esc(r.rej||'—')}</td>`;
-        return `<tr><td class="mono">${esc(fmtDate(r.c))}</td><td>${esc(r.ent||'—')}</td><td>${esc(r.team||'—')}</td><td>${esc(r.qc||'—')}</td><td>${esc(r.poc_ob||'—')}</td><td>${esc(r.poc_cs||'—')}</td><td>${pill}</td><td>${slaPill}</td><td class="mono">${esc(fmtTatHrs(r.tat))}</td>${isRejView?reasonCell:''}<td class="mono">${esc(r.vid||'—')}</td>${!isRejView?reasonCell:''}<td class="mono">${esc(r.vin||'—')}</td><td class="mono">${esc(r.sku||'—')}</td><td class="mono">${esc(fmtDate(r.u))}</td></tr>`;
+        return `<tr><td class="mono">${esc(fmtDate(r.c))}</td><td>${esc(r.ent||'—')}</td><td>${esc(r.team||'—')}</td><td>${esc(r.qc||'—')}</td><td>${esc(r.poc_ob||'—')}</td><td>${esc(r.poc_cs||'—')}</td><td>${pill}</td><td>${slaPill}</td><td class="mono">${esc(fmtTatHrs(r.tat))}</td>${isRejView?reasonCell:''}<td class="mono">${esc(r.vid||'—')}</td>${!isRejView?reasonCell:''}<td>${videoLink(r.vurl)}</td><td class="mono">${esc(r.vin||'—')}</td><td class="mono">${esc(r.sku||'—')}</td><td class="mono">${esc(fmtDate(r.u))}</td></tr>`;
       }).join('')}</tbody>
     </table>`;
   $('modalCount').textContent = `Showing ${num(shown.length)} of ${num(rows.length)}` + (shown.length>=500 && rows.length>500 ? ' (latest 500)' : '');
@@ -2346,8 +2368,11 @@ function extractModalTable(){
   // Pull body rows
   const rows = Array.from(table.querySelectorAll('tbody tr')).map(tr=>{
     return Array.from(tr.children).map(td => {
-      // Strip pill/bar wrappers — we just want the readable value.
-      // textContent collapses inner pills & pct-bar to their visible numbers.
+      // If the cell contains a video link, export the full URL (the visible label
+      // is intentionally truncated for the on-screen view).
+      const link = td.querySelector('a.v-link');
+      if (link) return link.getAttribute('href') || '';
+      // Otherwise, fall back to readable text content (collapses pills/bars to their numbers).
       return td.textContent.replace(/\s+/g, ' ').trim();
     });
   });
