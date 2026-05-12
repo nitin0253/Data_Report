@@ -591,8 +591,9 @@
         </div>
         <div style="display:flex;align-items:center;gap:8px;">
           <div class="trend-tabs" id="trendTabs">
-            <button class="trend-tab" data-r="week">This week</button>
-            <button class="trend-tab" data-r="weeks">6 Weeks</button>
+            <button class="trend-tab" data-r="15days">15 Days</button>
+            <button class="trend-tab" data-r="this_month">This month</button>
+            <button class="trend-tab" data-r="6weeks">6 Weeks</button>
             <button class="trend-tab sel" data-r="months">6 Months</button>
             <button class="trend-tab" data-r="year">1 Year</button>
           </div>
@@ -733,6 +734,7 @@
             <th class="sortable" data-sort="rej">Rejected Reason<span class="sort-ind">↕</span></th>
             <th class="sortable" data-sort="vid">Video ID<span class="sort-ind">↕</span></th>
             <th class="sortable" data-sort="vurl">Video URL<span class="sort-ind">↕</span></th>
+            <th class="sortable" data-sort="vmode">View Mode<span class="sort-ind">↕</span></th>
             <th class="sortable" data-sort="vin">VIN<span class="sort-ind">↕</span></th>
             <th class="sortable" data-sort="sku">SKU ID<span class="sort-ind">↕</span></th>
             <th class="sortable" data-sort="_updated">Updated<span class="sort-ind">↕</span></th>
@@ -764,10 +766,11 @@
 
       <div style="margin-left:auto;display:flex;align-items:center;gap:10px;">
         <div class="gran-tabs" id="granTabs">
-          <button class="gran-tab sel" data-g="daily">Daily · 15d</button>
+          <button class="gran-tab" data-g="15days">15 Days</button>
           <button class="gran-tab" data-g="this_month">This month</button>
-          <button class="gran-tab" data-g="monthly">6 months</button>
-          <button class="gran-tab" data-g="yearly">1 year</button>
+          <button class="gran-tab" data-g="6weeks">6 Weeks</button>
+          <button class="gran-tab sel" data-g="months">6 Months</button>
+          <button class="gran-tab" data-g="year">1 Year</button>
         </div>
         <button class="user-picker-clear" id="upClear" style="display:none;">Clear</button>
       </div>
@@ -991,7 +994,7 @@ const RAW = [];                 // all rows from server (parsed once)
 let lastSynced = null;
 let isDark = false;
 let editMode = false;
-let trendRange = 'months';      // 'week' | 'weeks' | 'months' | 'year'
+let trendRange = 'months';      // '15days' | 'this_month' | 'months' | 'year'
 let currentView = 'operations'; // 'operations' | 'performance'
 const charts = {};
 
@@ -1233,22 +1236,30 @@ function bucketTrend(rows, range){
   const now = new Date();
   const buckets = [];
 
-  if (range === 'week'){
-    // current week, Monday→Sunday, 7 day buckets
-    const dow = now.getDay() || 7; // Sun→7
-    const mon = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dow + 1);
-    for (let i = 0; i < 7; i++){
-      const s = new Date(mon); s.setDate(mon.getDate()+i); s.setHours(0,0,0,0);
-      const e = new Date(s);   e.setDate(s.getDate()+1);
-      buckets.push({ start:s, end:e, label: s.toLocaleDateString('en-US',{weekday:'short'})+' '+s.getDate() });
+  if (range === '15days'){
+    // Last 15 days, ending today, one bucket per day
+    for (let i = 14; i >= 0; i--){
+      const s = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
+      const e = new Date(s); e.setDate(s.getDate()+1);
+      buckets.push({ start:s, end:e, label: s.toLocaleDateString('en-US',{day:'numeric',month:'short'}) });
     }
-  } else if (range === 'weeks'){
-    // last 6 weeks ending this week
-    const dow = now.getDay() || 7;
-    const mon = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dow + 1);
+  } else if (range === 'this_month'){
+    // Day-by-day from the 1st of the current month through today
+    const start = new Date(now.getFullYear(), now.getMonth(), 1);
+    const cursor = new Date(start);
+    while (cursor <= now){
+      const s = new Date(cursor);
+      const e = new Date(s); e.setDate(s.getDate()+1);
+      buckets.push({ start:s, end:e, label: s.toLocaleDateString('en-US',{day:'numeric',month:'short'}) });
+      cursor.setDate(cursor.getDate()+1);
+    }
+  } else if (range === '6weeks'){
+    // Last 6 weeks ending this week (weeks anchored Monday)
+    const dow = now.getDay() || 7;            // Sunday → 7, otherwise 1..6
+    const thisMon = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dow + 1);
     for (let i = -5; i <= 0; i++){
-      const s = new Date(mon); s.setDate(mon.getDate()+i*7); s.setHours(0,0,0,0);
-      const e = new Date(s);   e.setDate(s.getDate()+7);
+      const s = new Date(thisMon); s.setDate(thisMon.getDate() + i*7); s.setHours(0,0,0,0);
+      const e = new Date(s);       e.setDate(s.getDate() + 7);
       buckets.push({ start:s, end:e, label: s.toLocaleDateString('en-US',{month:'short',day:'2-digit'}) });
     }
   } else if (range === 'months'){
@@ -1621,7 +1632,7 @@ function paint(){
   const buckets = bucketTrend(trendRows, trendRange);
   mkTrend($('cTrend'), buckets);
   $('trendSub').textContent =
-    `${{week:'this week, by day',weeks:'last 6 weeks',months:'last 6 months',year:'last 12 months'}[trendRange]} · independent of date filter`;
+    `${{'15days':'last 15 days, by day','this_month':'this month, by day','6weeks':'last 6 weeks','months':'last 6 months','year':'last 12 months'}[trendRange]} · independent of date filter`;
 
   // Recent records — apply sort state if any, else default sort by created desc
   const allFiltered = filtered.slice();
@@ -1642,7 +1653,7 @@ function paint(){
   $('tCount').textContent = `${num(recent.length)} of ${num(filtered.length)} filtered (${num(RAW.length)} total)`;
   updateSortIndicators();
   $('tBody').innerHTML = !recent.length
-    ? `<tr><td colspan="15" class="empty">No records match these filters.</td></tr>`
+    ? `<tr><td colspan="16" class="empty">No records match these filters.</td></tr>`
     : recent.map(r=>{
         const isD=isDelivered(r), isR=isRejected(r);
         const pill = isD?'<span class="pill delivered">Delivered</span>'
@@ -1651,7 +1662,7 @@ function paint(){
         const slaPill = r.sla===1?'<span class="pill sla-in">In</span>'
                        :r.sla===0?'<span class="pill sla-out">Out</span>'
                                  :'<span class="pill">—</span>';
-        return `<tr><td class="mono">${esc(fmtDate(r.c))}</td><td>${esc(r.ent||'—')}</td><td>${esc(r.team||'—')}</td><td>${esc(r.qc||'—')}</td><td>${esc(r.poc_ob||'—')}</td><td>${esc(r.poc_cs||'—')}</td><td>${pill}</td><td>${slaPill}</td><td class="mono">${esc(fmtTatHrs(r.tat))}</td><td title="${esc(r.rej||'')}">${esc(r.rej||'—')}</td><td class="mono">${esc(r.vid||'—')}</td><td>${videoLink(r.vurl)}</td><td class="mono">${esc(r.vin||'—')}</td><td class="mono">${esc(r.sku||'—')}</td><td class="mono">${esc(fmtDate(r.u))}</td></tr>`;
+        return `<tr><td class="mono">${esc(fmtDate(r.c))}</td><td>${esc(r.ent||'—')}</td><td>${esc(r.team||'—')}</td><td>${esc(r.qc||'—')}</td><td>${esc(r.poc_ob||'—')}</td><td>${esc(r.poc_cs||'—')}</td><td>${pill}</td><td>${slaPill}</td><td class="mono">${esc(fmtTatHrs(r.tat))}</td><td title="${esc(r.rej||'')}">${esc(r.rej||'—')}</td><td class="mono">${esc(r.vid||'—')}</td><td>${videoLink(r.vurl)}</td><td class="mono">${esc(r.vmode||'—')}</td><td class="mono">${esc(r.vin||'—')}</td><td class="mono">${esc(r.sku||'—')}</td><td class="mono">${esc(fmtDate(r.u))}</td></tr>`;
       }).join('');
 
   console.log(`[paint] ${filtered.length} rows in ${(performance.now()-t0).toFixed(1)}ms`);
@@ -2205,6 +2216,7 @@ function renderRecordsModal(){
     sortableTh('vid',      'Video ID'),
     !isRejView ? reasonTh : '',
     sortableTh('vurl',     'Video URL'),
+    sortableTh('vmode',    'View Mode'),
     sortableTh('vin',      'VIN'),
     sortableTh('sku',      'SKU ID'),
     sortableTh('_updated', 'Updated'),
@@ -2213,12 +2225,12 @@ function renderRecordsModal(){
   $('modalBody').innerHTML = `
     <table>
       <thead><tr>${headHTML}</tr></thead>
-      <tbody>${shown.length===0?`<tr><td colspan="15" class="empty">No records match.</td></tr>`:shown.map(r=>{
+      <tbody>${shown.length===0?`<tr><td colspan="16" class="empty">No records match.</td></tr>`:shown.map(r=>{
         const isD=isDelivered(r), isR=isRejected(r);
         const pill = isD?'<span class="pill delivered">Delivered</span>':isR?'<span class="pill rejected">Rejected</span>':'<span class="pill pending">Pending</span>';
         const slaPill = r.sla===1?'<span class="pill sla-in">In</span>':r.sla===0?'<span class="pill sla-out">Out</span>':'<span class="pill">—</span>';
         const reasonCell = `<td title="${esc(r.rej||'')}" style="max-width:240px;white-space:normal;">${esc(r.rej||'—')}</td>`;
-        return `<tr><td class="mono">${esc(fmtDate(r.c))}</td><td>${esc(r.ent||'—')}</td><td>${esc(r.team||'—')}</td><td>${esc(r.qc||'—')}</td><td>${esc(r.poc_ob||'—')}</td><td>${esc(r.poc_cs||'—')}</td><td>${pill}</td><td>${slaPill}</td><td class="mono">${esc(fmtTatHrs(r.tat))}</td>${isRejView?reasonCell:''}<td class="mono">${esc(r.vid||'—')}</td>${!isRejView?reasonCell:''}<td>${videoLink(r.vurl)}</td><td class="mono">${esc(r.vin||'—')}</td><td class="mono">${esc(r.sku||'—')}</td><td class="mono">${esc(fmtDate(r.u))}</td></tr>`;
+        return `<tr><td class="mono">${esc(fmtDate(r.c))}</td><td>${esc(r.ent||'—')}</td><td>${esc(r.team||'—')}</td><td>${esc(r.qc||'—')}</td><td>${esc(r.poc_ob||'—')}</td><td>${esc(r.poc_cs||'—')}</td><td>${pill}</td><td>${slaPill}</td><td class="mono">${esc(fmtTatHrs(r.tat))}</td>${isRejView?reasonCell:''}<td class="mono">${esc(r.vid||'—')}</td>${!isRejView?reasonCell:''}<td>${videoLink(r.vurl)}</td><td class="mono">${esc(r.vmode||'—')}</td><td class="mono">${esc(r.vin||'—')}</td><td class="mono">${esc(r.sku||'—')}</td><td class="mono">${esc(fmtDate(r.u))}</td></tr>`;
       }).join('')}</tbody>
     </table>`;
   $('modalCount').textContent = `Showing ${num(shown.length)} of ${num(rows.length)}` + (shown.length>=500 && rows.length>500 ? ' (latest 500)' : '');
@@ -2786,7 +2798,7 @@ $('downloadBtn').addEventListener('click', downloadReport);
 // since this view is filtered by ONE user at a time with its own granularity.
 const PV = {
   user: null,              // email string or null
-  gran: 'daily',           // 'daily' | 'monthly' | 'yearly'
+  gran: 'months',          // '15days' | 'this_month' | '6weeks' | 'months' | 'year'
   entSort: { col:null, dir:null },
   reasonSort: { col:'count', dir:'desc' },
 };
@@ -2931,7 +2943,7 @@ function buildPerfBuckets(gran){
   const now = new Date();
   const buckets = [];
 
-  if (gran === 'daily'){
+  if (gran === '15days'){
     // Last 15 days, ending today
     for (let i = 14; i >= 0; i--){
       const s = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
@@ -2948,7 +2960,16 @@ function buildPerfBuckets(gran){
       buckets.push({ start:s, end:e, label: s.toLocaleDateString('en-US',{day:'numeric',month:'short'}) });
       cursor.setDate(cursor.getDate()+1);
     }
-  } else if (gran === 'monthly'){
+  } else if (gran === '6weeks'){
+    // Last 6 weeks ending this week, anchored to Monday
+    const dow = now.getDay() || 7;
+    const thisMon = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dow + 1);
+    for (let i = -5; i <= 0; i++){
+      const s = new Date(thisMon); s.setDate(thisMon.getDate() + i*7); s.setHours(0,0,0,0);
+      const e = new Date(s);       e.setDate(s.getDate() + 7);
+      buckets.push({ start:s, end:e, label: s.toLocaleDateString('en-US',{month:'short',day:'2-digit'}) });
+    }
+  } else if (gran === 'months'){
     // Last 6 months including current
     for (let i = -5; i <= 0; i++){
       const s = new Date(now.getFullYear(), now.getMonth()+i, 1);
@@ -2956,7 +2977,7 @@ function buildPerfBuckets(gran){
       const sameYear = s.getFullYear() === now.getFullYear();
       buckets.push({ start:s, end:e, label: s.toLocaleDateString('en-US', sameYear?{month:'short'}:{month:'short',year:'2-digit'}) });
     }
-  } else if (gran === 'yearly'){
+  } else if (gran === 'year'){
     // Last 12 months
     for (let i = -11; i <= 0; i++){
       const s = new Date(now.getFullYear(), now.getMonth()+i, 1);
@@ -3028,10 +3049,11 @@ function renderPerformance(){
 
   // Header range subtext
   const rangeLabel = ({
-    daily:      'last 15 days',
-    this_month: 'this month, day by day',
-    monthly:    'last 6 months',
-    yearly:     'last 12 months',
+    '15days':    'last 15 days',
+    this_month:  'this month, day by day',
+    '6weeks':    'last 6 weeks',
+    months:      'last 6 months',
+    year:        'last 12 months',
   })[PV.gran];
   $('upRange').textContent = `${rangeLabel} · ${num(rows.length)} records`;
 
@@ -3059,7 +3081,10 @@ function renderPerformance(){
     if (!prevV) return ['', 'flat', ''];
     const pct = ((curV - prevV) / prevV) * 100;
     if (Math.abs(pct) < 1) return ['→ stable', 'flat', ''];
-    const unit = (PV.gran === 'daily' || PV.gran === 'this_month') ? 'days' : 'months';
+    // Pick the right time unit so the "vs prior N units" copy makes sense
+    let unit = 'months';
+    if (PV.gran === '15days' || PV.gran === 'this_month') unit = 'days';
+    else if (PV.gran === '6weeks') unit = 'weeks';
     return [(pct >= 0 ? '↑ ' : '↓ ') + Math.abs(pct).toFixed(0) + '%',
             pct >= 0 ? 'up' : 'down',
             ` vs prior ${half} ${unit}`];
@@ -3194,7 +3219,7 @@ function renderPerfTrend(buckets){
   // visibility of first/last/middle so the user can orient themselves.
   // For dense daily views (15-day or this-month), labels can crowd — let chart.js auto-skip
   // and show data labels every Nth point so chart stays readable.
-  const isDense = PV.gran === 'daily' || PV.gran === 'this_month';
+  const isDense = PV.gran === '15days' || PV.gran === 'this_month';
   const isDaily = isDense; // keep var name for the rest of the function
 
   charts.perfTrend = new Chart(canvas, {
@@ -3285,10 +3310,11 @@ function renderPerfTrend(buckets){
     `<div class="trend-legend-item"><span class="ldot" style="background:${cols[k]}"></span><span>${k}: </span><span class="lval">${v.toLocaleString()}</span></div>`
   ).join('');
   $('perfTrendSub').textContent = ({
-    daily:      'last 15 days',
-    this_month: 'this month',
-    monthly:    'last 6 months',
-    yearly:     'last 12 months',
+    '15days':    'last 15 days',
+    this_month:  'this month',
+    '6weeks':    'last 6 weeks',
+    months:      'last 6 months',
+    year:        'last 12 months',
   })[PV.gran] + ' · received · delivered · rejected · within SLA';
 }
 
@@ -3480,7 +3506,7 @@ function bindPerfDrillCells(){
 function openCustomDrill(title, rows){
   $('modalTitle').textContent = title;
   $('modalSub').textContent   = `${num(rows.length)} RECORDS`;
-  $('modalChips').innerHTML   = `<span class="chip">User <strong>${esc(PV.user)}</strong></span><span class="chip">${esc(({daily:'Last 15 days',this_month:'This month',monthly:'Last 6 months',yearly:'Last 12 months'})[PV.gran])}</span>`;
+  $('modalChips').innerHTML   = `<span class="chip">User <strong>${esc(PV.user)}</strong></span><span class="chip">${esc(({'15days':'Last 15 days',this_month:'This month','6weeks':'Last 6 weeks',months:'Last 6 months',year:'Last 12 months'})[PV.gran] || PV.gran)}</span>`;
   $('modal').classList.add('show');
 
   const delivered = rows.filter(isDelivered).length;
