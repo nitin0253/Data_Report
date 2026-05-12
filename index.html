@@ -86,6 +86,12 @@
   body.view-performance #viewOperations{display:none;}
   body.view-performance #viewPerformance{display:block;}
   body.view-performance .filters{padding-top:10px;padding-bottom:10px;}
+  /* Hide filters that don't apply in the performance view */
+  body.view-performance #msUserWrap,
+  body.view-performance #msPocObWrap,
+  body.view-performance #msPocCsWrap,
+  body.view-performance #msVerifiedWrap,
+  body.view-performance #msSlaWrap{display:none;}
 
   /* User picker — large, prominent */
   .user-picker-block{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px 22px;margin-bottom:22px;display:flex;flex-wrap:wrap;align-items:center;gap:18px;}
@@ -116,9 +122,12 @@
 
   /* Performance KPI strip — slightly different than overview KPIs */
   .perf-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:22px;}
-  .perf-kpi{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px 18px;display:flex;flex-direction:column;gap:0;cursor:default;}
+  .perf-kpi{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px 18px;display:flex;flex-direction:column;gap:0;cursor:default;position:relative;}
   .perf-kpi.clickable{cursor:pointer;transition:transform .15s,box-shadow .15s,border-color .15s;}
   .perf-kpi.clickable:hover{transform:translateY(-2px);box-shadow:0 6px 18px var(--shadow-md);border-color:var(--line-2);}
+  .perf-kpi.clickable .kpi-arrow{position:absolute;top:14px;right:14px;color:var(--muted);opacity:0;transition:opacity .15s,transform .15s;}
+  .perf-kpi.clickable:hover .kpi-arrow{opacity:.7;transform:translate(2px,-2px);}
+  .perf-kpi.clickable .kpi-arrow svg{width:13px;height:13px;display:block;}
   .perf-kpi-label{font-family:'JetBrains Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:500;}
   .perf-kpi-value{font-family:'Bricolage Grotesque',serif;font-size:32px;font-weight:600;letter-spacing:-.025em;margin-top:10px;line-height:1;font-variant-numeric:tabular-nums;color:var(--ink);}
   .perf-kpi-value.green{color:var(--green);} .perf-kpi-value.red{color:var(--red);} .perf-kpi-value.orange{color:var(--orange);} .perf-kpi-value.amber{color:var(--amber);} .perf-kpi-value.blue{color:var(--accent);}
@@ -731,9 +740,10 @@
 
       <div style="margin-left:auto;display:flex;align-items:center;gap:10px;">
         <div class="gran-tabs" id="granTabs">
-          <button class="gran-tab sel" data-g="daily">Daily · 30d</button>
-          <button class="gran-tab" data-g="monthly">Monthly · 6m</button>
-          <button class="gran-tab" data-g="yearly">Yearly · 12m</button>
+          <button class="gran-tab sel" data-g="daily">Daily · 15d</button>
+          <button class="gran-tab" data-g="this_month">This month</button>
+          <button class="gran-tab" data-g="monthly">6 months</button>
+          <button class="gran-tab" data-g="yearly">1 year</button>
         </div>
         <button class="user-picker-clear" id="upClear" style="display:none;">Clear</button>
       </div>
@@ -919,6 +929,7 @@ let lastSynced = null;
 let isDark = false;
 let editMode = false;
 let trendRange = 'months';      // 'week' | 'weeks' | 'months' | 'year'
+let currentView = 'operations'; // 'operations' | 'performance'
 const charts = {};
 
 // Default filter = This Month
@@ -1583,7 +1594,10 @@ function paint(){
   console.log(`[paint] ${filtered.length} rows in ${(performance.now()-t0).toFixed(1)}ms`);
 }
 
-function refresh(){ paint(); }
+function refresh(){
+  if (currentView === 'performance') renderPerformance();
+  else paint();
+}
 
 // ─────────────────────────────────────────────────────────────
 // SYNC / FETCH
@@ -2529,8 +2543,6 @@ const PV = {
   reasonSort: { col:'count', dir:'desc' },
 };
 
-let currentView = 'operations'; // 'operations' | 'performance'
-
 function switchView(view){
   currentView = view;
   document.body.classList.toggle('view-performance', view === 'performance');
@@ -2658,11 +2670,21 @@ function buildPerfBuckets(gran){
   const buckets = [];
 
   if (gran === 'daily'){
-    // Last 30 days, ending today
-    for (let i = 29; i >= 0; i--){
+    // Last 15 days, ending today
+    for (let i = 14; i >= 0; i--){
       const s = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
       const e = new Date(s); e.setDate(s.getDate()+1);
       buckets.push({ start:s, end:e, label: s.toLocaleDateString('en-US',{day:'numeric',month:'short'}) });
+    }
+  } else if (gran === 'this_month'){
+    // Day-by-day from the 1st of the current month through today
+    const start = new Date(now.getFullYear(), now.getMonth(), 1);
+    const cursor = new Date(start);
+    while (cursor <= now){
+      const s = new Date(cursor);
+      const e = new Date(s); e.setDate(s.getDate()+1);
+      buckets.push({ start:s, end:e, label: s.toLocaleDateString('en-US',{day:'numeric',month:'short'}) });
+      cursor.setDate(cursor.getDate()+1);
     }
   } else if (gran === 'monthly'){
     // Last 6 months including current
@@ -2684,12 +2706,25 @@ function buildPerfBuckets(gran){
 }
 
 // Filter rows to this user + range (the buckets span)
+// Also respects the shared date/enterprise/team filters from the operations view
+// so managers can narrow to specific accounts/teams while in QC Performance view.
 function getUserRowsInRange(buckets){
   if (!PV.user || !buckets.length) return [];
   const startTs = buckets[0].start.getTime();
   const endTs   = buckets[buckets.length-1].end.getTime();
-  return RAW.filter(r => r.qc === PV.user && r._created
-    && r._created.getTime() >= startTs && r._created.getTime() < endTs);
+  return RAW.filter(r => {
+    if (r.qc !== PV.user) return false;
+    if (!r._created) return false;
+    const t = r._created.getTime();
+    if (t < startTs || t >= endTs) return false;
+    // Shared filters that apply in this view
+    if (F.ent  && !F.ent.has(r.ent))   return false;
+    if (F.team && !F.team.has(r.team)) return false;
+    // Note: date filter from the picker (F.from/F.to) is intentionally NOT applied here —
+    // the granularity tab IS the date filter for this view, otherwise picking
+    // "1 year" while operations filter says "This month" would show nothing.
+    return true;
+  });
 }
 
 function bucketizeUserRows(rows, buckets){
@@ -2731,9 +2766,10 @@ function renderPerformance(){
 
   // Header range subtext
   const rangeLabel = ({
-    daily:   'last 30 days',
-    monthly: 'last 6 months',
-    yearly:  'last 12 months',
+    daily:      'last 15 days',
+    this_month: 'this month, day by day',
+    monthly:    'last 6 months',
+    yearly:     'last 12 months',
   })[PV.gran];
   $('upRange').textContent = `${rangeLabel} · ${num(rows.length)} records`;
 
@@ -2761,54 +2797,79 @@ function renderPerformance(){
     if (!prevV) return ['', 'flat', ''];
     const pct = ((curV - prevV) / prevV) * 100;
     if (Math.abs(pct) < 1) return ['→ stable', 'flat', ''];
+    const unit = (PV.gran === 'daily' || PV.gran === 'this_month') ? 'days' : 'months';
     return [(pct >= 0 ? '↑ ' : '↓ ') + Math.abs(pct).toFixed(0) + '%',
             pct >= 0 ? 'up' : 'down',
-            ` vs prior ${half === 1 ? 'period' : (PV.gran==='daily'?half+' days':half+' months')}`];
+            ` vs prior ${half} ${unit}`];
   };
 
   const kpis = [
     {
+      id:'total',
       label:'Total handled',
       value: num(k.totalReceived),
       sub: `${num(k.totalDelivered)} delivered · ${num(k.totalRejected)} rejected`,
       delta: deltaArrow(cur.r, prev.r),
+      drillTitle: `All handled · ${PV.user}`,
+      drillRows: rows,
     },
     {
+      id:'delivery',
       label:'Delivery rate',
       value: k.deliveryRate!=null ? k.deliveryRate.toFixed(1)+'%' : '—',
       color:'green',
       sub: `${num(k.totalDelivered)} of ${num(k.totalReceived)} delivered`,
       delta: deltaArrow(cur.d, prev.d),
+      drillTitle: `Delivered · ${PV.user}`,
+      drillRows: rows.filter(isDelivered),
     },
     {
+      id:'rejection',
       label:'Rejection rate',
       value: k.rejectionRate!=null ? k.rejectionRate.toFixed(1)+'%' : '—',
       color:'red',
       sub: `${num(k.totalRejected)} of ${num(k.totalReceived)} rejected`,
       delta: deltaArrow(cur.rj, prev.rj),
+      drillTitle: `Rejected · ${PV.user}`,
+      drillRows: rows.filter(isRejected),
     },
     {
+      id:'sla',
       label:'SLA compliance',
       value: k.slaCompliance!=null ? k.slaCompliance.toFixed(1)+'%' : '—',
       color:'green',
       sub: k.totalDelivered ? `${num(k.withinSla)} of ${num(k.totalDelivered)} within SLA` : 'no delivered records',
       delta: deltaArrow(cur.w, prev.w),
+      drillTitle: `Within SLA · ${PV.user}`,
+      drillRows: rows.filter(r => isDelivered(r) && r.sla === 1),
     },
     {
+      id:'tat',
       label:'Avg TAT',
       value: fmtTatHrs(tatHrs),
       color:'blue',
       sub: k.tatRecordCount ? `from ${num(k.tatRecordCount)} records` : 'no TAT data',
+      drillTitle: `TAT records · ${PV.user}`,
+      drillRows: rows.filter(r => typeof r.tat === 'number').sort((a,b)=>(b.tat||0)-(a.tat||0)),
     },
   ];
   $('perfKpis').innerHTML = kpis.map(kp => `
-    <div class="perf-kpi">
+    <div class="perf-kpi clickable" data-id="${esc(kp.id)}" role="button" tabindex="0">
+      <div class="kpi-arrow"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 11L11 5M6 5h5v5"/></svg></div>
       <div class="perf-kpi-label">${esc(kp.label)}</div>
       <div class="perf-kpi-value ${kp.color||''}">${kp.value}</div>
       <div class="perf-kpi-sub">${esc(kp.sub||'')}</div>
       ${kp.delta && kp.delta[0] ? `<div class="perf-kpi-delta ${kp.delta[1]}">${esc(kp.delta[0])}<span style="color:var(--muted);font-weight:400">${esc(kp.delta[2])}</span></div>` : ''}
     </div>
   `).join('');
+  // Wire clicks
+  $('perfKpis').querySelectorAll('.perf-kpi.clickable').forEach(el=>{
+    const kp = kpis.find(x => x.id === el.dataset.id);
+    if (!kp) return;
+    const open = ()=> openCustomDrill(kp.drillTitle, kp.drillRows);
+    el.addEventListener('click', open);
+    el.addEventListener('keydown', e=>{ if(e.key==='Enter'||e.key===' '){e.preventDefault(); open();} });
+  });
 
   // ── SLA panel ────────────────────────────────────────────────
   const within = k.withinSla||0, out = k.outOfSla||0, totalDelivWithSla = within+out;
@@ -2869,7 +2930,10 @@ function renderPerfTrend(buckets){
 
   // For daily view (30 points), labels can be dense — auto-skip them but force
   // visibility of first/last/middle so the user can orient themselves.
-  const isDaily = PV.gran === 'daily';
+  // For dense daily views (15-day or this-month), labels can crowd — let chart.js auto-skip
+  // and show data labels every Nth point so chart stays readable.
+  const isDense = PV.gran === 'daily' || PV.gran === 'this_month';
+  const isDaily = isDense; // keep var name for the rest of the function
 
   charts.perfTrend = new Chart(canvas, {
     type:'line', plugins:[ChartDataLabels],
@@ -2942,9 +3006,10 @@ function renderPerfTrend(buckets){
     `<div class="trend-legend-item"><span class="ldot" style="background:${cols[k]}"></span><span>${k}: </span><span class="lval">${v.toLocaleString()}</span></div>`
   ).join('');
   $('perfTrendSub').textContent = ({
-    daily:'last 30 days',
-    monthly:'last 6 months',
-    yearly:'last 12 months',
+    daily:      'last 15 days',
+    this_month: 'this month',
+    monthly:    'last 6 months',
+    yearly:     'last 12 months',
   })[PV.gran] + ' · received · delivered · rejected · within SLA';
 }
 
@@ -3136,7 +3201,7 @@ function bindPerfDrillCells(){
 function openCustomDrill(title, rows){
   $('modalTitle').textContent = title;
   $('modalSub').textContent   = `${num(rows.length)} RECORDS`;
-  $('modalChips').innerHTML   = `<span class="chip">User <strong>${esc(PV.user)}</strong></span><span class="chip">${esc(({daily:'Last 30 days',monthly:'Last 6 months',yearly:'Last 12 months'})[PV.gran])}</span>`;
+  $('modalChips').innerHTML   = `<span class="chip">User <strong>${esc(PV.user)}</strong></span><span class="chip">${esc(({daily:'Last 15 days',this_month:'This month',monthly:'Last 6 months',yearly:'Last 12 months'})[PV.gran])}</span>`;
   $('modal').classList.add('show');
 
   const delivered = rows.filter(isDelivered).length;
