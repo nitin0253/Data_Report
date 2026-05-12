@@ -208,7 +208,7 @@
 
   /* KPI CARDS */
   .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:28px;}
-  .kpi{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px 20px;cursor:pointer;position:relative;transition:transform .15s ease,box-shadow .15s ease,border-color .15s ease;display:flex;flex-direction:column;gap:0;min-height:135px;}
+  .kpi{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px 20px;cursor:pointer;position:relative;transition:transform .15s ease,box-shadow .15s ease,border-color .15s ease;display:flex;flex-direction:column;gap:0;}
   .kpi:hover{transform:translateY(-2px);box-shadow:0 6px 20px var(--shadow-md);border-color:var(--line-2);}
   .kpi:active{transform:translateY(0);}
   .kpi-label{font-family:'JetBrains Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:500;line-height:1.35;}
@@ -1315,8 +1315,6 @@ function renderKpiCards(){
       <div class="kpi-arrow"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 11L11 5M6 5h5v5"/></svg></div>
       <div class="kpi-label">${esc(k.label)}</div>
       <div class="kpi-value ${k.color}" id="kv-${k.id}">—</div>
-      <div class="kpi-pct" id="kp-${k.id}"></div>
-      <div class="kpi-sub" id="ks-${k.id}">${esc(k.sub)}</div>
     </div>
   `).join('');
   $('kpiGrid').querySelectorAll('.kpi').forEach(el=>{
@@ -1569,15 +1567,6 @@ function paint(){
   $('kv-pending').textContent   = num(k.totalPending);
   $('kv-sla').textContent       = k.slaCompliance!=null ? k.slaCompliance.toFixed(1)+'%' : '—';
   $('kv-tat').textContent       = fmtTatHrs(k.avgTat);
-
-  $('kp-delivered').textContent = k.deliveryRate!=null  ? k.deliveryRate.toFixed(1)+'% of received'  : '';
-  $('kp-rejected').textContent  = k.rejectionRate!=null ? k.rejectionRate.toFixed(1)+'% of received' : '';
-  const pendingPct = k.totalReceived ? (k.totalPending/k.totalReceived)*100 : null;
-  $('kp-pending').textContent   = pendingPct!=null ? pendingPct.toFixed(1)+'% of received' : '';
-  $('kp-sla').textContent       = k.totalDelivered ? `${num(k.withinSla)} of ${num(k.totalDelivered)}` : '';
-  $('kp-tat').textContent       = k.tatRecordCount ? `from ${num(k.tatRecordCount)} records` : '';
-  $('kp-ent').textContent = ''; $('kp-team').textContent = ''; $('kp-received').textContent = '';
-  $('ks-tat').textContent = k.tatRecordCount ? 'avg turnaround in hours' : 'no TAT data in view';
 
   // SLA + Delivery panels
   paintSla(k);
@@ -3145,8 +3134,6 @@ function renderPerformance(){
       <div class="kpi-arrow"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 11L11 5M6 5h5v5"/></svg></div>
       <div class="perf-kpi-label">${esc(kp.label)}</div>
       <div class="perf-kpi-value ${kp.color||''}">${kp.value}</div>
-      <div class="perf-kpi-sub">${esc(kp.sub||'')}</div>
-      ${kp.delta && kp.delta[0] ? `<div class="perf-kpi-delta ${kp.delta[1]}">${esc(kp.delta[0])}<span style="color:var(--muted);font-weight:400">${esc(kp.delta[2])}</span></div>` : ''}
     </div>
   `).join('');
   // Wire clicks
