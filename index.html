@@ -74,7 +74,72 @@
   .dp-preview .dp-clear{background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer;padding:2px 6px;border-radius:4px;}
   .dp-preview .dp-clear:hover{background:var(--surface);color:var(--ink);}
 
-  /* MULTI-SELECT (enterprise & team) */
+  /* VIEW SWITCHER (in header) */
+  .view-switch{display:inline-flex;background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:3px;gap:2px;flex-shrink:0;margin-right:8px;}
+  .view-switch button{background:transparent;border:none;padding:6px 14px;border-radius:999px;cursor:pointer;font:500 12px 'Inter';color:var(--muted);transition:background .15s,color .15s;letter-spacing:-.005em;display:inline-flex;align-items:center;gap:6px;}
+  .view-switch button:hover{color:var(--ink);}
+  .view-switch button.sel{background:var(--surface);color:var(--accent);box-shadow:0 1px 3px var(--shadow);}
+  .view-switch button svg{width:13px;height:13px;}
+
+  /* PERFORMANCE VIEW */
+  #viewPerformance{display:none;}
+  body.view-performance #viewOperations{display:none;}
+  body.view-performance #viewPerformance{display:block;}
+  body.view-performance .filters{padding-top:10px;padding-bottom:10px;}
+
+  /* User picker — large, prominent */
+  .user-picker-block{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px 22px;margin-bottom:22px;display:flex;flex-wrap:wrap;align-items:center;gap:18px;}
+  .user-picker-label{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;flex-shrink:0;}
+  .user-picker-input{flex:1;min-width:240px;max-width:380px;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px 14px;font:500 14px 'Inter';color:var(--ink);outline:none;cursor:pointer;transition:border-color .15s;}
+  .user-picker-input:focus{border-color:var(--accent);}
+  .user-picker-input::placeholder{color:var(--muted);}
+  .user-picker-name{font-family:'Bricolage Grotesque',serif;font-size:24px;font-weight:600;letter-spacing:-.02em;color:var(--ink);}
+  .user-picker-sub{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);margin-top:3px;letter-spacing:.04em;}
+  .user-picker-meta{display:flex;align-items:baseline;gap:18px;flex-wrap:wrap;}
+  .user-picker-clear{background:transparent;border:1px solid var(--line);color:var(--ink-2);padding:6px 12px;border-radius:6px;font:500 12px 'Inter';cursor:pointer;transition:background .12s;}
+  .user-picker-clear:hover{background:var(--bg);}
+
+  /* User-list autocomplete */
+  .user-suggest{position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--surface);border:1px solid var(--line);border-radius:8px;box-shadow:0 8px 32px var(--shadow-lg);max-height:300px;overflow:auto;display:none;z-index:500;}
+  .user-suggest.show{display:block;}
+  .user-suggest-item{padding:9px 14px;cursor:pointer;font:400 13px 'Inter';color:var(--ink);display:flex;justify-content:space-between;align-items:center;gap:10px;border-bottom:1px solid var(--line);}
+  .user-suggest-item:last-child{border-bottom:none;}
+  .user-suggest-item:hover,.user-suggest-item.kbd{background:var(--bg);}
+  .user-suggest-count{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums;}
+  .user-picker-wrap{position:relative;flex:1;min-width:240px;max-width:380px;}
+
+  /* Granularity tabs (Daily/Monthly/Yearly) — same styling as trend-tabs but bigger */
+  .gran-tabs{display:flex;background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:3px;gap:2px;flex-shrink:0;}
+  .gran-tab{background:transparent;border:none;padding:6px 14px;border-radius:999px;cursor:pointer;font:500 12px 'Inter';color:var(--muted);transition:background .15s,color .15s;}
+  .gran-tab:hover{color:var(--ink);}
+  .gran-tab.sel{background:var(--surface);color:var(--accent);box-shadow:0 1px 3px var(--shadow);}
+
+  /* Performance KPI strip — slightly different than overview KPIs */
+  .perf-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:22px;}
+  .perf-kpi{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px 18px;display:flex;flex-direction:column;gap:0;cursor:default;}
+  .perf-kpi.clickable{cursor:pointer;transition:transform .15s,box-shadow .15s,border-color .15s;}
+  .perf-kpi.clickable:hover{transform:translateY(-2px);box-shadow:0 6px 18px var(--shadow-md);border-color:var(--line-2);}
+  .perf-kpi-label{font-family:'JetBrains Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:500;}
+  .perf-kpi-value{font-family:'Bricolage Grotesque',serif;font-size:32px;font-weight:600;letter-spacing:-.025em;margin-top:10px;line-height:1;font-variant-numeric:tabular-nums;color:var(--ink);}
+  .perf-kpi-value.green{color:var(--green);} .perf-kpi-value.red{color:var(--red);} .perf-kpi-value.orange{color:var(--orange);} .perf-kpi-value.amber{color:var(--amber);} .perf-kpi-value.blue{color:var(--accent);}
+  .perf-kpi-sub{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);margin-top:6px;line-height:1.4;font-variant-numeric:tabular-nums;}
+  .perf-kpi-delta{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:500;margin-top:8px;display:inline-flex;align-items:center;gap:4px;}
+  .perf-kpi-delta.up{color:var(--green);} .perf-kpi-delta.down{color:var(--red);} .perf-kpi-delta.flat{color:var(--muted);}
+
+  /* Empty state for performance view */
+  .perf-empty{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:60px 30px;text-align:center;color:var(--muted);}
+  .perf-empty-title{font-family:'Bricolage Grotesque',serif;font-size:20px;font-weight:600;color:var(--ink);margin-bottom:8px;letter-spacing:-.01em;}
+  .perf-empty-sub{font-size:13px;color:var(--muted);max-width:480px;margin:0 auto;line-height:1.5;}
+
+  /* Rejection summary table */
+  .reason-row{cursor:pointer;}
+  .reason-row:hover td{background:var(--bg);}
+  .reason-name{max-width:320px;white-space:normal;line-height:1.4;}
+  .reason-bar-cell{width:120px;}
+  .reason-bar{display:block;height:6px;background:var(--line);border-radius:3px;overflow:hidden;}
+  .reason-bar-fill{display:block;height:100%;background:var(--red);transition:width .3s;}
+
+
   .ms-wrap{position:relative;display:flex;flex-direction:column;gap:4px;min-width:0;}
   .ms-trigger{display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:7px 10px;font:400 13px 'Inter';color:var(--ink);cursor:pointer;min-width:170px;max-width:240px;user-select:none;transition:border-color .15s;white-space:nowrap;height:34px;}
   .ms-trigger.compact{min-width:125px;max-width:170px;}
@@ -303,6 +368,16 @@
   <header>
     <div class="brand"><h1>Ops Dashboard</h1><span class="tag">QC · Throughput · SLA</span></div>
     <div class="actions">
+      <div class="view-switch" id="viewSwitch">
+        <button data-view="operations" class="sel" title="Operations view">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="2" width="5" height="5" rx="1"/><rect x="9" y="2" width="5" height="5" rx="1"/><rect x="2" y="9" width="5" height="5" rx="1"/><rect x="9" y="9" width="5" height="5" rx="1"/></svg>
+          Operations
+        </button>
+        <button data-view="performance" title="QC Performance view">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="8" cy="5" r="3"/><path d="M2 14c0-3.3 2.7-6 6-6s6 2.7 6 6"/></svg>
+          QC Performance
+        </button>
+      </div>
       <span class="autosync-badge" id="autoSyncBadge">Next sync in —</span>
       <span class="sync-info" id="syncInfo">—</span>
       <button class="btn-icon" id="editBtn" title="Customize layout">
@@ -472,6 +547,7 @@
     <span style="opacity:.85">Use ↑ ↓ to reorder panels, half / full to resize.</span>
   </div>
 
+  <div id="viewOperations">
   <div class="section-label">Overview</div>
   <section class="kpis" id="kpiGrid"></section>
 
@@ -634,6 +710,155 @@
       </div>
     </div>
   </div>
+  </div><!-- /#viewOperations -->
+
+  <div id="viewPerformance">
+    <div class="section-label">QC Performance · individual user analytics</div>
+
+    <div class="user-picker-block">
+      <span class="user-picker-label">QC User</span>
+      <div class="user-picker-wrap">
+        <input type="text" class="user-picker-input" id="upInput" placeholder="Start typing an email — e.g. rahul or @spyne" autocomplete="off">
+        <div class="user-suggest" id="upSuggest"></div>
+      </div>
+
+      <div class="user-picker-meta" id="upMetaWrap" style="display:none;">
+        <div>
+          <div class="user-picker-name" id="upName">—</div>
+          <div class="user-picker-sub" id="upRange">—</div>
+        </div>
+      </div>
+
+      <div style="margin-left:auto;display:flex;align-items:center;gap:10px;">
+        <div class="gran-tabs" id="granTabs">
+          <button class="gran-tab sel" data-g="daily">Daily · 30d</button>
+          <button class="gran-tab" data-g="monthly">Monthly · 6m</button>
+          <button class="gran-tab" data-g="yearly">Yearly · 12m</button>
+        </div>
+        <button class="user-picker-clear" id="upClear" style="display:none;">Clear</button>
+      </div>
+    </div>
+
+    <div id="perfContent" style="display:none;">
+      <div class="perf-kpis" id="perfKpis"></div>
+
+      <div class="panel-grid">
+        <div class="panel" data-size="full">
+          <div class="panel-header">
+            <div class="panel-title-wrap">
+              <h3>Efficiency trend</h3>
+              <div class="panel-sub" id="perfTrendSub">received · delivered · rejected · within SLA</div>
+            </div>
+          </div>
+          <div class="chart-wrap tall"><canvas id="cPerfTrend"></canvas></div>
+          <div class="trend-legend" id="perfTrendLegend"></div>
+        </div>
+
+        <div class="panel" data-size="half">
+          <div class="panel-header">
+            <div class="panel-title-wrap">
+              <h3>SLA performance</h3>
+              <div class="panel-sub">within / out of SLA on delivered records</div>
+            </div>
+          </div>
+          <div class="sla-content">
+            <div class="sla-cells">
+              <div class="sla-cell sla-in" id="perfSlaCellIn" tabindex="0" role="button">
+                <div class="sla-num green" id="perfSlaNumIn">—</div>
+                <div class="sla-pct" id="perfSlaPctIn">—%</div>
+                <div class="sla-cell-label">Within SLA</div>
+              </div>
+              <div class="sla-cell sla-out" id="perfSlaCellOut" tabindex="0" role="button">
+                <div class="sla-num orange" id="perfSlaNumOut">—</div>
+                <div class="sla-pct" id="perfSlaPctOut">—%</div>
+                <div class="sla-cell-label">Out of SLA</div>
+              </div>
+            </div>
+            <div class="sla-bar"><div class="sla-bar-in" id="perfSlaBarIn"></div><div class="sla-bar-out" id="perfSlaBarOut"></div></div>
+            <div class="sla-tick"><span>0%</span><span>100%</span></div>
+            <div class="sla-bottom">
+              <span>Delivery rate: <strong id="perfDeliveryRate">—</strong></span>
+              <span id="perfSlaMeta">—</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel" data-size="half">
+          <div class="panel-header">
+            <div class="panel-title-wrap">
+              <h3>Delivery vs Rejection</h3>
+              <div class="panel-sub">of all records this user handled</div>
+            </div>
+          </div>
+          <div class="sla-content">
+            <div class="sla-cells">
+              <div class="sla-cell sla-in" id="perfDelvCellDone" tabindex="0" role="button">
+                <div class="sla-num green" id="perfDelvNumDone">—</div>
+                <div class="sla-pct" id="perfDelvPctDone">—%</div>
+                <div class="sla-cell-label">Delivered</div>
+              </div>
+              <div class="sla-cell sla-out" id="perfDelvCellRej" tabindex="0" role="button" style="border-left-color:var(--red);">
+                <div class="sla-num" id="perfDelvNumRej" style="color:var(--red);">—</div>
+                <div class="sla-pct" id="perfDelvPctRej">—%</div>
+                <div class="sla-cell-label">Rejected</div>
+              </div>
+            </div>
+            <div class="sla-bar"><div class="sla-bar-in" id="perfDelvBarDone"></div><div class="sla-bar-out" id="perfDelvBarRej" style="background:var(--red);"></div></div>
+            <div class="sla-tick"><span>0%</span><span>100%</span></div>
+            <div class="sla-bottom">
+              <span>Pending: <strong id="perfPendCount">—</strong></span>
+              <span id="perfDelvMeta">—</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel" data-size="full" style="padding:0;">
+          <div class="panel-header" style="padding:14px 18px 12px;border-bottom:1px solid var(--line);margin-bottom:0;">
+            <div class="panel-title-wrap"><h3>Enterprise-wise performance</h3><div class="panel-sub" id="perfEntSub">delivery & rejection % per enterprise · click to drill</div></div>
+          </div>
+          <div class="table-scroll">
+            <table>
+              <thead id="perfEntHead"><tr>
+                <th class="sortable" data-sort="name">Enterprise<span class="sort-ind">↕</span></th>
+                <th class="sortable num-cell" data-sort="total">Records<span class="sort-ind">↕</span></th>
+                <th class="sortable num-cell" data-sort="delivered">Delivered<span class="sort-ind">↕</span></th>
+                <th class="sortable num-cell" data-sort="rejected">Rejected<span class="sort-ind">↕</span></th>
+                <th class="sortable num-cell" data-sort="deliveryRate">Delivery %<span class="sort-ind">↕</span></th>
+                <th class="sortable num-cell" data-sort="rejectionRate">Rejection %<span class="sort-ind">↕</span></th>
+                <th class="sortable num-cell" data-sort="slaPct">SLA %<span class="sort-ind">↕</span></th>
+                <th class="sortable num-cell" data-sort="avgTat">Avg TAT<span class="sort-ind">↕</span></th>
+              </tr></thead>
+              <tbody id="perfEntBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="panel" data-size="full" style="padding:0;">
+          <div class="panel-header" style="padding:14px 18px 12px;border-bottom:1px solid var(--line);margin-bottom:0;">
+            <div class="panel-title-wrap"><h3>Rejection summary</h3><div class="panel-sub" id="perfReasonsSub">reasons this user caused · click a reason to see records</div></div>
+          </div>
+          <div class="table-scroll">
+            <table>
+              <thead id="perfReasonHead"><tr>
+                <th class="sortable" data-sort="name">Reason<span class="sort-ind">↕</span></th>
+                <th class="sortable num-cell" data-sort="count">Count<span class="sort-ind">↕</span></th>
+                <th class="sortable num-cell" data-sort="pct">% of rejections<span class="sort-ind">↕</span></th>
+                <th class="reason-bar-cell">Share</th>
+              </tr></thead>
+              <tbody id="perfReasonBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="perfEmpty" class="perf-empty">
+      <div class="perf-empty-title">Pick a QC user to begin</div>
+      <div class="perf-empty-sub">
+        Search by email above. You'll see efficiency trends, SLA compliance, enterprise-wise breakdown, and rejection summary — over the last 30 days, 6 months, or 12 months. Useful for appraisals and performance reviews.
+      </div>
+    </div>
+  </div><!-- /#viewPerformance -->
 </main>
 
 <div class="modal-backdrop" id="modal">
@@ -2291,6 +2516,659 @@ async function downloadReport(){
   }
 }
 $('downloadBtn').addEventListener('click', downloadReport);
+
+// ─────────────────────────────────────────────────────────────
+// PERFORMANCE VIEW — user-centric analytics
+// ─────────────────────────────────────────────────────────────
+// State for the performance view. Independent from the operations F state,
+// since this view is filtered by ONE user at a time with its own granularity.
+const PV = {
+  user: null,              // email string or null
+  gran: 'daily',           // 'daily' | 'monthly' | 'yearly'
+  entSort: { col:null, dir:null },
+  reasonSort: { col:'count', dir:'desc' },
+};
+
+let currentView = 'operations'; // 'operations' | 'performance'
+
+function switchView(view){
+  currentView = view;
+  document.body.classList.toggle('view-performance', view === 'performance');
+  document.querySelectorAll('#viewSwitch button').forEach(b=>{
+    b.classList.toggle('sel', b.dataset.view === view);
+  });
+  // Hide filter bar in performance view? — keep visible but it's only used by operations.
+  // Refresh the active view to ensure charts size correctly.
+  if (view === 'performance'){
+    populatePerfUserList();
+    renderPerformance();
+  } else {
+    refresh();
+  }
+}
+document.querySelectorAll('#viewSwitch button').forEach(b=>{
+  b.addEventListener('click', ()=> switchView(b.dataset.view));
+});
+
+// Build the user list once per sync. Returns [{email, count}] sorted by job count desc.
+function buildPerfUserList(){
+  const counts = {};
+  for (const r of RAW){
+    if (!r.qc) continue;
+    counts[r.qc] = (counts[r.qc]||0) + 1;
+  }
+  return Object.entries(counts)
+    .map(([email, count]) => ({ email, count }))
+    .sort((a,b) => b.count - a.count);
+}
+
+let _perfUserList = [];
+function populatePerfUserList(){
+  _perfUserList = buildPerfUserList();
+  renderPerfUserSuggest('');
+}
+
+function renderPerfUserSuggest(query){
+  const q = (query||'').trim().toLowerCase();
+  const matches = q
+    ? _perfUserList.filter(u => u.email.toLowerCase().includes(q)).slice(0, 12)
+    : _perfUserList.slice(0, 12);
+  if (!matches.length){
+    $('upSuggest').innerHTML = `<div class="user-suggest-item" style="cursor:default;color:var(--muted)">No matching users</div>`;
+    return;
+  }
+  $('upSuggest').innerHTML = matches.map((u, i)=> `
+    <div class="user-suggest-item ${i===0?'kbd':''}" data-email="${esc(u.email)}">
+      <span>${esc(u.email)}</span>
+      <span class="user-suggest-count">${num(u.count)} jobs</span>
+    </div>
+  `).join('');
+  $('upSuggest').querySelectorAll('.user-suggest-item').forEach(el=>{
+    if (!el.dataset.email) return;
+    el.addEventListener('mousedown', e=>{
+      e.preventDefault(); // keep focus state predictable
+      pickPerfUser(el.dataset.email);
+    });
+  });
+}
+
+function pickPerfUser(email){
+  PV.user = email;
+  $('upInput').value = email;
+  $('upSuggest').classList.remove('show');
+  $('upMetaWrap').style.display = 'flex';
+  $('upClear').style.display = 'inline-flex';
+  $('upName').textContent = email;
+  renderPerformance();
+}
+
+function clearPerfUser(){
+  PV.user = null;
+  $('upInput').value = '';
+  $('upMetaWrap').style.display = 'none';
+  $('upClear').style.display = 'none';
+  renderPerformance();
+}
+
+// Wire input events
+$('upInput').addEventListener('focus', ()=>{
+  renderPerfUserSuggest($('upInput').value);
+  $('upSuggest').classList.add('show');
+});
+$('upInput').addEventListener('input', ()=>{
+  renderPerfUserSuggest($('upInput').value);
+  $('upSuggest').classList.add('show');
+});
+$('upInput').addEventListener('keydown', e=>{
+  const items = $('upSuggest').querySelectorAll('.user-suggest-item[data-email]');
+  if (!items.length) return;
+  const cur = $('upSuggest').querySelector('.user-suggest-item.kbd');
+  let idx = Array.from(items).indexOf(cur);
+  if (e.key === 'ArrowDown'){ e.preventDefault(); idx = Math.min(items.length-1, idx+1); }
+  else if (e.key === 'ArrowUp'){ e.preventDefault(); idx = Math.max(0, idx-1); }
+  else if (e.key === 'Enter'){
+    e.preventDefault();
+    if (cur && cur.dataset.email) pickPerfUser(cur.dataset.email);
+    return;
+  } else if (e.key === 'Escape'){
+    $('upSuggest').classList.remove('show');
+    return;
+  } else return;
+  items.forEach(it=>it.classList.remove('kbd'));
+  if (items[idx]) items[idx].classList.add('kbd');
+});
+document.addEventListener('mousedown', e=>{
+  if (!$('upInput').contains(e.target) && !$('upSuggest').contains(e.target)){
+    $('upSuggest').classList.remove('show');
+  }
+});
+$('upClear').addEventListener('click', clearPerfUser);
+
+document.querySelectorAll('.gran-tab').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    PV.gran = btn.dataset.g;
+    document.querySelectorAll('.gran-tab').forEach(b=>b.classList.toggle('sel', b===btn));
+    if (PV.user) renderPerformance();
+  });
+});
+
+// Build buckets for a given granularity (anchored on "now")
+function buildPerfBuckets(gran){
+  const now = new Date();
+  const buckets = [];
+
+  if (gran === 'daily'){
+    // Last 30 days, ending today
+    for (let i = 29; i >= 0; i--){
+      const s = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
+      const e = new Date(s); e.setDate(s.getDate()+1);
+      buckets.push({ start:s, end:e, label: s.toLocaleDateString('en-US',{day:'numeric',month:'short'}) });
+    }
+  } else if (gran === 'monthly'){
+    // Last 6 months including current
+    for (let i = -5; i <= 0; i++){
+      const s = new Date(now.getFullYear(), now.getMonth()+i, 1);
+      const e = new Date(now.getFullYear(), now.getMonth()+i+1, 1);
+      const sameYear = s.getFullYear() === now.getFullYear();
+      buckets.push({ start:s, end:e, label: s.toLocaleDateString('en-US', sameYear?{month:'short'}:{month:'short',year:'2-digit'}) });
+    }
+  } else if (gran === 'yearly'){
+    // Last 12 months
+    for (let i = -11; i <= 0; i++){
+      const s = new Date(now.getFullYear(), now.getMonth()+i, 1);
+      const e = new Date(now.getFullYear(), now.getMonth()+i+1, 1);
+      buckets.push({ start:s, end:e, label: s.toLocaleDateString('en-US',{month:'short',year:'2-digit'}) });
+    }
+  }
+  return buckets;
+}
+
+// Filter rows to this user + range (the buckets span)
+function getUserRowsInRange(buckets){
+  if (!PV.user || !buckets.length) return [];
+  const startTs = buckets[0].start.getTime();
+  const endTs   = buckets[buckets.length-1].end.getTime();
+  return RAW.filter(r => r.qc === PV.user && r._created
+    && r._created.getTime() >= startTs && r._created.getTime() < endTs);
+}
+
+function bucketizeUserRows(rows, buckets){
+  const result = buckets.map(b => ({ ...b, received:0, delivered:0, rejected:0, withinSla:0, outOfSla:0 }));
+  for (const r of rows){
+    const t = r._created.getTime();
+    for (const b of result){
+      if (t >= b.start.getTime() && t < b.end.getTime()){
+        b.received++;
+        if (isDelivered(r)){
+          b.delivered++;
+          if (r.sla === 1) b.withinSla++;
+          else if (r.sla === 0) b.outOfSla++;
+        } else if (isRejected(r)){
+          b.rejected++;
+        }
+        break;
+      }
+    }
+  }
+  return result;
+}
+
+function renderPerformance(){
+  // Only paint when this view is active (saves cycles when on operations)
+  if (currentView !== 'performance') return;
+
+  if (!PV.user){
+    $('perfContent').style.display = 'none';
+    $('perfEmpty').style.display   = 'block';
+    return;
+  }
+  $('perfContent').style.display = 'block';
+  $('perfEmpty').style.display   = 'none';
+
+  const buckets = buildPerfBuckets(PV.gran);
+  const rows    = getUserRowsInRange(buckets);
+  const bucketed = bucketizeUserRows(rows, buckets);
+
+  // Header range subtext
+  const rangeLabel = ({
+    daily:   'last 30 days',
+    monthly: 'last 6 months',
+    yearly:  'last 12 months',
+  })[PV.gran];
+  $('upRange').textContent = `${rangeLabel} · ${num(rows.length)} records`;
+
+  // ── KPIs ─────────────────────────────────────────────────────
+  // Aggregate this user's rows
+  const k = aggregate(rows);
+  const tatHrs = k.avgTat;
+
+  // Period-over-period delta: compare current half vs previous half of bucket range.
+  // For 'daily' (30 days), that's last 15 vs prior 15 — simple sanity signal.
+  function halfTotals(start, end){
+    let r = 0, d = 0, rj = 0, w = 0;
+    for (let i = start; i < end; i++){
+      r  += bucketed[i].received;
+      d  += bucketed[i].delivered;
+      rj += bucketed[i].rejected;
+      w  += bucketed[i].withinSla;
+    }
+    return { r, d, rj, w };
+  }
+  const half = Math.floor(buckets.length / 2);
+  const cur  = halfTotals(half, buckets.length);
+  const prev = halfTotals(0, half);
+  const deltaArrow = (curV, prevV) => {
+    if (!prevV) return ['', 'flat', ''];
+    const pct = ((curV - prevV) / prevV) * 100;
+    if (Math.abs(pct) < 1) return ['→ stable', 'flat', ''];
+    return [(pct >= 0 ? '↑ ' : '↓ ') + Math.abs(pct).toFixed(0) + '%',
+            pct >= 0 ? 'up' : 'down',
+            ` vs prior ${half === 1 ? 'period' : (PV.gran==='daily'?half+' days':half+' months')}`];
+  };
+
+  const kpis = [
+    {
+      label:'Total handled',
+      value: num(k.totalReceived),
+      sub: `${num(k.totalDelivered)} delivered · ${num(k.totalRejected)} rejected`,
+      delta: deltaArrow(cur.r, prev.r),
+    },
+    {
+      label:'Delivery rate',
+      value: k.deliveryRate!=null ? k.deliveryRate.toFixed(1)+'%' : '—',
+      color:'green',
+      sub: `${num(k.totalDelivered)} of ${num(k.totalReceived)} delivered`,
+      delta: deltaArrow(cur.d, prev.d),
+    },
+    {
+      label:'Rejection rate',
+      value: k.rejectionRate!=null ? k.rejectionRate.toFixed(1)+'%' : '—',
+      color:'red',
+      sub: `${num(k.totalRejected)} of ${num(k.totalReceived)} rejected`,
+      delta: deltaArrow(cur.rj, prev.rj),
+    },
+    {
+      label:'SLA compliance',
+      value: k.slaCompliance!=null ? k.slaCompliance.toFixed(1)+'%' : '—',
+      color:'green',
+      sub: k.totalDelivered ? `${num(k.withinSla)} of ${num(k.totalDelivered)} within SLA` : 'no delivered records',
+      delta: deltaArrow(cur.w, prev.w),
+    },
+    {
+      label:'Avg TAT',
+      value: fmtTatHrs(tatHrs),
+      color:'blue',
+      sub: k.tatRecordCount ? `from ${num(k.tatRecordCount)} records` : 'no TAT data',
+    },
+  ];
+  $('perfKpis').innerHTML = kpis.map(kp => `
+    <div class="perf-kpi">
+      <div class="perf-kpi-label">${esc(kp.label)}</div>
+      <div class="perf-kpi-value ${kp.color||''}">${kp.value}</div>
+      <div class="perf-kpi-sub">${esc(kp.sub||'')}</div>
+      ${kp.delta && kp.delta[0] ? `<div class="perf-kpi-delta ${kp.delta[1]}">${esc(kp.delta[0])}<span style="color:var(--muted);font-weight:400">${esc(kp.delta[2])}</span></div>` : ''}
+    </div>
+  `).join('');
+
+  // ── SLA panel ────────────────────────────────────────────────
+  const within = k.withinSla||0, out = k.outOfSla||0, totalDelivWithSla = within+out;
+  $('perfSlaNumIn').textContent  = num(within);
+  $('perfSlaNumOut').textContent = num(out);
+  $('perfSlaPctIn').textContent  = totalDelivWithSla ? ((within/totalDelivWithSla)*100).toFixed(1)+'%' : '—%';
+  $('perfSlaPctOut').textContent = totalDelivWithSla ? ((out/totalDelivWithSla)*100).toFixed(1)+'%'    : '—%';
+  $('perfSlaBarIn').style.width  = totalDelivWithSla ? (within/totalDelivWithSla*100)+'%' : '0%';
+  $('perfSlaBarOut').style.width = totalDelivWithSla ? (out/totalDelivWithSla*100)+'%'    : '0%';
+  $('perfDeliveryRate').textContent = k.deliveryRate!=null ? k.deliveryRate.toFixed(1)+'%' : '—';
+  $('perfSlaMeta').textContent = totalDelivWithSla ? `${num(totalDelivWithSla)} delivered records` : 'no delivered records';
+
+  // ── Delivery vs Rejection panel ──────────────────────────────
+  const delvTotal = k.totalDelivered||0, rejTotal = k.totalRejected||0;
+  const delvSum = delvTotal + rejTotal;  // pending isn't relevant here
+  $('perfDelvNumDone').textContent = num(delvTotal);
+  $('perfDelvNumRej').textContent  = num(rejTotal);
+  $('perfDelvPctDone').textContent = delvSum ? ((delvTotal/delvSum)*100).toFixed(1)+'%' : '—%';
+  $('perfDelvPctRej').textContent  = delvSum ? ((rejTotal/delvSum)*100).toFixed(1)+'%'  : '—%';
+  $('perfDelvBarDone').style.width = delvSum ? (delvTotal/delvSum*100)+'%' : '0%';
+  $('perfDelvBarRej').style.width  = delvSum ? (rejTotal/delvSum*100)+'%'  : '0%';
+  $('perfPendCount').textContent   = num(k.totalPending||0);
+  $('perfDelvMeta').textContent    = delvSum ? `${num(delvSum)} closed records` : 'no closed records';
+
+  // ── Efficiency trend chart ───────────────────────────────────
+  renderPerfTrend(bucketed);
+
+  // ── Enterprise-wise table ────────────────────────────────────
+  renderPerfEntTable(rows);
+
+  // ── Rejection summary table ──────────────────────────────────
+  renderPerfReasons(rows);
+}
+
+function renderPerfTrend(buckets){
+  killChart('perfTrend');
+  if (!buckets.length) return;
+  const PAL = getPal();
+  const canvas = $('cPerfTrend');
+  const labels = buckets.map(b => b.label);
+  const recv   = buckets.map(b => b.received);
+  const dlvd   = buckets.map(b => b.delivered);
+  const rejd   = buckets.map(b => b.rejected);
+  const within = buckets.map(b => b.withinSla);
+
+  // Same theme-aware gradient as the operations trend
+  function hexToRgba(hex, a){
+    const h = String(hex||'').trim().replace('#','');
+    if (h.length !== 6) return `rgba(31,63,114,${a})`;
+    const r=parseInt(h.slice(0,2),16), g=parseInt(h.slice(2,4),16), b=parseInt(h.slice(4,6),16);
+    return `rgba(${r},${g},${b},${a})`;
+  }
+  const ctx = canvas.getContext('2d');
+  const grad = ctx.createLinearGradient(0, 0, 0, canvas.height || 340);
+  grad.addColorStop(0, hexToRgba(PAL.accent, 0.22));
+  grad.addColorStop(1, hexToRgba(PAL.accent, 0));
+  const pointBorder = isDark ? PAL.ink : '#ffffff';
+
+  // For daily view (30 points), labels can be dense — auto-skip them but force
+  // visibility of first/last/middle so the user can orient themselves.
+  const isDaily = PV.gran === 'daily';
+
+  charts.perfTrend = new Chart(canvas, {
+    type:'line', plugins:[ChartDataLabels],
+    data:{ labels, datasets:[
+      { label:'Received', data:recv, borderColor:PAL.accent, backgroundColor:grad,
+        borderWidth:2.2, tension:0.35, pointRadius:isDaily?2:3, pointHoverRadius:6,
+        pointBackgroundColor:PAL.accent, pointBorderColor:pointBorder, pointBorderWidth:0,
+        pointHoverBackgroundColor:PAL.accent, pointHoverBorderColor:pointBorder, pointHoverBorderWidth:2,
+        fill:true,
+        datalabels:{
+          align:'top', anchor:'end', clamp:true,
+          color:PAL.ink, font:{family:"'JetBrains Mono',monospace", size:9, weight:'600'},
+          formatter:v=> v>0 ? v.toLocaleString() : '',
+          // In daily mode there's no room for every label; show every 3rd
+          display: ctx => isDaily ? (ctx.dataIndex % 3 === 0 && ctx.dataset.data[ctx.dataIndex] > 0) : true,
+          padding:{top:2,bottom:2},
+        },
+      },
+      { label:'Delivered', data:dlvd, borderColor:PAL.green, backgroundColor:'transparent',
+        borderWidth:2, tension:0.35, pointRadius:isDaily?2:2.5, pointHoverRadius:5.5,
+        pointBackgroundColor:PAL.green, pointBorderColor:pointBorder, pointBorderWidth:0,
+        pointHoverBackgroundColor:PAL.green, pointHoverBorderColor:pointBorder, pointHoverBorderWidth:2,
+        fill:false,
+        datalabels:{ display:false },
+      },
+      { label:'Rejected', data:rejd, borderColor:PAL.red, backgroundColor:'transparent',
+        borderWidth:2, tension:0.35, pointRadius:isDaily?2:2.5, pointHoverRadius:5.5,
+        pointBackgroundColor:PAL.red, pointBorderColor:pointBorder, pointBorderWidth:0,
+        pointHoverBackgroundColor:PAL.red, pointHoverBorderColor:pointBorder, pointHoverBorderWidth:2,
+        fill:false,
+        datalabels:{ display:false },
+      },
+      { label:'Within SLA', data:within, borderColor:PAL.teal, backgroundColor:'transparent',
+        borderWidth:1.8, tension:0.35, pointRadius:isDaily?2:2.5, pointHoverRadius:5.5,
+        pointBackgroundColor:PAL.teal, pointBorderColor:pointBorder, pointBorderWidth:0,
+        pointHoverBackgroundColor:PAL.teal, pointHoverBorderColor:pointBorder, pointHoverBorderWidth:2,
+        fill:false, borderDash:[4,3],
+        datalabels:{ display:false },
+      },
+    ] },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      interaction:{ mode:'index', intersect:false },
+      layout:{ padding:{ top:18 } },
+      plugins:{
+        legend:{ display:false },
+        tooltip:{
+          backgroundColor:PAL.ink, titleColor:isDark?'#0b0b0c':'#fff', bodyColor:isDark?'#0b0b0c':'#fff',
+          padding:10, displayColors:true, boxPadding:4, cornerRadius:6,
+          callbacks:{ label:c => `${c.dataset.label}: ${c.parsed.y.toLocaleString()}` },
+        },
+      },
+      scales:{
+        x:{ grid:{display:false}, ticks:{ font:{size:11}, color:PAL.muted, autoSkip:true, maxRotation:0, maxTicksLimit:isDaily?10:12 } },
+        y:{ grid:{ color:PAL.line, drawBorder:false }, beginAtZero:true,
+            ticks:{ font:{size:11}, color:PAL.muted, precision:0, callback:v => v.toLocaleString() } },
+      },
+    },
+  });
+
+  // Legend totals strip
+  const totals = {
+    Received:  recv.reduce((a,b)=>a+b,0),
+    Delivered: dlvd.reduce((a,b)=>a+b,0),
+    Rejected:  rejd.reduce((a,b)=>a+b,0),
+    'Within SLA': within.reduce((a,b)=>a+b,0),
+  };
+  const cols = { Received:PAL.accent, Delivered:PAL.green, Rejected:PAL.red, 'Within SLA':PAL.teal };
+  $('perfTrendLegend').innerHTML = Object.entries(totals).map(([k,v])=>
+    `<div class="trend-legend-item"><span class="ldot" style="background:${cols[k]}"></span><span>${k}: </span><span class="lval">${v.toLocaleString()}</span></div>`
+  ).join('');
+  $('perfTrendSub').textContent = ({
+    daily:'last 30 days',
+    monthly:'last 6 months',
+    yearly:'last 12 months',
+  })[PV.gran] + ' · received · delivered · rejected · within SLA';
+}
+
+function renderPerfEntTable(rows){
+  // Aggregate per enterprise
+  const byEnt = {};
+  for (const r of rows){
+    const key = r.ent || '(unknown)';
+    if (!byEnt[key]) byEnt[key] = {
+      name:key, total:0, delivered:0, rejected:0, pending:0,
+      withinSla:0, outOfSla:0, tatSum:0, tatN:0,
+    };
+    const e = byEnt[key];
+    e.total++;
+    if (isDelivered(r)){
+      e.delivered++;
+      if (r.sla === 1) e.withinSla++;
+      else if (r.sla === 0) e.outOfSla++;
+    } else if (isRejected(r)) e.rejected++;
+    else e.pending++;
+    if (typeof r.tat === 'number' && isFinite(r.tat)){ e.tatSum += r.tat; e.tatN++; }
+  }
+  const list = Object.values(byEnt).map(e => ({
+    ...e,
+    deliveryRate:  e.total ? (e.delivered / e.total) * 100 : 0,
+    rejectionRate: e.total ? (e.rejected  / e.total) * 100 : 0,
+    slaPct:        e.delivered ? (e.withinSla / e.delivered) * 100 : null,
+    avgTat:        e.tatN ? (e.tatSum / e.tatN) : null,
+  }));
+
+  // Sort
+  const s = PV.entSort;
+  if (s.col){
+    list.sort((a,b)=>{
+      const av = a[s.col], bv = b[s.col];
+      const aN = av == null ? -Infinity : av;
+      const bN = bv == null ? -Infinity : bv;
+      const cmp = (typeof aN === 'number' && typeof bN === 'number')
+        ? aN - bN
+        : String(av).localeCompare(String(bv), undefined, {numeric:true, sensitivity:'base'});
+      return s.dir === 'asc' ? cmp : -cmp;
+    });
+  } else {
+    list.sort((a,b)=> b.total - a.total);
+  }
+
+  // Update sort indicators
+  $('perfEntHead').querySelectorAll('th.sortable').forEach(th=>{
+    const col = th.dataset.sort, ind = th.querySelector('.sort-ind');
+    if (s.col === col){ th.classList.add('sorted'); ind.textContent = s.dir === 'asc' ? '↑' : '↓'; }
+    else { th.classList.remove('sorted'); ind.textContent = '↕'; }
+  });
+
+  $('perfEntSub').textContent = `${num(list.length)} enterprises · click row to drill into records`;
+
+  if (!list.length){
+    $('perfEntBody').innerHTML = `<tr><td colspan="8" class="empty">No records for this user in the selected range.</td></tr>`;
+    return;
+  }
+
+  $('perfEntBody').innerHTML = list.map(e => {
+    const dRate  = e.deliveryRate;
+    const rRate  = e.rejectionRate;
+    return `<tr class="breakdown-row" data-ent="${esc(e.name)}" title="Click to see records">
+      <td class="breakdown-name">${esc(e.name)}</td>
+      <td class="num-cell">${num(e.total)}</td>
+      <td class="num-cell" style="color:var(--green)">${num(e.delivered)}</td>
+      <td class="num-cell" style="color:var(--red)">${num(e.rejected)}</td>
+      <td class="num-cell">${dRate.toFixed(1)}%<span class="pct-bar"><span class="pct-bar-fill" style="width:${dRate.toFixed(1)}%"></span></span></td>
+      <td class="num-cell">${rRate.toFixed(1)}%<span class="pct-bar"><span class="pct-bar-fill" style="width:${rRate.toFixed(1)}%;background:var(--red);"></span></span></td>
+      <td class="num-cell">${e.slaPct!=null ? e.slaPct.toFixed(1)+'%' : '—'}</td>
+      <td class="num-cell">${esc(fmtTatHrs(e.avgTat))}</td>
+    </tr>`;
+  }).join('');
+
+  // Row click → open drill modal with this user's records at this enterprise
+  $('perfEntBody').querySelectorAll('.breakdown-row').forEach(tr=>{
+    tr.addEventListener('click', ()=>{
+      const entName = tr.dataset.ent;
+      openUserEnterpriseDrill(entName, rows.filter(r => (r.ent||'(unknown)') === entName));
+    });
+  });
+}
+
+// Sort header clicks on enterprise table
+$('perfEntHead').addEventListener('click', e=>{
+  const th = e.target.closest('th.sortable');
+  if (!th) return;
+  const col = th.dataset.sort;
+  const s = PV.entSort;
+  if (s.col !== col){ s.col = col; s.dir = 'asc'; }
+  else if (s.dir === 'asc'){ s.dir = 'desc'; }
+  else { s.col = null; s.dir = null; }
+  renderPerformance();
+});
+
+function renderPerfReasons(rows){
+  // Count rejection reasons among this user's rejected rows
+  const counts = {};       // norm key → count
+  const displays = {};     // norm key → display string
+  let totalRej = 0;
+  for (const r of rows){
+    if (!isRejected(r)) continue;
+    totalRej++;
+    const key = normReason(r.rej) || '(no reason recorded)';
+    counts[key] = (counts[key]||0) + 1;
+    if (!displays[key]) displays[key] = r.rej ? r.rej.trim() : '(no reason recorded)';
+  }
+  const list = Object.entries(counts).map(([key,count]) => ({
+    key,
+    name: displays[key],
+    count,
+    pct: totalRej ? (count/totalRej)*100 : 0,
+  }));
+
+  // Sort
+  const s = PV.reasonSort;
+  list.sort((a,b)=>{
+    const av = a[s.col], bv = b[s.col];
+    const cmp = (typeof av === 'number' && typeof bv === 'number')
+      ? av - bv
+      : String(av).localeCompare(String(bv), undefined, {numeric:true, sensitivity:'base'});
+    return s.dir === 'asc' ? cmp : -cmp;
+  });
+
+  // Update sort indicators
+  $('perfReasonHead').querySelectorAll('th.sortable').forEach(th=>{
+    const col = th.dataset.sort, ind = th.querySelector('.sort-ind');
+    if (s.col === col){ th.classList.add('sorted'); ind.textContent = s.dir === 'asc' ? '↑' : '↓'; }
+    else { th.classList.remove('sorted'); ind.textContent = '↕'; }
+  });
+
+  $('perfReasonsSub').textContent = totalRej
+    ? `${num(totalRej)} rejections across ${num(list.length)} distinct reasons · click a reason to see records`
+    : 'No rejected records for this user in the selected range';
+
+  if (!list.length){
+    $('perfReasonBody').innerHTML = `<tr><td colspan="4" class="empty">No rejections in selected range. 🎉</td></tr>`;
+    return;
+  }
+
+  $('perfReasonBody').innerHTML = list.map(r => `
+    <tr class="reason-row" data-key="${esc(r.key)}" title="Click to see records">
+      <td class="reason-name">${esc(r.name)}</td>
+      <td class="num-cell" style="color:var(--red)">${num(r.count)}</td>
+      <td class="num-cell">${r.pct.toFixed(1)}%</td>
+      <td class="reason-bar-cell"><span class="reason-bar"><span class="reason-bar-fill" style="width:${r.pct.toFixed(1)}%"></span></span></td>
+    </tr>
+  `).join('');
+
+  $('perfReasonBody').querySelectorAll('.reason-row').forEach(tr=>{
+    tr.addEventListener('click', ()=>{
+      const key = tr.dataset.key;
+      openUserReasonDrill(key, rows.filter(r => isRejected(r) && (normReason(r.rej) || '(no reason recorded)') === key));
+    });
+  });
+}
+
+$('perfReasonHead').addEventListener('click', e=>{
+  const th = e.target.closest('th.sortable');
+  if (!th) return;
+  const col = th.dataset.sort;
+  const s = PV.reasonSort;
+  if (s.col !== col){ s.col = col; s.dir = (col === 'name' ? 'asc' : 'desc'); }
+  else if (s.dir === 'asc'){ s.dir = 'desc'; }
+  else if (s.dir === 'desc'){ s.dir = 'asc'; }
+  renderPerformance();
+});
+
+// SLA / Delivery cell clicks on performance view → open drill on user's records
+function bindPerfDrillCells(){
+  const userRowsAll = () => {
+    if (!PV.user) return [];
+    const buckets = buildPerfBuckets(PV.gran);
+    return getUserRowsInRange(buckets);
+  };
+  const openSlaIn  = ()=> openCustomDrill('Within SLA · ' + PV.user, userRowsAll().filter(r=>isDelivered(r) && r.sla===1));
+  const openSlaOut = ()=> openCustomDrill('Out of SLA · ' + PV.user, userRowsAll().filter(r=>isDelivered(r) && r.sla===0));
+  const openDelv   = ()=> openCustomDrill('Delivered · ' + PV.user,  userRowsAll().filter(isDelivered));
+  const openRej    = ()=> openCustomDrill('Rejected · ' + PV.user,   userRowsAll().filter(isRejected));
+
+  $('perfSlaCellIn').addEventListener('click',  openSlaIn);
+  $('perfSlaCellOut').addEventListener('click', openSlaOut);
+  $('perfDelvCellDone').addEventListener('click', openDelv);
+  $('perfDelvCellRej').addEventListener('click',  openRej);
+}
+
+// Lightweight drill that bypasses the global filter aggregation — uses passed-in rows directly.
+function openCustomDrill(title, rows){
+  $('modalTitle').textContent = title;
+  $('modalSub').textContent   = `${num(rows.length)} RECORDS`;
+  $('modalChips').innerHTML   = `<span class="chip">User <strong>${esc(PV.user)}</strong></span><span class="chip">${esc(({daily:'Last 30 days',monthly:'Last 6 months',yearly:'Last 12 months'})[PV.gran])}</span>`;
+  $('modal').classList.add('show');
+
+  const delivered = rows.filter(isDelivered).length;
+  const rejected  = rows.filter(isRejected).length;
+  const within    = rows.filter(r => isDelivered(r) && r.sla === 1).length;
+  const out       = rows.filter(r => isDelivered(r) && r.sla === 0).length;
+  const tatN      = rows.filter(r => typeof r.tat === 'number');
+  const avgTat    = tatN.length ? tatN.reduce((s,r)=>s+r.tat, 0) / tatN.length : null;
+
+  $('modalStats').innerHTML = [
+    ['In view',     num(rows.length), ''],
+    ['Delivered',   num(delivered),   'green'],
+    ['Rejected',    num(rejected),    'red'],
+    ['Within SLA',  num(within),      'green'],
+    ['Out of SLA',  num(out),         'orange'],
+    ['Avg TAT',     fmtTatHrs(avgTat),''],
+  ].map(([l,v,c]) => `<div class="modal-stat"><span class="modal-stat-label">${esc(l)}</span><span class="modal-stat-value ${c}">${v}</span></div>`).join('');
+
+  // Use the same _modalCtx records pipeline so headers are sortable
+  _modalCtx = { type:'records', kpi:{view:'all', label:title, sub:''}, rows, sort:{col:null,dir:null} };
+  renderRecordsModal();
+}
+
+function openUserEnterpriseDrill(entName, rows){
+  openCustomDrill(`${PV.user} · ${entName}`, rows);
+}
+function openUserReasonDrill(reasonKey, rows){
+  const label = rows.length ? (rows[0].rej || '(no reason recorded)') : reasonKey;
+  openCustomDrill(`Rejected: "${label}"`, rows);
+}
+
+bindPerfDrillCells();
 
 // ─────────────────────────────────────────────────────────────
 // INIT
