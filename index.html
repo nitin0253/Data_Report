@@ -11,6 +11,8 @@
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.0/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
   :root {
     --bg:#f6f5f1;--surface:#ffffff;--surface-2:#fbfaf6;--ink:#0b0b0c;--ink-2:#404045;
@@ -96,9 +98,11 @@
   /* User picker — large, prominent */
   .user-picker-block{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px 22px;margin-bottom:22px;display:flex;flex-wrap:wrap;align-items:center;gap:18px;}
   .user-picker-label{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;flex-shrink:0;}
-  .user-picker-input{flex:1;min-width:240px;max-width:380px;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px 14px;font:500 14px 'Inter';color:var(--ink);outline:none;cursor:pointer;transition:border-color .15s;}
+  .user-picker-input{flex:1;min-width:240px;max-width:380px;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px 36px 10px 14px;font:500 14px 'Inter';color:var(--ink);outline:none;cursor:pointer;transition:border-color .15s;}
   .user-picker-input:focus{border-color:var(--accent);}
   .user-picker-input::placeholder{color:var(--muted);}
+  .user-picker-chev{position:absolute;right:12px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none;transition:transform .15s;}
+  .user-picker-wrap.open .user-picker-chev{transform:translateY(-50%) rotate(180deg);}
   .user-picker-name{font-family:'Bricolage Grotesque',serif;font-size:24px;font-weight:600;letter-spacing:-.02em;color:var(--ink);}
   .user-picker-sub{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);margin-top:3px;letter-spacing:.04em;}
   .user-picker-meta{display:flex;align-items:baseline;gap:18px;flex-wrap:wrap;}
@@ -106,7 +110,8 @@
   .user-picker-clear:hover{background:var(--bg);}
 
   /* User-list autocomplete */
-  .user-suggest{position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--surface);border:1px solid var(--line);border-radius:8px;box-shadow:0 8px 32px var(--shadow-lg);max-height:300px;overflow:auto;display:none;z-index:500;}
+  .user-suggest{position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--surface);border:1px solid var(--line);border-radius:8px;box-shadow:0 8px 32px var(--shadow-lg);max-height:380px;overflow:auto;display:none;z-index:500;}
+  .user-suggest-header{position:sticky;top:0;padding:6px 14px;background:var(--bg);border-bottom:1px solid var(--line);font:500 10px 'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);z-index:1;}
   .user-suggest.show{display:block;}
   .user-suggest-item{padding:9px 14px;cursor:pointer;font:400 13px 'Inter';color:var(--ink);display:flex;justify-content:space-between;align-items:center;gap:10px;border-bottom:1px solid var(--line);}
   .user-suggest-item:last-child{border-bottom:none;}
@@ -312,6 +317,19 @@
   .modal-sub{font-family:'JetBrains Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-top:6px;}
   .modal-close{background:transparent;border:1px solid var(--line);cursor:pointer;width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--ink-2);font-size:20px;line-height:1;transition:background .15s,color .15s;flex-shrink:0;}
   .modal-close:hover{background:var(--bg);color:var(--ink);}
+  .modal-head-actions{display:flex;align-items:center;gap:8px;flex-shrink:0;}
+  .modal-dl-btn{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;font-size:12px;height:34px;}
+  .modal-dl-btn svg:last-child{opacity:.7;transition:transform .15s;}
+  .dl-menu-wrap{position:relative;display:inline-block;}
+  .dl-menu-wrap.open .modal-dl-btn svg:last-child{transform:rotate(180deg);}
+  .dl-menu{display:none;position:absolute;top:calc(100% + 6px);right:0;background:var(--surface);border:1px solid var(--line);border-radius:8px;box-shadow:0 8px 32px var(--shadow-lg);min-width:240px;overflow:hidden;z-index:10;}
+  .dl-menu-wrap.open .dl-menu{display:block;}
+  .dl-menu-item{display:flex;flex-direction:column;align-items:flex-start;width:100%;background:none;border:none;padding:10px 14px;text-align:left;cursor:pointer;color:var(--ink);transition:background .12s;gap:2px;border-bottom:1px solid var(--line);}
+  .dl-menu-item:last-child{border-bottom:none;}
+  .dl-menu-item:hover{background:var(--bg);}
+  .dl-fmt-name{font:600 13px 'Inter';color:var(--ink);}
+  .dl-fmt-sub{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:.04em;}
+
   .modal-stats{padding:14px 26px;border-bottom:1px solid var(--line);display:flex;flex-wrap:wrap;gap:24px;background:var(--surface-2);}
   .modal-stat{display:flex;flex-direction:column;gap:4px;}
   .modal-stat-label{font-family:'JetBrains Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);}
@@ -727,7 +745,8 @@
     <div class="user-picker-block">
       <span class="user-picker-label">QC User</span>
       <div class="user-picker-wrap">
-        <input type="text" class="user-picker-input" id="upInput" placeholder="Start typing an email — e.g. rahul or @spyne" autocomplete="off">
+        <input type="text" class="user-picker-input" id="upInput" placeholder="Pick a QC user — click to browse, type to search" autocomplete="off">
+        <svg class="user-picker-chev" id="upChev" width="14" height="14" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="2,4 6,8 10,4"/></svg>
         <div class="user-suggest" id="upSuggest"></div>
       </div>
 
@@ -878,7 +897,30 @@
         <div class="modal-title" id="modalTitle">—</div>
         <div class="modal-sub" id="modalSub">—</div>
       </div>
-      <button class="modal-close" id="modalClose" aria-label="Close">×</button>
+      <div class="modal-head-actions">
+        <div class="dl-menu-wrap" id="modalDlWrap">
+          <button class="btn-download modal-dl-btn" id="modalDlBtn" title="Download this view">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8 1.5v9M4 6.5L8 10.5l4-4M2 13h12"/></svg>
+            Download
+            <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><polyline points="2,4 6,8 10,4"/></svg>
+          </button>
+          <div class="dl-menu" id="modalDlMenu">
+            <button class="dl-menu-item" data-fmt="csv">
+              <span class="dl-fmt-name">CSV</span>
+              <span class="dl-fmt-sub">.csv · spreadsheet compatible</span>
+            </button>
+            <button class="dl-menu-item" data-fmt="xlsx">
+              <span class="dl-fmt-name">Excel</span>
+              <span class="dl-fmt-sub">.xlsx · Microsoft Excel</span>
+            </button>
+            <button class="dl-menu-item" data-fmt="pdf">
+              <span class="dl-fmt-name">PDF</span>
+              <span class="dl-fmt-sub">.pdf · printable report</span>
+            </button>
+          </div>
+        </div>
+        <button class="modal-close" id="modalClose" aria-label="Close">×</button>
+      </div>
     </div>
     <div class="modal-stats" id="modalStats"></div>
     <div class="modal-body" id="modalBody"></div>
@@ -2283,6 +2325,187 @@ $('modalBody').addEventListener('click', e=>{
 });
 
 function closeModal(){ $('modal').classList.remove('show'); _modalCtx = null; }
+
+// ─────────────────────────────────────────────────────────────
+// MODAL DOWNLOAD — CSV / Excel / PDF
+// ─────────────────────────────────────────────────────────────
+// Extracts the currently-rendered modal table into rows of plain strings,
+// then exports in the requested format. Works for both records and breakdown views.
+function extractModalTable(){
+  const table = $('modalBody').querySelector('table');
+  if (!table) return { headers:[], rows:[] };
+
+  // Pull header text (strip sort-indicator characters)
+  const headers = Array.from(table.querySelectorAll('thead th')).map(th=>{
+    // Clone to safely strip sort indicator spans without mutating live DOM
+    const c = th.cloneNode(true);
+    c.querySelectorAll('.sort-ind').forEach(n => n.remove());
+    return c.textContent.trim();
+  });
+
+  // Pull body rows
+  const rows = Array.from(table.querySelectorAll('tbody tr')).map(tr=>{
+    return Array.from(tr.children).map(td => {
+      // Strip pill/bar wrappers — we just want the readable value.
+      // textContent collapses inner pills & pct-bar to their visible numbers.
+      return td.textContent.replace(/\s+/g, ' ').trim();
+    });
+  });
+
+  return { headers, rows };
+}
+
+function modalContextLabel(){
+  // Title + filter context as plain strings for export metadata
+  const title = $('modalTitle').textContent.trim() || 'Report';
+  const sub   = $('modalSub').textContent.trim();
+  const chips = Array.from($('modalChips').querySelectorAll('.chip')).map(c => c.textContent.replace(/\s+/g,' ').trim());
+  return { title, sub, chips };
+}
+
+function safeFilename(s){
+  return (s || 'export').replace(/[^a-z0-9_\- ]/gi, '').replace(/\s+/g, '_').slice(0, 60) || 'export';
+}
+
+function downloadModalCSV(){
+  const { headers, rows } = extractModalTable();
+  if (!rows.length){ alert('No data to download.'); return; }
+  const ctx = modalContextLabel();
+
+  // Build CSV with a small metadata header so the file is self-describing
+  const meta = [
+    [`# ${ctx.title}`],
+    [`# Generated ${new Date().toLocaleString()}`],
+    ctx.chips.length ? [`# Filters: ${ctx.chips.join(' | ')}`] : null,
+    [],
+  ].filter(Boolean);
+
+  const esc = (v) => {
+    const s = String(v ?? '');
+    return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  const lines = [
+    ...meta.map(r => r.map(esc).join(',')),
+    headers.map(esc).join(','),
+    ...rows.map(r => r.map(esc).join(',')),
+  ];
+  // BOM so Excel detects UTF-8 properly
+  const blob = new Blob(['\ufeff' + lines.join('\n')], { type:'text/csv;charset=utf-8;' });
+  triggerBlobDownload(blob, `${safeFilename(ctx.title)}.csv`);
+}
+
+function downloadModalXLSX(){
+  if (typeof XLSX === 'undefined'){ alert('Excel library failed to load.'); return; }
+  const { headers, rows } = extractModalTable();
+  if (!rows.length){ alert('No data to download.'); return; }
+  const ctx = modalContextLabel();
+
+  const aoa = [
+    [ctx.title],
+    [`Generated ${new Date().toLocaleString()}`],
+    ctx.chips.length ? [`Filters: ${ctx.chips.join(' | ')}`] : [],
+    [],
+    headers,
+    ...rows,
+  ];
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  // Auto-size columns roughly by max content width per column
+  const colCount = headers.length;
+  const widths = new Array(colCount).fill(10);
+  rows.forEach(r => r.forEach((v, i) => {
+    const len = String(v).length;
+    if (len > widths[i]) widths[i] = Math.min(len, 60);
+  }));
+  headers.forEach((h, i) => { if (h.length > widths[i]) widths[i] = Math.min(h.length, 60); });
+  ws['!cols'] = widths.map(w => ({ wch: w + 2 }));
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Report');
+  XLSX.writeFile(wb, `${safeFilename(ctx.title)}.xlsx`);
+}
+
+function downloadModalPDF(){
+  if (!window.jspdf){ alert('PDF library failed to load.'); return; }
+  const { headers, rows } = extractModalTable();
+  if (!rows.length){ alert('No data to download.'); return; }
+  const ctx = modalContextLabel();
+
+  const { jsPDF } = window.jspdf;
+  // Landscape for wider tables
+  const pdf = new jsPDF({ orientation:'landscape', unit:'pt', format:'a4' });
+  const pageW = 842;
+  const M = 32;
+
+  // Title + meta
+  pdf.setFontSize(16);
+  pdf.text(ctx.title, M, M + 14);
+  pdf.setFontSize(9);
+  pdf.setTextColor(120);
+  pdf.text(`Generated ${new Date().toLocaleString()}`, M, M + 28);
+  if (ctx.chips.length){
+    const wrapped = pdf.splitTextToSize(`Filters: ${ctx.chips.join('  •  ')}`, pageW - 2*M);
+    pdf.text(wrapped, M, M + 42);
+  }
+
+  const startY = M + 42 + (ctx.chips.length ? Math.max(0, (pdf.splitTextToSize(`Filters: ${ctx.chips.join('  •  ')}`, pageW - 2*M).length - 1) * 11) : 0) + 12;
+
+  // autoTable handles pagination, headers, and proper column sizing automatically
+  if (typeof pdf.autoTable !== 'function'){
+    // Fallback if autoTable plugin failed to load: simple manual rendering
+    pdf.setTextColor(0);
+    pdf.setFontSize(8);
+    let y = startY;
+    pdf.text(headers.join('  |  '), M, y); y += 14;
+    rows.slice(0, 60).forEach(r => { pdf.text(r.join('  |  '), M, y); y += 12; });
+    pdf.save(`${safeFilename(ctx.title)}.pdf`);
+    return;
+  }
+  pdf.autoTable({
+    head: [headers],
+    body: rows,
+    startY,
+    theme: 'grid',
+    styles: { fontSize: 7, cellPadding: 4, overflow: 'linebreak' },
+    headStyles: { fillColor: [31, 63, 114], textColor: 255, fontSize: 8, fontStyle: 'bold' },
+    alternateRowStyles: { fillColor: [248, 248, 245] },
+    margin: { left: M, right: M },
+  });
+
+  pdf.save(`${safeFilename(ctx.title)}.pdf`);
+}
+
+function triggerBlobDownload(blob, filename){
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click();
+  setTimeout(()=>{ document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);
+}
+
+// Wire the modal download dropdown
+$('modalDlBtn').addEventListener('click', e=>{
+  e.stopPropagation();
+  $('modalDlWrap').classList.toggle('open');
+});
+$('modalDlMenu').addEventListener('click', e=>{
+  const btn = e.target.closest('.dl-menu-item');
+  if (!btn) return;
+  e.stopPropagation();
+  $('modalDlWrap').classList.remove('open');
+  const fmt = btn.dataset.fmt;
+  try {
+    if (fmt === 'csv')       downloadModalCSV();
+    else if (fmt === 'xlsx') downloadModalXLSX();
+    else if (fmt === 'pdf')  downloadModalPDF();
+  } catch (err){
+    console.error('[modal download]', err);
+    alert('Download failed: ' + err.message);
+  }
+});
+// Close menu on outside click
+document.addEventListener('mousedown', e=>{
+  if (!$('modalDlWrap').contains(e.target)) $('modalDlWrap').classList.remove('open');
+});
 $('modalClose').addEventListener('click', closeModal);
 $('modal').addEventListener('click', e=>{ if (e.target===$('modal')) closeModal(); });
 document.addEventListener('keydown', e=>{ if (e.key==='Escape' && $('modal').classList.contains('show')) closeModal(); });
@@ -2582,14 +2805,19 @@ function populatePerfUserList(){
 
 function renderPerfUserSuggest(query){
   const q = (query||'').trim().toLowerCase();
+  // Filter list. When opened without query, show ALL users so it acts like a real dropdown.
   const matches = q
-    ? _perfUserList.filter(u => u.email.toLowerCase().includes(q)).slice(0, 12)
-    : _perfUserList.slice(0, 12);
+    ? _perfUserList.filter(u => u.email.toLowerCase().includes(q))
+    : _perfUserList;
   if (!matches.length){
     $('upSuggest').innerHTML = `<div class="user-suggest-item" style="cursor:default;color:var(--muted)">No matching users</div>`;
     return;
   }
-  $('upSuggest').innerHTML = matches.map((u, i)=> `
+  const headerText = q
+    ? `${matches.length} match${matches.length===1?'':'es'}`
+    : `${_perfUserList.length} QC users · sorted by job count`;
+  const header = `<div class="user-suggest-header">${esc(headerText)}</div>`;
+  $('upSuggest').innerHTML = header + matches.map((u, i)=> `
     <div class="user-suggest-item ${i===0?'kbd':''}" data-email="${esc(u.email)}">
       <span>${esc(u.email)}</span>
       <span class="user-suggest-count">${num(u.count)} jobs</span>
@@ -2607,7 +2835,7 @@ function renderPerfUserSuggest(query){
 function pickPerfUser(email){
   PV.user = email;
   $('upInput').value = email;
-  $('upSuggest').classList.remove('show');
+  closeUpSuggest();
   $('upMetaWrap').style.display = 'flex';
   $('upClear').style.display = 'inline-flex';
   $('upName').textContent = email;
@@ -2622,14 +2850,23 @@ function clearPerfUser(){
   renderPerformance();
 }
 
-// Wire input events
-$('upInput').addEventListener('focus', ()=>{
+// Wire input events — clicking or focusing the input opens the full dropdown.
+const upWrap = $('upInput').closest('.user-picker-wrap');
+function openUpSuggest(){
   renderPerfUserSuggest($('upInput').value);
   $('upSuggest').classList.add('show');
-});
+  upWrap.classList.add('open');
+}
+function closeUpSuggest(){
+  $('upSuggest').classList.remove('show');
+  upWrap.classList.remove('open');
+}
+$('upInput').addEventListener('focus', openUpSuggest);
+$('upInput').addEventListener('click', openUpSuggest);
 $('upInput').addEventListener('input', ()=>{
   renderPerfUserSuggest($('upInput').value);
   $('upSuggest').classList.add('show');
+  upWrap.classList.add('open');
 });
 $('upInput').addEventListener('keydown', e=>{
   const items = $('upSuggest').querySelectorAll('.user-suggest-item[data-email]');
@@ -2643,7 +2880,7 @@ $('upInput').addEventListener('keydown', e=>{
     if (cur && cur.dataset.email) pickPerfUser(cur.dataset.email);
     return;
   } else if (e.key === 'Escape'){
-    $('upSuggest').classList.remove('show');
+    closeUpSuggest();
     return;
   } else return;
   items.forEach(it=>it.classList.remove('kbd'));
@@ -2651,7 +2888,7 @@ $('upInput').addEventListener('keydown', e=>{
 });
 document.addEventListener('mousedown', e=>{
   if (!$('upInput').contains(e.target) && !$('upSuggest').contains(e.target)){
-    $('upSuggest').classList.remove('show');
+    closeUpSuggest();
   }
 });
 $('upClear').addEventListener('click', clearPerfUser);
@@ -2947,8 +3184,6 @@ function renderPerfTrend(buckets){
           align:'top', anchor:'end', clamp:true,
           color:PAL.ink, font:{family:"'JetBrains Mono',monospace", size:9, weight:'600'},
           formatter:v=> v>0 ? v.toLocaleString() : '',
-          // In daily mode there's no room for every label; show every 3rd
-          display: ctx => isDaily ? (ctx.dataIndex % 3 === 0 && ctx.dataset.data[ctx.dataIndex] > 0) : true,
           padding:{top:2,bottom:2},
         },
       },
@@ -2957,21 +3192,40 @@ function renderPerfTrend(buckets){
         pointBackgroundColor:PAL.green, pointBorderColor:pointBorder, pointBorderWidth:0,
         pointHoverBackgroundColor:PAL.green, pointHoverBorderColor:pointBorder, pointHoverBorderWidth:2,
         fill:false,
-        datalabels:{ display:false },
+        // Delivered tends to track close to Received, so label below the point so
+        // they don't visually collide.
+        datalabels:{
+          align:'bottom', anchor:'end', clamp:true,
+          color:PAL.green, font:{family:"'JetBrains Mono',monospace", size:9, weight:'600'},
+          formatter:v=> v>0 ? v.toLocaleString() : '',
+          padding:{top:1,bottom:1},
+        },
       },
       { label:'Rejected', data:rejd, borderColor:PAL.red, backgroundColor:'transparent',
         borderWidth:2, tension:0.35, pointRadius:isDaily?2:2.5, pointHoverRadius:5.5,
         pointBackgroundColor:PAL.red, pointBorderColor:pointBorder, pointBorderWidth:0,
         pointHoverBackgroundColor:PAL.red, pointHoverBorderColor:pointBorder, pointHoverBorderWidth:2,
         fill:false,
-        datalabels:{ display:false },
+        // Rejected is usually a low value near the x-axis; place above the point.
+        datalabels:{
+          align:'top', anchor:'end', clamp:true,
+          color:PAL.red, font:{family:"'JetBrains Mono',monospace", size:9, weight:'600'},
+          formatter:v=> v>0 ? v.toLocaleString() : '',
+          padding:{top:1,bottom:1},
+        },
       },
       { label:'Within SLA', data:within, borderColor:PAL.teal, backgroundColor:'transparent',
         borderWidth:1.8, tension:0.35, pointRadius:isDaily?2:2.5, pointHoverRadius:5.5,
         pointBackgroundColor:PAL.teal, pointBorderColor:pointBorder, pointBorderWidth:0,
         pointHoverBackgroundColor:PAL.teal, pointHoverBorderColor:pointBorder, pointHoverBorderWidth:2,
         fill:false, borderDash:[4,3],
-        datalabels:{ display:false },
+        // Within-SLA shadows Delivered closely; label below as well, slightly offset.
+        datalabels:{
+          align:'bottom', anchor:'end', clamp:true,
+          color:PAL.teal, font:{family:"'JetBrains Mono',monospace", size:9, weight:'600'},
+          formatter:v=> v>0 ? v.toLocaleString() : '',
+          padding:{top:1,bottom:1},
+        },
       },
     ] },
     options:{
