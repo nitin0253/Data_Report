@@ -90,6 +90,7 @@ async function loadRows() {
     rej:    pickField(r, ['rejected_reason','reject_reason']),
     vid:    pickField(r, ['Video_ID','video_id']),
     vurl:   pickField(r, ['video_url','Video_URL','video_URL']),
+    vmode:  pickField(r, ['View_Mode','view_mode','ViewMode']),
     vin:    r.VIN || '',
     sku:    pickField(r, ['Sku_ID','sku_id']),
     tat:    parseTatHrs(pickField(r, [
