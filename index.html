@@ -2348,7 +2348,7 @@ function renderRecordsModal(){
   const { kpi, rows, sort } = _modalCtx;
   const isRejView = kpi.view === 'rejected';
 
-  // Sort rows
+  // Sort the full set
   let sorted = rows.slice();
   if (sort.col){
     sorted.sort((a,b)=>{
@@ -2360,6 +2360,11 @@ function renderRecordsModal(){
       return sort.dir === 'asc' ? cmp : -cmp;
     });
   }
+  // Cache full sorted set + per-row column extractor on _modalCtx so the
+  // downloader can build a full-fidelity export without scraping the truncated DOM.
+  _modalCtx.sortedRows = sorted;
+  _modalCtx.recordsView = isRejView ? 'rejected' : 'normal';
+
   const shown = sorted.slice(0, 500);
 
   // Build header columns array — preserves the rejected-view column reorder
@@ -2396,7 +2401,7 @@ function renderRecordsModal(){
         return `<tr><td class="mono">${esc(fmtDate(r.c))}</td><td>${esc(r.ent||'—')}</td><td>${esc(r.team||'—')}</td><td>${esc(r.qc||'—')}</td><td>${esc(r.poc_ob||'—')}</td><td>${esc(r.poc_cs||'—')}</td><td>${pill}</td><td>${slaPill}</td><td class="mono">${esc(fmtTatHrs(r.tat))}</td>${isRejView?reasonCell:''}<td class="mono">${esc(r.vid||'—')}</td>${!isRejView?reasonCell:''}<td>${videoLink(r.vurl)}</td><td class="mono">${esc(r.vmode||'—')}</td><td class="mono">${esc(r.ttype||'—')}</td><td class="mono">${esc(r.vin||'—')}</td><td class="mono">${esc(r.sku||'—')}</td><td class="mono">${esc(fmtDate(r.u))}</td></tr>`;
       }).join('')}</tbody>
     </table>`;
-  $('modalCount').textContent = `Showing ${num(shown.length)} of ${num(rows.length)}` + (shown.length>=500 && rows.length>500 ? ' (latest 500)' : '');
+  $('modalCount').textContent = `Showing ${num(shown.length)} of ${num(rows.length)}` + (shown.length>=500 && rows.length>500 ? ' (preview · download for all)' : '');
 }
 
 function renderBreakdownView(){
@@ -2529,12 +2534,69 @@ function closeModal(){ $('modal').classList.remove('show'); _modalCtx = null; }
 // Extracts the currently-rendered modal table into rows of plain strings,
 // then exports in the requested format. Works for both records and breakdown views.
 function extractModalTable(){
+  // For records drill-downs we have the full unsliced row set on _modalCtx.
+  // Build the export directly from that so we're not bound by the on-screen 500-row cap.
+  if (_modalCtx && _modalCtx.type === 'records' && Array.isArray(_modalCtx.sortedRows)){
+    return extractRecordsForExport();
+  }
+
+  // Otherwise (breakdown table — one row per entity, no cap) scrape the DOM.
+  return extractTableFromDOM();
+}
+
+// Build headers + rows for record exports directly from the row objects.
+// Mirrors the column order used by renderRecordsModal so the export matches the table.
+function extractRecordsForExport(){
+  const isRejView = _modalCtx.recordsView === 'rejected';
+  // Header labels match the on-screen header text (without sort indicators).
+  const headers = [
+    'Created','Enterprise','Team','QC User','POC OB','POC CS',
+    'Status','SLA','TAT',
+  ];
+  if (isRejView) headers.push('Rejected Reason');
+  headers.push('Video ID');
+  if (!isRejView) headers.push('Rejected Reason');
+  headers.push('Video URL','View Mode','Temp Type','VIN','SKU ID','Updated');
+
+  const statusOf = r => isDelivered(r) ? 'Delivered' : isRejected(r) ? 'Rejected' : 'Pending';
+  const slaOf    = r => r.sla === 1 ? 'In' : r.sla === 0 ? 'Out' : '—';
+
+  const rows = _modalCtx.sortedRows.map(r => {
+    const reason = r.rej || '';
+    const base = [
+      fmtDate(r.c),
+      r.ent  || '',
+      r.team || '',
+      r.qc   || '',
+      r.poc_ob || '',
+      r.poc_cs || '',
+      statusOf(r),
+      slaOf(r),
+      fmtTatHrs(r.tat),
+    ];
+    if (isRejView) base.push(reason || '');
+    base.push(r.vid || '');
+    if (!isRejView) base.push(reason || '');
+    base.push(
+      r.vurl  || '',   // full URL, not the truncated label
+      r.vmode || '',
+      r.ttype || '',
+      r.vin   || '',
+      r.sku   || '',
+      fmtDate(r.u),
+    );
+    return base;
+  });
+
+  return { headers, rows };
+}
+
+function extractTableFromDOM(){
   const table = $('modalBody').querySelector('table');
   if (!table) return { headers:[], rows:[] };
 
   // Pull header text (strip sort-indicator characters)
   const headers = Array.from(table.querySelectorAll('thead th')).map(th=>{
-    // Clone to safely strip sort indicator spans without mutating live DOM
     const c = th.cloneNode(true);
     c.querySelectorAll('.sort-ind').forEach(n => n.remove());
     return c.textContent.trim();
@@ -2543,11 +2605,8 @@ function extractModalTable(){
   // Pull body rows
   const rows = Array.from(table.querySelectorAll('tbody tr')).map(tr=>{
     return Array.from(tr.children).map(td => {
-      // If the cell contains a video link, export the full URL (the visible label
-      // is intentionally truncated for the on-screen view).
       const link = td.querySelector('a.v-link');
       if (link) return link.getAttribute('href') || '';
-      // Otherwise, fall back to readable text content (collapses pills/bars to their numbers).
       return td.textContent.replace(/\s+/g, ' ').trim();
     });
   });
@@ -2629,6 +2688,18 @@ function downloadModalPDF(){
   const { headers, rows } = extractModalTable();
   if (!rows.length){ alert('No data to download.'); return; }
   const ctx = modalContextLabel();
+
+  // PDF can render thousands of rows but at 5,000+ it gets slow and produces
+  // a multi-MB file that's painful to share. Suggest the lighter formats for huge sets.
+  if (rows.length > 5000){
+    const ok = confirm(
+      `This report has ${rows.length.toLocaleString()} rows.\n\n` +
+      `Generating a PDF this size will be slow and the file will be large.\n` +
+      `Excel or CSV are much faster for big exports.\n\n` +
+      `Continue with PDF anyway?`
+    );
+    if (!ok) return;
+  }
 
   const { jsPDF } = window.jspdf;
   // Landscape for wider tables
