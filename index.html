@@ -93,8 +93,7 @@
   body.view-performance #msPocObWrap,
   body.view-performance #msPocCsWrap,
   body.view-performance #msVerifiedWrap,
-  body.view-performance #msSlaWrap,
-  body.view-performance #msTempTypeWrap{display:none;}
+  body.view-performance #msSlaWrap{display:none;}
 
   /* User picker — large, prominent */
   .user-picker-block{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px 22px;margin-bottom:22px;display:flex;flex-wrap:wrap;align-items:center;gap:18px;}
@@ -223,10 +222,11 @@
   .kpi-arrow svg{width:14px;height:14px;display:block;}
 
   /* PANEL GRID — customizable */
-  .panel-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-bottom:16px;}
+  .panel-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:16px;margin-bottom:16px;}
   .panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px;min-width:0;transition:background .25s,border-color .25s;position:relative;}
-  .panel[data-size="full"]{grid-column:span 2;}
-  .panel[data-size="half"]{grid-column:span 1;}
+  .panel[data-size="full"]{grid-column:span 6;}
+  .panel[data-size="half"]{grid-column:span 3;}
+  .panel[data-size="third"]{grid-column:span 2;}
   .panel-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px;}
   .panel-title-wrap{flex:1;min-width:0;}
   .panel h3{margin:0;font-family:'Bricolage Grotesque',serif;font-size:16px;font-weight:600;letter-spacing:-.01em;}
@@ -248,6 +248,10 @@
   /* SLA PANEL */
   .sla-content{display:flex;flex-direction:column;gap:14px;padding-top:6px;}
   .sla-cells{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  /* In third-size panels the value digits get cramped at 2-up; tighten the
+     cell padding and slightly shrink the heading number for breathing room. */
+  .panel[data-size="third"] .sla-cell{padding:12px 14px;}
+  .panel[data-size="third"] .sla-num{font-size:26px;}
   .sla-cell{padding:14px 16px;border-radius:10px;background:var(--surface-2);border:1px solid var(--line);display:flex;flex-direction:column;align-items:flex-start;gap:4px;cursor:pointer;transition:transform .15s,box-shadow .15s,border-color .15s;}
   .sla-cell:hover{transform:translateY(-2px);box-shadow:0 4px 14px var(--shadow-md);border-color:var(--line-2);}
   .sla-cell.sla-in{border-left:3px solid var(--green);}
@@ -378,7 +382,7 @@
   body.edit-mode .edit-hint{display:flex;align-items:center;gap:8px;}
   [data-theme="dark"] .edit-hint{background:rgba(107,158,255,0.1);border-color:rgba(107,158,255,0.3);color:var(--accent);}
 
-  @media(max-width:900px){.panel-grid{grid-template-columns:1fr;}.panel[data-size="full"],.panel[data-size="half"]{grid-column:span 1;}.modal-panel{width:100vw;}}
+  @media(max-width:900px){.panel-grid{grid-template-columns:1fr;}.panel[data-size="full"],.panel[data-size="half"],.panel[data-size="third"]{grid-column:span 1;}.modal-panel{width:100vw;}}
   @media(max-width:600px){header,.filters,main{padding-left:16px;padding-right:16px;}.kpi-value{font-size:30px;}.modal-stats{gap:14px;padding:12px 18px;}.date-panel{min-width:0;width:calc(100vw - 32px);flex-direction:column;}.dp-presets{width:100%;border-right:none;border-bottom:1px solid var(--line);display:flex;flex-wrap:wrap;}}
 </style>
 </head>
@@ -619,7 +623,7 @@
       <div class="trend-legend" id="trendLegend"></div>
     </div>
 
-    <div class="panel" data-panel="sla" data-size="half">
+    <div class="panel" data-panel="sla" data-size="third">
       <div class="panel-header">
         <div class="panel-title-wrap">
           <h3>SLA performance</h3>
@@ -649,7 +653,7 @@
       </div>
     </div>
 
-    <div class="panel" data-panel="delivery" data-size="half">
+    <div class="panel" data-panel="delivery" data-size="third">
       <div class="panel-header">
         <div class="panel-title-wrap">
           <h3>Delivery rate</h3>
@@ -837,7 +841,7 @@
           <div class="trend-legend" id="perfTrendLegend"></div>
         </div>
 
-        <div class="panel" data-size="half">
+        <div class="panel" data-size="third">
           <div class="panel-header">
             <div class="panel-title-wrap">
               <h3>SLA performance</h3>
@@ -866,7 +870,7 @@
           </div>
         </div>
 
-        <div class="panel" data-size="half">
+        <div class="panel" data-size="third">
           <div class="panel-header">
             <div class="panel-title-wrap">
               <h3>Delivery vs Rejection</h3>
@@ -895,7 +899,7 @@
           </div>
         </div>
 
-        <div class="panel" data-size="full">
+        <div class="panel" data-size="third">
           <div class="panel-header">
             <div class="panel-title-wrap">
               <h3>Template breakdown</h3>
@@ -1092,17 +1096,17 @@ const sortState = { col: null, dir: null };  // dir: 'asc' | 'desc' | null
 // Layout — saved to localStorage. Bump key to v3 because schema changed (new panels).
 const DEFAULT_LAYOUT = [
   { id:'trend',    size:'full' },
-  { id:'sla',      size:'half' },
-  { id:'delivery', size:'half' },
-  { id:'tempType', size:'full' },
+  { id:'sla',      size:'third' },
+  { id:'delivery', size:'third' },
+  { id:'tempType', size:'third' },
   { id:'reasons',  size:'full' },
   { id:'topEnt',   size:'half' },
   { id:'topTeam',  size:'half' },
   { id:'topQc',    size:'half' },
   { id:'records',  size:'full' },
 ];
-let LAYOUT = (()=>{try{const s=JSON.parse(localStorage.getItem('opsDash_layout_v4'));if(Array.isArray(s)&&s.length)return s;}catch(e){}return DEFAULT_LAYOUT.slice();})();
-const saveLayout = ()=>{try{localStorage.setItem('opsDash_layout_v4',JSON.stringify(LAYOUT));}catch(e){}};
+let LAYOUT = (()=>{try{const s=JSON.parse(localStorage.getItem('opsDash_layout_v5'));if(Array.isArray(s)&&s.length)return s;}catch(e){}return DEFAULT_LAYOUT.slice();})();
+const saveLayout = ()=>{try{localStorage.setItem('opsDash_layout_v5',JSON.stringify(LAYOUT));}catch(e){}};
 
 // Merge any missing panels (e.g. older saved layout) so new panels show up automatically.
 (function reconcileLayout(){
@@ -2748,13 +2752,18 @@ function movePanel(id, dir){
 function togglePanelSize(id){
   const item = LAYOUT.find(p=>p.id===id);
   if (!item) return;
-  item.size = item.size==='full' ? 'half' : 'full';
+  // Cycle: full → half → third → full
+  const order = ['full', 'half', 'third'];
+  const idx = order.indexOf(item.size);
+  item.size = order[(idx + 1) % order.length] || 'full';
   saveLayout(); applyLayout(); renderEditControls();
   // resize → chart canvas size changed
   refresh();
 }
 
 function renderEditControls(){
+  // Short label shown on the size button to indicate current size at a glance
+  const sizeLabel = (s) => s === 'full' ? '1' : s === 'half' ? '½' : '⅓';
   document.querySelectorAll('[data-panel-ctl]').forEach(host=>{
     const id = host.dataset.panelCtl;
     const idx = LAYOUT.findIndex(p=>p.id===id);
@@ -2763,7 +2772,7 @@ function renderEditControls(){
     host.innerHTML = `
       <button class="ec-btn" data-act="up"     title="Move up"     ${idx===0?'disabled':''}>↑</button>
       <button class="ec-btn" data-act="down"   title="Move down"   ${idx===LAYOUT.length-1?'disabled':''}>↓</button>
-      <button class="ec-btn size-btn" data-act="size" title="Toggle size">${cur.size==='full'?'½':'1'}</button>
+      <button class="ec-btn size-btn" data-act="size" title="Cycle size (full / half / third)">${sizeLabel(cur.size)}</button>
     `;
     host.querySelectorAll('button').forEach(b=>{
       b.addEventListener('click', e=>{
@@ -3160,8 +3169,9 @@ function getUserRowsInRange(buckets){
     const t = r._created.getTime();
     if (t < startTs || t >= endTs) return false;
     // Shared filters that apply in this view
-    if (F.ent  && !F.ent.has(r.ent))   return false;
-    if (F.team && !F.team.has(r.team)) return false;
+    if (F.ent      && !F.ent.has(r.ent))           return false;
+    if (F.team     && !F.team.has(r.team))         return false;
+    if (F.tempType && !F.tempType.has(r.ttype||'')) return false;
     // Note: date filter from the picker (F.from/F.to) is intentionally NOT applied here —
     // the granularity tab IS the date filter for this view, otherwise picking
     // "1 year" while operations filter says "This month" would show nothing.
