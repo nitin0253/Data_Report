@@ -93,7 +93,8 @@
   body.view-performance #msPocObWrap,
   body.view-performance #msPocCsWrap,
   body.view-performance #msVerifiedWrap,
-  body.view-performance #msSlaWrap{display:none;}
+  body.view-performance #msSlaWrap,
+  body.view-performance #msTempTypeWrap{display:none;}
 
   /* User picker — large, prominent */
   .user-picker-block{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px 22px;margin-bottom:22px;display:flex;flex-wrap:wrap;align-items:center;gap:18px;}
@@ -567,6 +568,20 @@
         <div class="ms-list" id="msSlaList"></div>
       </div>
     </div>
+    <div class="f-group ms-wrap" id="msTempTypeWrap">
+      <label class="f-label">Temp Type</label>
+      <div class="ms-trigger compact" id="msTempTypeTrigger" tabindex="0">
+        <span class="ms-text" id="msTempTypeText">All</span>
+        <svg class="ms-chev" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="2,4 6,8 10,4"/></svg>
+      </div>
+      <div class="ms-panel" id="msTempTypePanel">
+        <div class="ms-actions">
+          <button class="ms-action" type="button" data-act="all" data-ms="tempType">Select all</button>
+          <button class="ms-action muted" type="button" data-act="none" data-ms="tempType">Clear all</button>
+        </div>
+        <div class="ms-list" id="msTempTypeList"></div>
+      </div>
+    </div>
     <button class="btn-reset" id="resetBtn">Reset</button>
   </div>
 </div>
@@ -587,7 +602,7 @@
       <div class="panel-header">
         <div class="panel-title-wrap">
           <h3>Throughput trend</h3>
-          <div class="panel-sub" id="trendSub">received · delivered · rejected</div>
+          <div class="panel-sub" id="trendSub">received · delivered · rejected · dare · turbo</div>
         </div>
         <div style="display:flex;align-items:center;gap:8px;">
           <div class="trend-tabs" id="trendTabs">
@@ -664,6 +679,36 @@
       </div>
     </div>
 
+    <div class="panel" data-panel="tempType" data-size="full">
+      <div class="panel-header">
+        <div class="panel-title-wrap">
+          <h3>Template breakdown</h3>
+          <div class="panel-sub">Dare vs Turbo · click to drill</div>
+        </div>
+        <div class="edit-controls" data-panel-ctl="tempType"></div>
+      </div>
+      <div class="sla-content">
+        <div class="sla-cells">
+          <div class="sla-cell sla-in" id="ttCellDare" tabindex="0" role="button" style="border-left-color:var(--accent);">
+            <div class="sla-num blue" id="ttNumDare" style="color:var(--accent);">—</div>
+            <div class="sla-pct" id="ttPctDare">—%</div>
+            <div class="sla-cell-label">Dare</div>
+          </div>
+          <div class="sla-cell sla-out" id="ttCellTurbo" tabindex="0" role="button" style="border-left-color:var(--purple);">
+            <div class="sla-num" id="ttNumTurbo" style="color:var(--purple);">—</div>
+            <div class="sla-pct" id="ttPctTurbo">—%</div>
+            <div class="sla-cell-label">Turbo</div>
+          </div>
+        </div>
+        <div class="sla-bar"><div class="sla-bar-in" id="ttBarDare" style="background:var(--accent);"></div><div class="sla-bar-out" id="ttBarTurbo" style="background:var(--purple);"></div></div>
+        <div class="sla-tick"><span>0%</span><span>100%</span></div>
+        <div class="sla-bottom">
+          <span id="ttExtraMeta">—</span>
+          <span id="ttMeta">—</span>
+        </div>
+      </div>
+    </div>
+
     <div class="panel" data-panel="reasons" data-size="full">
       <div class="panel-header">
         <div class="panel-title-wrap">
@@ -735,6 +780,7 @@
             <th class="sortable" data-sort="vid">Video ID<span class="sort-ind">↕</span></th>
             <th class="sortable" data-sort="vurl">Video URL<span class="sort-ind">↕</span></th>
             <th class="sortable" data-sort="vmode">View Mode<span class="sort-ind">↕</span></th>
+            <th class="sortable" data-sort="ttype">Temp Type<span class="sort-ind">↕</span></th>
             <th class="sortable" data-sort="vin">VIN<span class="sort-ind">↕</span></th>
             <th class="sortable" data-sort="sku">SKU ID<span class="sort-ind">↕</span></th>
             <th class="sortable" data-sort="_updated">Updated<span class="sort-ind">↕</span></th>
@@ -845,6 +891,35 @@
             <div class="sla-bottom">
               <span>Pending: <strong id="perfPendCount">—</strong></span>
               <span id="perfDelvMeta">—</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel" data-size="full">
+          <div class="panel-header">
+            <div class="panel-title-wrap">
+              <h3>Template breakdown</h3>
+              <div class="panel-sub">Dare vs Turbo for this user · click to drill</div>
+            </div>
+          </div>
+          <div class="sla-content">
+            <div class="sla-cells">
+              <div class="sla-cell sla-in" id="perfTtCellDare" tabindex="0" role="button" style="border-left-color:var(--accent);">
+                <div class="sla-num" id="perfTtNumDare" style="color:var(--accent);">—</div>
+                <div class="sla-pct" id="perfTtPctDare">—%</div>
+                <div class="sla-cell-label">Dare</div>
+              </div>
+              <div class="sla-cell sla-out" id="perfTtCellTurbo" tabindex="0" role="button" style="border-left-color:var(--purple);">
+                <div class="sla-num" id="perfTtNumTurbo" style="color:var(--purple);">—</div>
+                <div class="sla-pct" id="perfTtPctTurbo">—%</div>
+                <div class="sla-cell-label">Turbo</div>
+              </div>
+            </div>
+            <div class="sla-bar"><div class="sla-bar-in" id="perfTtBarDare" style="background:var(--accent);"></div><div class="sla-bar-out" id="perfTtBarTurbo" style="background:var(--purple);"></div></div>
+            <div class="sla-tick"><span>0%</span><span>100%</span></div>
+            <div class="sla-bottom">
+              <span id="perfTtExtraMeta">—</span>
+              <span id="perfTtMeta">—</span>
             </div>
           </div>
         </div>
@@ -1007,6 +1082,7 @@ const F = {
   ent:null, team:null,
   user:null, pocOb:null, pocCs:null,
   verified:null, sla:null,
+  tempType:null,
   rejReason: null,   // string | null — when set, filter to rejected rows whose reason matches
 };
 
@@ -1018,14 +1094,15 @@ const DEFAULT_LAYOUT = [
   { id:'trend',    size:'full' },
   { id:'sla',      size:'half' },
   { id:'delivery', size:'half' },
+  { id:'tempType', size:'full' },
   { id:'reasons',  size:'full' },
   { id:'topEnt',   size:'half' },
   { id:'topTeam',  size:'half' },
   { id:'topQc',    size:'half' },
   { id:'records',  size:'full' },
 ];
-let LAYOUT = (()=>{try{const s=JSON.parse(localStorage.getItem('opsDash_layout_v3'));if(Array.isArray(s)&&s.length)return s;}catch(e){}return DEFAULT_LAYOUT.slice();})();
-const saveLayout = ()=>{try{localStorage.setItem('opsDash_layout_v3',JSON.stringify(LAYOUT));}catch(e){}};
+let LAYOUT = (()=>{try{const s=JSON.parse(localStorage.getItem('opsDash_layout_v4'));if(Array.isArray(s)&&s.length)return s;}catch(e){}return DEFAULT_LAYOUT.slice();})();
+const saveLayout = ()=>{try{localStorage.setItem('opsDash_layout_v4',JSON.stringify(LAYOUT));}catch(e){}};
 
 // Merge any missing panels (e.g. older saved layout) so new panels show up automatically.
 (function reconcileLayout(){
@@ -1077,6 +1154,7 @@ function passesFilters(r){
   if (F.pocOb    && !F.pocOb.has(r.poc_ob||''))         return false;
   if (F.pocCs    && !F.pocCs.has(r.poc_cs||''))         return false;
   if (F.verified && !F.verified.has(r.ver))             return false;
+  if (F.tempType && !F.tempType.has(r.ttype||''))       return false;
   if (F.sla){
     if (F.sla.size === 0) return false;
     const isWithin = r.sla === 1;
@@ -1105,7 +1183,7 @@ function passesFilters(r){
 
 function buildFilterScopes(){
   // Build option lists from the full dataset so dropdowns don't shrink as filters apply.
-  const ent=new Set(),team=new Set(),user=new Set(),ver=new Set(),pocOb=new Set(),pocCs=new Set();
+  const ent=new Set(),team=new Set(),user=new Set(),ver=new Set(),pocOb=new Set(),pocCs=new Set(),tt=new Set();
   for (const r of RAW){
     if (r.ent) ent.add(r.ent);
     if (r.team) team.add(r.team);
@@ -1113,6 +1191,7 @@ function buildFilterScopes(){
     if (r.ver) ver.add(r.ver);
     if (r.poc_ob) pocOb.add(r.poc_ob);
     if (r.poc_cs) pocCs.add(r.poc_cs);
+    if (r.ttype) tt.add(r.ttype);
   }
   return {
     enterpriseList: [...ent].sort(),
@@ -1121,6 +1200,7 @@ function buildFilterScopes(){
     verifiedList:   [...ver].sort(),
     pocObList:      [...pocOb].sort(),
     pocCsList:      [...pocCs].sort(),
+    tempTypeList:   [...tt].sort(),
   };
 }
 
@@ -1128,6 +1208,7 @@ function aggregate(rows){
   let totalReceived=0,totalDelivered=0,totalRejected=0,totalPending=0;
   let withinSla=0,outOfSla=0;
   let tatSum=0,tatCount=0;
+  let dareCount=0, turboCount=0, ttOtherCount=0, ttBlankCount=0;
   const entCount={},teamCount={},qcCount={};
   const entBreak={},teamBreak={};
   const reasonsCount={};                 // case-normalized rejected reason counts
@@ -1165,6 +1246,13 @@ function aggregate(rows){
     }
 
     if (typeof r.tat === 'number' && isFinite(r.tat)) { tatSum += r.tat; tatCount++; }
+
+    // Tally Temp Type. Match case-insensitively but bucket into the canonical labels.
+    const tt = (r.ttype||'').trim();
+    if (!tt)                            ttBlankCount++;
+    else if (tt.toLowerCase() === 'dare')  dareCount++;
+    else if (tt.toLowerCase() === 'turbo') turboCount++;
+    else                                   ttOtherCount++;
 
     if (r.ent)  entCount[r.ent]   = (entCount[r.ent]||0)+1;
     if (r.team) teamCount[r.team] = (teamCount[r.team]||0)+1;
@@ -1226,6 +1314,7 @@ function aggregate(rows){
     topQc:   slice(sortDesc(qcCount),   15),
     topReasons, topReasonsKeys,
     entBreak, teamBreak, entPoc, teamPoc,
+    dareCount, turboCount, ttOtherCount, ttBlankCount,
   };
 }
 
@@ -1279,7 +1368,7 @@ function bucketTrend(rows, range){
     }
   }
 
-  const result = buckets.map(b => ({...b, received:0, delivered:0, rejected:0}));
+  const result = buckets.map(b => ({...b, received:0, delivered:0, rejected:0, dare:0, turbo:0}));
   for (const r of rows){
     if (!r._created) continue;
     const t = r._created.getTime();
@@ -1288,6 +1377,9 @@ function bucketTrend(rows, range){
         b.received++;
         if (isDelivered(r)) b.delivered++;
         else if (isRejected(r)) b.rejected++;
+        const tt = (r.ttype||'').trim().toLowerCase();
+        if (tt === 'dare') b.dare++;
+        else if (tt === 'turbo') b.turbo++;
         break;
       }
     }
@@ -1340,9 +1432,11 @@ function mkTrend(canvas, buckets){
   if (!buckets || !buckets.length) return;
   const PAL = getPal();
   const labels = buckets.map(b=>b.label);
-  const recv = buckets.map(b=>b.received);
-  const dlvd = buckets.map(b=>b.delivered);
-  const rejd = buckets.map(b=>b.rejected);
+  const recv  = buckets.map(b=>b.received);
+  const dlvd  = buckets.map(b=>b.delivered);
+  const rejd  = buckets.map(b=>b.rejected);
+  const dare  = buckets.map(b=>b.dare  || 0);
+  const turbo = buckets.map(b=>b.turbo || 0);
 
   // Theme-aware gradient under the Received line. The fill must use the CURRENT
   // accent color (light=navy, dark=blue) so the chart re-renders correctly on toggle.
@@ -1407,6 +1501,32 @@ function mkTrend(canvas, buckets){
           padding:{top:2, bottom:2},
         },
       },
+      { label:'Dare',  data:dare,  borderColor:PAL.accent, backgroundColor:'transparent',
+        borderWidth:1.6, tension:0.35, pointRadius:2, pointHoverRadius:5,
+        pointBackgroundColor:PAL.accent, pointBorderColor:pointBorder, pointBorderWidth:0,
+        pointHoverBackgroundColor:PAL.accent, pointHoverBorderColor:pointBorder, pointHoverBorderWidth:2,
+        fill:false, borderDash:[2,3],
+        datalabels:{
+          align:'bottom', anchor:'end',
+          color:PAL.accent,
+          font:{family:"'JetBrains Mono',monospace", size:9, weight:'600'},
+          formatter:v=> v>0 ? v.toLocaleString() : '',
+          padding:{top:1, bottom:1},
+        },
+      },
+      { label:'Turbo', data:turbo, borderColor:PAL.purple, backgroundColor:'transparent',
+        borderWidth:1.6, tension:0.35, pointRadius:2, pointHoverRadius:5,
+        pointBackgroundColor:PAL.purple, pointBorderColor:pointBorder, pointBorderWidth:0,
+        pointHoverBackgroundColor:PAL.purple, pointHoverBorderColor:pointBorder, pointHoverBorderWidth:2,
+        fill:false, borderDash:[2,3],
+        datalabels:{
+          align:'top', anchor:'end', clamp:true,
+          color:PAL.purple,
+          font:{family:"'JetBrains Mono',monospace", size:9, weight:'600'},
+          formatter:v=> v>0 ? v.toLocaleString() : '',
+          padding:{top:1, bottom:1},
+        },
+      },
     ] },
     options:{
       responsive:true, maintainAspectRatio:false,
@@ -1429,8 +1549,14 @@ function mkTrend(canvas, buckets){
     },
   });
 
-  const totals = { Received: recv.reduce((a,b)=>a+b,0), Delivered: dlvd.reduce((a,b)=>a+b,0), Rejected: rejd.reduce((a,b)=>a+b,0) };
-  const cols = { Received: PAL.accent, Delivered: PAL.green, Rejected: PAL.red };
+  const totals = {
+    Received:  recv.reduce((a,b)=>a+b,0),
+    Delivered: dlvd.reduce((a,b)=>a+b,0),
+    Rejected:  rejd.reduce((a,b)=>a+b,0),
+    Dare:      dare.reduce((a,b)=>a+b,0),
+    Turbo:     turbo.reduce((a,b)=>a+b,0),
+  };
+  const cols = { Received:PAL.accent, Delivered:PAL.green, Rejected:PAL.red, Dare:PAL.accent, Turbo:PAL.purple };
   $('trendLegend').innerHTML = Object.entries(totals).map(([k,v])=>
     `<div class="trend-legend-item"><span class="ldot" style="background:${cols[k]}"></span><span>${k}: </span><span class="lval">${v.toLocaleString()}</span></div>`
   ).join('');
@@ -1552,6 +1678,29 @@ function paintDelivery(k){
   $('delvMeta').textContent = total ? `${num(total)} received in view` : 'No records in view';
 }
 
+function paintTempType(k){
+  const dare  = k.dareCount  || 0;
+  const turbo = k.turboCount || 0;
+  const other = k.ttOtherCount || 0;
+  const blank = k.ttBlankCount || 0;
+  // Denominator is Dare + Turbo only (the two canonical templates the panel exposes)
+  const known = dare + turbo;
+  const pctDare  = known ? (dare/known)*100  : 0;
+  const pctTurbo = known ? (turbo/known)*100 : 0;
+  $('ttNumDare').textContent  = num(dare);
+  $('ttNumTurbo').textContent = num(turbo);
+  $('ttPctDare').textContent  = known ? pctDare.toFixed(1)+'%'  : '—%';
+  $('ttPctTurbo').textContent = known ? pctTurbo.toFixed(1)+'%' : '—%';
+  $('ttBarDare').style.width  = pctDare+'%';
+  $('ttBarTurbo').style.width = pctTurbo+'%';
+  // Surface "other" / blank counts so they're not silently dropped
+  const extras = [];
+  if (other) extras.push(`${num(other)} other`);
+  if (blank) extras.push(`${num(blank)} unspecified`);
+  $('ttExtraMeta').textContent = extras.length ? extras.join(' · ') : '\u00a0';
+  $('ttMeta').textContent      = known ? `${num(known)} Dare + Turbo records` : 'No Dare/Turbo records in view';
+}
+
 function paint(){
   if (!RAW.length) return;
   const t0 = performance.now();
@@ -1571,6 +1720,7 @@ function paint(){
   // SLA + Delivery panels
   paintSla(k);
   paintDelivery(k);
+  paintTempType(k);
 
   // Top-X horizontal bars
   const PAL = getPal();
@@ -1608,6 +1758,7 @@ function paint(){
     if (F.pocOb    && !F.pocOb.has(r.poc_ob||'')) return false;
     if (F.pocCs    && !F.pocCs.has(r.poc_cs||'')) return false;
     if (F.verified && !F.verified.has(r.ver))      return false;
+    if (F.tempType && !F.tempType.has(r.ttype||'')) return false;
     if (F.sla){
       if (F.sla.size === 0) return false;
       const isW = r.sla === 1, isO = r.sla === 0;
@@ -1642,7 +1793,7 @@ function paint(){
   $('tCount').textContent = `${num(recent.length)} of ${num(filtered.length)} filtered (${num(RAW.length)} total)`;
   updateSortIndicators();
   $('tBody').innerHTML = !recent.length
-    ? `<tr><td colspan="16" class="empty">No records match these filters.</td></tr>`
+    ? `<tr><td colspan="17" class="empty">No records match these filters.</td></tr>`
     : recent.map(r=>{
         const isD=isDelivered(r), isR=isRejected(r);
         const pill = isD?'<span class="pill delivered">Delivered</span>'
@@ -1651,7 +1802,7 @@ function paint(){
         const slaPill = r.sla===1?'<span class="pill sla-in">In</span>'
                        :r.sla===0?'<span class="pill sla-out">Out</span>'
                                  :'<span class="pill">—</span>';
-        return `<tr><td class="mono">${esc(fmtDate(r.c))}</td><td>${esc(r.ent||'—')}</td><td>${esc(r.team||'—')}</td><td>${esc(r.qc||'—')}</td><td>${esc(r.poc_ob||'—')}</td><td>${esc(r.poc_cs||'—')}</td><td>${pill}</td><td>${slaPill}</td><td class="mono">${esc(fmtTatHrs(r.tat))}</td><td title="${esc(r.rej||'')}">${esc(r.rej||'—')}</td><td class="mono">${esc(r.vid||'—')}</td><td>${videoLink(r.vurl)}</td><td class="mono">${esc(r.vmode||'—')}</td><td class="mono">${esc(r.vin||'—')}</td><td class="mono">${esc(r.sku||'—')}</td><td class="mono">${esc(fmtDate(r.u))}</td></tr>`;
+        return `<tr><td class="mono">${esc(fmtDate(r.c))}</td><td>${esc(r.ent||'—')}</td><td>${esc(r.team||'—')}</td><td>${esc(r.qc||'—')}</td><td>${esc(r.poc_ob||'—')}</td><td>${esc(r.poc_cs||'—')}</td><td>${pill}</td><td>${slaPill}</td><td class="mono">${esc(fmtTatHrs(r.tat))}</td><td title="${esc(r.rej||'')}">${esc(r.rej||'—')}</td><td class="mono">${esc(r.vid||'—')}</td><td>${videoLink(r.vurl)}</td><td class="mono">${esc(r.vmode||'—')}</td><td class="mono">${esc(r.ttype||'—')}</td><td class="mono">${esc(r.vin||'—')}</td><td class="mono">${esc(r.sku||'—')}</td><td class="mono">${esc(fmtDate(r.u))}</td></tr>`;
       }).join('');
 
   console.log(`[paint] ${filtered.length} rows in ${(performance.now()-t0).toFixed(1)}ms`);
@@ -1715,6 +1866,7 @@ async function syncFromServer({silent=false, force=false}={}){
     msPocCs.setOptions(sc.pocCsList);
     msVerified.setOptions(sc.verifiedList);
     msSla.setOptions(['Within SLA','Out of SLA']);
+    msTempType.setOptions(sc.tempTypeList);
 
     refresh();
   } catch (err) {
@@ -1863,9 +2015,15 @@ const msSla = createMultiSelect({
   singularLabel:'SLA state', pluralLabel:'SLA states',
   onChange: ()=> refresh(),
 });
+const msTempType = createMultiSelect({
+  field:'tempType', triggerId:'msTempTypeTrigger', panelId:'msTempTypePanel',
+  textId:'msTempTypeText', searchId:null, listId:'msTempTypeList',
+  singularLabel:'Temp Type', pluralLabel:'temp types',
+  onChange: ()=> refresh(),
+});
 
-const MS_INSTANCES = [msEnt, msTeam, msUser, msPocOb, msPocCs, msVerified, msSla];
-const MS_WRAPS = ['msEntWrap','msTeamWrap','msUserWrap','msPocObWrap','msPocCsWrap','msVerifiedWrap','msSlaWrap'];
+const MS_INSTANCES = [msEnt, msTeam, msUser, msPocOb, msPocCs, msVerified, msSla, msTempType];
+const MS_WRAPS = ['msEntWrap','msTeamWrap','msUserWrap','msPocObWrap','msPocCsWrap','msVerifiedWrap','msSlaWrap','msTempTypeWrap'];
 
 // Close any open multi-select on outside click
 document.addEventListener('mousedown', e=>{
@@ -1885,7 +2043,7 @@ $('resetBtn').addEventListener('click', ()=>{
     preset:'this_month', from:r.from, to:r.to,
     ent:null, team:null,
     user:null, pocOb:null, pocCs:null,
-    verified:null, sla:null,
+    verified:null, sla:null, tempType:null,
     rejReason: null,
   });
   refreshMsTriggers();
@@ -2077,6 +2235,14 @@ function bindSlaCells(){
   $('delvCellRej').addEventListener('click', openNot);
   $('delvCellDone').addEventListener('keydown', e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openDelv();}});
   $('delvCellRej').addEventListener('keydown',  e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openNot();}});
+
+  // Temp Type cells
+  const openDare  = ()=>openDrill({label:'Dare template',  sub:'records using Dare template',  view:'tt_dare',  kind:'records'});
+  const openTurbo = ()=>openDrill({label:'Turbo template', sub:'records using Turbo template', view:'tt_turbo', kind:'records'});
+  $('ttCellDare').addEventListener('click', openDare);
+  $('ttCellTurbo').addEventListener('click', openTurbo);
+  $('ttCellDare').addEventListener('keydown',  e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openDare();}});
+  $('ttCellTurbo').addEventListener('keydown', e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openTurbo();}});
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -2098,6 +2264,7 @@ function activeFilterChips(){
   setChip('POC CS',     F.pocCs);
   setChip('Verified',   F.verified);
   setChip('SLA',        F.sla);
+  setChip('Temp Type',  F.tempType);
   if (F.rejReason) chips.push(`<span class="chip">Reason <strong>filtered</strong></span>`);
   return chips.length?chips.join(''):'<span class="chip">No filters</span>';
 }
@@ -2110,6 +2277,8 @@ function drillSubset(rows, view){
     case 'not_delivered': return rows.filter(r => !isDelivered(r));
     case 'within_sla':    return rows.filter(r => isDelivered(r) && r.sla===1);
     case 'out_of_sla':    return rows.filter(r => isDelivered(r) && r.sla===0);
+    case 'tt_dare':       return rows.filter(r => (r.ttype||'').trim().toLowerCase()==='dare');
+    case 'tt_turbo':      return rows.filter(r => (r.ttype||'').trim().toLowerCase()==='turbo');
     case 'tat':           return rows.filter(r => typeof r.tat==='number').sort((a,b)=>(b.tat||0)-(a.tat||0));
     default:              return rows;
   }
@@ -2206,6 +2375,7 @@ function renderRecordsModal(){
     !isRejView ? reasonTh : '',
     sortableTh('vurl',     'Video URL'),
     sortableTh('vmode',    'View Mode'),
+    sortableTh('ttype',    'Temp Type'),
     sortableTh('vin',      'VIN'),
     sortableTh('sku',      'SKU ID'),
     sortableTh('_updated', 'Updated'),
@@ -2214,12 +2384,12 @@ function renderRecordsModal(){
   $('modalBody').innerHTML = `
     <table>
       <thead><tr>${headHTML}</tr></thead>
-      <tbody>${shown.length===0?`<tr><td colspan="16" class="empty">No records match.</td></tr>`:shown.map(r=>{
+      <tbody>${shown.length===0?`<tr><td colspan="17" class="empty">No records match.</td></tr>`:shown.map(r=>{
         const isD=isDelivered(r), isR=isRejected(r);
         const pill = isD?'<span class="pill delivered">Delivered</span>':isR?'<span class="pill rejected">Rejected</span>':'<span class="pill pending">Pending</span>';
         const slaPill = r.sla===1?'<span class="pill sla-in">In</span>':r.sla===0?'<span class="pill sla-out">Out</span>':'<span class="pill">—</span>';
         const reasonCell = `<td title="${esc(r.rej||'')}" style="max-width:240px;white-space:normal;">${esc(r.rej||'—')}</td>`;
-        return `<tr><td class="mono">${esc(fmtDate(r.c))}</td><td>${esc(r.ent||'—')}</td><td>${esc(r.team||'—')}</td><td>${esc(r.qc||'—')}</td><td>${esc(r.poc_ob||'—')}</td><td>${esc(r.poc_cs||'—')}</td><td>${pill}</td><td>${slaPill}</td><td class="mono">${esc(fmtTatHrs(r.tat))}</td>${isRejView?reasonCell:''}<td class="mono">${esc(r.vid||'—')}</td>${!isRejView?reasonCell:''}<td>${videoLink(r.vurl)}</td><td class="mono">${esc(r.vmode||'—')}</td><td class="mono">${esc(r.vin||'—')}</td><td class="mono">${esc(r.sku||'—')}</td><td class="mono">${esc(fmtDate(r.u))}</td></tr>`;
+        return `<tr><td class="mono">${esc(fmtDate(r.c))}</td><td>${esc(r.ent||'—')}</td><td>${esc(r.team||'—')}</td><td>${esc(r.qc||'—')}</td><td>${esc(r.poc_ob||'—')}</td><td>${esc(r.poc_cs||'—')}</td><td>${pill}</td><td>${slaPill}</td><td class="mono">${esc(fmtTatHrs(r.tat))}</td>${isRejView?reasonCell:''}<td class="mono">${esc(r.vid||'—')}</td>${!isRejView?reasonCell:''}<td>${videoLink(r.vurl)}</td><td class="mono">${esc(r.vmode||'—')}</td><td class="mono">${esc(r.ttype||'—')}</td><td class="mono">${esc(r.vin||'—')}</td><td class="mono">${esc(r.sku||'—')}</td><td class="mono">${esc(fmtDate(r.u))}</td></tr>`;
       }).join('')}</tbody>
     </table>`;
   $('modalCount').textContent = `Showing ${num(shown.length)} of ${num(rows.length)}` + (shown.length>=500 && rows.length>500 ? ' (latest 500)' : '');
@@ -3000,7 +3170,7 @@ function getUserRowsInRange(buckets){
 }
 
 function bucketizeUserRows(rows, buckets){
-  const result = buckets.map(b => ({ ...b, received:0, delivered:0, rejected:0, withinSla:0, outOfSla:0 }));
+  const result = buckets.map(b => ({ ...b, received:0, delivered:0, rejected:0, withinSla:0, outOfSla:0, dare:0, turbo:0 }));
   for (const r of rows){
     const t = r._created.getTime();
     for (const b of result){
@@ -3013,6 +3183,9 @@ function bucketizeUserRows(rows, buckets){
         } else if (isRejected(r)){
           b.rejected++;
         }
+        const tt = (r.ttype||'').trim().toLowerCase();
+        if (tt === 'dare') b.dare++;
+        else if (tt === 'turbo') b.turbo++;
         break;
       }
     }
@@ -3168,6 +3341,25 @@ function renderPerformance(){
   $('perfPendCount').textContent   = num(k.totalPending||0);
   $('perfDelvMeta').textContent    = delvSum ? `${num(delvSum)} closed records` : 'no closed records';
 
+  // ── Template breakdown panel ─────────────────────────────────
+  // Reuses the dare/turbo/other/blank counters from aggregate(rows)
+  const tDare = k.dareCount || 0, tTurbo = k.turboCount || 0;
+  const tKnown = tDare + tTurbo;
+  const tOther = k.ttOtherCount || 0, tBlank = k.ttBlankCount || 0;
+  const pctTDare  = tKnown ? (tDare/tKnown)*100  : 0;
+  const pctTTurbo = tKnown ? (tTurbo/tKnown)*100 : 0;
+  $('perfTtNumDare').textContent  = num(tDare);
+  $('perfTtNumTurbo').textContent = num(tTurbo);
+  $('perfTtPctDare').textContent  = tKnown ? pctTDare.toFixed(1)+'%'  : '—%';
+  $('perfTtPctTurbo').textContent = tKnown ? pctTTurbo.toFixed(1)+'%' : '—%';
+  $('perfTtBarDare').style.width  = pctTDare+'%';
+  $('perfTtBarTurbo').style.width = pctTTurbo+'%';
+  const tExtras = [];
+  if (tOther) tExtras.push(`${num(tOther)} other`);
+  if (tBlank) tExtras.push(`${num(tBlank)} unspecified`);
+  $('perfTtExtraMeta').textContent = tExtras.length ? tExtras.join(' · ') : '\u00a0';
+  $('perfTtMeta').textContent      = tKnown ? `${num(tKnown)} Dare + Turbo records` : 'No Dare/Turbo records';
+
   // ── Efficiency trend chart ───────────────────────────────────
   renderPerfTrend(bucketed);
 
@@ -3188,6 +3380,8 @@ function renderPerfTrend(buckets){
   const dlvd   = buckets.map(b => b.delivered);
   const rejd   = buckets.map(b => b.rejected);
   const within = buckets.map(b => b.withinSla);
+  const dare   = buckets.map(b => b.dare  || 0);
+  const turbo  = buckets.map(b => b.turbo || 0);
 
   // Same theme-aware gradient as the operations trend
   function hexToRgba(hex, a){
@@ -3264,6 +3458,30 @@ function renderPerfTrend(buckets){
           padding:{top:1,bottom:1},
         },
       },
+      { label:'Dare',  data:dare,  borderColor:PAL.accent, backgroundColor:'transparent',
+        borderWidth:1.6, tension:0.35, pointRadius:isDaily?2:2, pointHoverRadius:5,
+        pointBackgroundColor:PAL.accent, pointBorderColor:pointBorder, pointBorderWidth:0,
+        pointHoverBackgroundColor:PAL.accent, pointHoverBorderColor:pointBorder, pointHoverBorderWidth:2,
+        fill:false, borderDash:[2,3],
+        datalabels:{
+          align:'top', anchor:'end', clamp:true,
+          color:PAL.accent, font:{family:"'JetBrains Mono',monospace", size:9, weight:'600'},
+          formatter:v=> v>0 ? v.toLocaleString() : '',
+          padding:{top:1,bottom:1},
+        },
+      },
+      { label:'Turbo', data:turbo, borderColor:PAL.purple, backgroundColor:'transparent',
+        borderWidth:1.6, tension:0.35, pointRadius:isDaily?2:2, pointHoverRadius:5,
+        pointBackgroundColor:PAL.purple, pointBorderColor:pointBorder, pointBorderWidth:0,
+        pointHoverBackgroundColor:PAL.purple, pointHoverBorderColor:pointBorder, pointHoverBorderWidth:2,
+        fill:false, borderDash:[2,3],
+        datalabels:{
+          align:'bottom', anchor:'end', clamp:true,
+          color:PAL.purple, font:{family:"'JetBrains Mono',monospace", size:9, weight:'600'},
+          formatter:v=> v>0 ? v.toLocaleString() : '',
+          padding:{top:1,bottom:1},
+        },
+      },
     ] },
     options:{
       responsive:true, maintainAspectRatio:false,
@@ -3291,8 +3509,10 @@ function renderPerfTrend(buckets){
     Delivered: dlvd.reduce((a,b)=>a+b,0),
     Rejected:  rejd.reduce((a,b)=>a+b,0),
     'Within SLA': within.reduce((a,b)=>a+b,0),
+    Dare:      dare.reduce((a,b)=>a+b,0),
+    Turbo:     turbo.reduce((a,b)=>a+b,0),
   };
-  const cols = { Received:PAL.accent, Delivered:PAL.green, Rejected:PAL.red, 'Within SLA':PAL.teal };
+  const cols = { Received:PAL.accent, Delivered:PAL.green, Rejected:PAL.red, 'Within SLA':PAL.teal, Dare:PAL.accent, Turbo:PAL.purple };
   $('perfTrendLegend').innerHTML = Object.entries(totals).map(([k,v])=>
     `<div class="trend-legend-item"><span class="ldot" style="background:${cols[k]}"></span><span>${k}: </span><span class="lval">${v.toLocaleString()}</span></div>`
   ).join('');
@@ -3302,7 +3522,7 @@ function renderPerfTrend(buckets){
     '6weeks':    'last 6 weeks',
     months:      'last 6 months',
     year:        'last 12 months',
-  })[PV.gran] + ' · received · delivered · rejected · within SLA';
+  })[PV.gran] + ' · received · delivered · rejected · within SLA · dare · turbo';
 }
 
 function renderPerfEntTable(rows){
@@ -3482,11 +3702,18 @@ function bindPerfDrillCells(){
   const openSlaOut = ()=> openCustomDrill('Out of SLA · ' + PV.user, userRowsAll().filter(r=>isDelivered(r) && r.sla===0));
   const openDelv   = ()=> openCustomDrill('Delivered · ' + PV.user,  userRowsAll().filter(isDelivered));
   const openRej    = ()=> openCustomDrill('Rejected · ' + PV.user,   userRowsAll().filter(isRejected));
+  const openDare   = ()=> openCustomDrill('Dare template · ' + PV.user,  userRowsAll().filter(r => (r.ttype||'').trim().toLowerCase()==='dare'));
+  const openTurbo  = ()=> openCustomDrill('Turbo template · ' + PV.user, userRowsAll().filter(r => (r.ttype||'').trim().toLowerCase()==='turbo'));
 
   $('perfSlaCellIn').addEventListener('click',  openSlaIn);
   $('perfSlaCellOut').addEventListener('click', openSlaOut);
   $('perfDelvCellDone').addEventListener('click', openDelv);
   $('perfDelvCellRej').addEventListener('click',  openRej);
+  $('perfTtCellDare').addEventListener('click',  openDare);
+  $('perfTtCellTurbo').addEventListener('click', openTurbo);
+  // Keyboard parity with the operations panel
+  $('perfTtCellDare').addEventListener('keydown',  e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openDare();}});
+  $('perfTtCellTurbo').addEventListener('keydown', e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openTurbo();}});
 }
 
 // Lightweight drill that bypasses the global filter aggregation — uses passed-in rows directly.
