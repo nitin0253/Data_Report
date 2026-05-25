@@ -230,7 +230,7 @@
   .panel-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px;}
   .panel-title-wrap{flex:1;min-width:0;}
   .panel h3{margin:0;font-family:'Bricolage Grotesque',serif;font-size:16px;font-weight:600;letter-spacing:-.01em;}
-  .panel-sub{font-family:'JetBrains Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-top:4px;}
+  .panel-sub{font-family:'JetBrains Mono',monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-2);margin-top:4px;}
   .chart-wrap{position:relative;height:300px;}
   .chart-wrap.tall{height:340px;}
   .chart-wrap.short{height:260px;}
@@ -1620,8 +1620,8 @@ function mkBar(id, canvas, map, opts={}){
     data:{ labels, datasets:[{
       data:values, backgroundColor: opts.color || PAL.accent,
       borderRadius:4, maxBarThickness:22,
-      datalabels:{ anchor:'end', align:opts.h?'end':'top', color:PAL.muted,
-        font:{family:"'JetBrains Mono',monospace",size:10},
+      datalabels:{ anchor:'end', align:opts.h?'end':'top', color:PAL.ink,
+        font:{family:"'JetBrains Mono',monospace",size:10, weight:'500'},
         formatter: opts.formatter || (v=>v.toLocaleString()) },
     }] },
     options:{
@@ -1639,11 +1639,26 @@ function mkBar(id, canvas, map, opts={}){
       },
       onClick:(_, items)=>{ if (!items.length || !opts.onPick) return; opts.onPick(labels[items[0].index]); },
       scales:{
-        x:{ grid:{color:PAL.line, display:!opts.h}, ticks:{font:{size:11},color:PAL.muted}, beginAtZero:opts.h },
-        // Data is passed in DESC order, so default category-axis rendering
-        // (first label at top) puts the largest bar on top. Do NOT reverse.
-        y:{ grid:{color:PAL.line, display:opts.h}, ticks:{font:{size:11},color:PAL.muted, autoSkip:false},
-            beginAtZero:!opts.h },
+        // Value axis stays muted — the numeric scale is supporting info, not the story.
+        // Category axis gets the brighter ink color since those labels (enterprise names,
+        // user emails, rejection reasons) are the actual content the reader is scanning.
+        x:{
+          grid:{color:PAL.line, display:!opts.h},
+          ticks:{
+            font:{size:11},
+            color: opts.h ? PAL.muted : PAL.ink,   // value axis when h, else category axis
+          },
+          beginAtZero:opts.h,
+        },
+        y:{
+          grid:{color:PAL.line, display:opts.h},
+          ticks:{
+            font:{size:12, weight:'500'},
+            color: opts.h ? PAL.ink : PAL.muted,   // category axis when h, else value axis
+            autoSkip:false,
+          },
+          beginAtZero:!opts.h,
+        },
       },
     },
   });
