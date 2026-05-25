@@ -298,6 +298,7 @@
   .pill.delivered{background:rgba(31,122,82,.1);color:var(--green);border-color:rgba(31,122,82,.3);}
   .pill.rejected{background:rgba(179,38,30,.1);color:var(--red);border-color:rgba(179,38,30,.3);}
   .pill.pending{background:rgba(178,122,0,.1);color:var(--amber);border-color:rgba(178,122,0,.3);}
+  .pill.failed{background:rgba(180,60,180,.12);color:var(--purple);border-color:rgba(180,60,180,.3);}
   .pill.sla-in{background:rgba(31,122,82,.1);color:var(--green);border-color:rgba(31,122,82,.3);}
   .pill.sla-out{background:rgba(194,65,12,.1);color:var(--orange);border-color:rgba(194,65,12,.3);}
   /* Inline video link in records tables */
@@ -677,7 +678,7 @@
         <div class="sla-bar"><div class="sla-bar-in" id="delvBarDone"></div><div class="sla-bar-out" id="delvBarRej" style="background:var(--red);"></div></div>
         <div class="sla-tick"><span>0%</span><span>100%</span></div>
         <div class="sla-bottom">
-          <span>Rejected: <strong id="delvRejCount">—</strong> · Pending: <strong id="delvPendCount">—</strong></span>
+          <span>Rejected: <strong id="delvRejCount">—</strong> · Pending: <strong id="delvPendCount">—</strong> · Failed: <strong id="delvFailCount">—</strong></span>
           <span id="delvMeta">—</span>
         </div>
       </div>
@@ -1141,9 +1142,13 @@ function presetRange(p){
 // ─────────────────────────────────────────────────────────────
 // FILTERING & AGGREGATION  (client-side, instant)
 // ─────────────────────────────────────────────────────────────
-function isDelivered(r){ return r.crm==='qc_done' && r.ver==='verified'; }
-function isRejected(r){  return r.crm==='qc_done' && (r.ver==='rejected' || !r.ver || r.ver==='none'); }
-function isPending(r){   return r.crm!=='qc_done'; }
+// Status taxonomy — mutually exclusive buckets.
+// "failed" is a top-level status from the source video table; it short-circuits the rest
+// so a failed video is never also counted as Delivered/Rejected/Pending.
+function isFailed(r){    return (r.status||'').toLowerCase() === 'failed'; }
+function isDelivered(r){ return !isFailed(r) && r.crm==='qc_done' && r.ver==='verified'; }
+function isRejected(r){  return !isFailed(r) && r.crm==='qc_done' && (r.ver==='rejected' || !r.ver || r.ver==='none'); }
+function isPending(r){   return !isFailed(r) && r.crm!=='qc_done'; }
 
 // Helper: normalize a rejection reason for comparison (lowercase, collapsed whitespace)
 function normReason(s){
@@ -1209,7 +1214,7 @@ function buildFilterScopes(){
 }
 
 function aggregate(rows){
-  let totalReceived=0,totalDelivered=0,totalRejected=0,totalPending=0;
+  let totalReceived=0,totalDelivered=0,totalRejected=0,totalPending=0,totalFailed=0;
   let withinSla=0,outOfSla=0;
   let tatSum=0,tatCount=0;
   let dareCount=0, turboCount=0, ttOtherCount=0, ttBlankCount=0;
@@ -1221,7 +1226,7 @@ function aggregate(rows){
   const entPoc={}, teamPoc={};
 
   function bump(map,key,kind){
-    if(!map[key]) map[key]={total:0,delivered:0,rejected:0,pending:0,withinSla:0,outOfSla:0};
+    if(!map[key]) map[key]={total:0,delivered:0,rejected:0,pending:0,failed:0,withinSla:0,outOfSla:0};
     map[key].total++; map[key][kind]++;
   }
 
@@ -1231,7 +1236,9 @@ function aggregate(rows){
   for (const r of rows){
     totalReceived++;
     let kind='pending';
-    if (isDelivered(r)){
+    if (isFailed(r)){
+      totalFailed++; kind='failed';
+    } else if (isDelivered(r)){
       totalDelivered++; kind='delivered';
       if (r.sla === 1) withinSla++;
       else if (r.sla === 0) outOfSla++;
@@ -1304,11 +1311,12 @@ function aggregate(rows){
   Object.keys(topReasons).forEach(label => { topReasonsKeys[label] = reasonsKeys[label]; });
 
   return {
-    totalReceived, totalDelivered, totalRejected, totalPending,
+    totalReceived, totalDelivered, totalRejected, totalPending, totalFailed,
     withinSla, outOfSla,
     slaCompliance: totalDelivered ? +((withinSla/totalDelivered)*100).toFixed(2) : null,
     deliveryRate:  totalReceived  ? +((totalDelivered/totalReceived)*100).toFixed(2) : null,
     rejectionRate: totalReceived  ? +((totalRejected /totalReceived)*100).toFixed(2) : null,
+    failureRate:   totalReceived  ? +((totalFailed   /totalReceived)*100).toFixed(2) : null,
     avgTat: tatCount ? +(tatSum/tatCount).toFixed(2) : null,
     tatRecordCount: tatCount,
     enterpriseCount: Object.keys(entCount).length,
@@ -1401,6 +1409,7 @@ const KPIS = [
   { id:'delivered', label:'Delivered',         sub:'qc_done & verified',color:'green',  kind:'records',   view:'delivered'  },
   { id:'rejected',  label:'Rejected',          sub:'qc_done & rejected',color:'red',    kind:'records',   view:'rejected'   },
   { id:'pending',   label:'Pending',           sub:'crm_status ≠ qc_done',color:'amber',kind:'records',   view:'pending'    },
+  { id:'failed',    label:'Failed',            sub:'video status = failed',color:'red',  kind:'records',   view:'failed'     },
   { id:'sla',       label:'SLA Compliance',    sub:'within / delivered',color:'green',  kind:'records',   view:'within_sla' },
   { id:'tat',       label:'Avg TAT',           sub:'turnaround time',   color:'blue',   kind:'records',   view:'tat'        },
 ];
@@ -1608,7 +1617,7 @@ function mkBar(id, canvas, map, opts={}){
 function getRowSortVal(r, col){
   if (col === '_created') return r._created?.getTime() ?? 0;
   if (col === '_updated') return r._updated?.getTime() ?? 0;
-  if (col === '_status')  return isDelivered(r) ? 2 : isRejected(r) ? 1 : 0;
+  if (col === '_status')  return isFailed(r) ? -1 : isDelivered(r) ? 2 : isRejected(r) ? 1 : 0;
   if (col === 'sla')      return (r.sla === 1) ? 1 : (r.sla === 0) ? 0 : -1;
   if (col === 'tat')      return (typeof r.tat === 'number') ? r.tat : -1;
   return String(r[col] ?? '').toLowerCase();
@@ -1667,7 +1676,10 @@ function paintSla(k){
 
 function paintDelivery(k){
   const deliv = k.totalDelivered||0;
-  const notDeliv = (k.totalRejected||0) + (k.totalPending||0);
+  // "Not delivered" = everything that isn't a successful delivery: rejected + pending + failed.
+  // This makes the math add up to total received and matches user expectation when
+  // they see Rejected + Pending + Failed under the bar.
+  const notDeliv = (k.totalRejected||0) + (k.totalPending||0) + (k.totalFailed||0);
   const total = k.totalReceived || 0;
   const pctDone = total ? (deliv/total)*100 : 0;
   const pctNot  = total ? (notDeliv/total)*100 : 0;
@@ -1679,6 +1691,7 @@ function paintDelivery(k){
   $('delvBarRej').style.width  = pctNot+'%';
   $('delvRejCount').textContent  = num(k.totalRejected||0);
   $('delvPendCount').textContent = num(k.totalPending||0);
+  $('delvFailCount').textContent = num(k.totalFailed||0);
   $('delvMeta').textContent = total ? `${num(total)} received in view` : 'No records in view';
 }
 
@@ -1718,6 +1731,7 @@ function paint(){
   $('kv-delivered').textContent = num(k.totalDelivered);
   $('kv-rejected').textContent  = num(k.totalRejected);
   $('kv-pending').textContent   = num(k.totalPending);
+  $('kv-failed').textContent    = num(k.totalFailed);
   $('kv-sla').textContent       = k.slaCompliance!=null ? k.slaCompliance.toFixed(1)+'%' : '—';
   $('kv-tat').textContent       = fmtTatHrs(k.avgTat);
 
@@ -1799,8 +1813,9 @@ function paint(){
   $('tBody').innerHTML = !recent.length
     ? `<tr><td colspan="17" class="empty">No records match these filters.</td></tr>`
     : recent.map(r=>{
-        const isD=isDelivered(r), isR=isRejected(r);
-        const pill = isD?'<span class="pill delivered">Delivered</span>'
+        const isF=isFailed(r), isD=isDelivered(r), isR=isRejected(r);
+        const pill = isF?'<span class="pill failed">Failed</span>'
+                   :isD?'<span class="pill delivered">Delivered</span>'
                    :isR?'<span class="pill rejected">Rejected</span>'
                        :'<span class="pill pending">Pending</span>';
         const slaPill = r.sla===1?'<span class="pill sla-in">In</span>'
@@ -2278,7 +2293,8 @@ function drillSubset(rows, view){
     case 'delivered':     return rows.filter(isDelivered);
     case 'rejected':      return rows.filter(isRejected);
     case 'pending':       return rows.filter(isPending);
-    case 'not_delivered': return rows.filter(r => !isDelivered(r));
+    case 'failed':        return rows.filter(isFailed);
+    case 'not_delivered': return rows.filter(r => !isDelivered(r));  // includes rejected + pending + failed
     case 'within_sla':    return rows.filter(r => isDelivered(r) && r.sla===1);
     case 'out_of_sla':    return rows.filter(r => isDelivered(r) && r.sla===0);
     case 'tt_dare':       return rows.filter(r => (r.ttype||'').trim().toLowerCase()==='dare');
@@ -2394,8 +2410,8 @@ function renderRecordsModal(){
     <table>
       <thead><tr>${headHTML}</tr></thead>
       <tbody>${shown.length===0?`<tr><td colspan="17" class="empty">No records match.</td></tr>`:shown.map(r=>{
-        const isD=isDelivered(r), isR=isRejected(r);
-        const pill = isD?'<span class="pill delivered">Delivered</span>':isR?'<span class="pill rejected">Rejected</span>':'<span class="pill pending">Pending</span>';
+        const isF=isFailed(r), isD=isDelivered(r), isR=isRejected(r);
+        const pill = isF?'<span class="pill failed">Failed</span>':isD?'<span class="pill delivered">Delivered</span>':isR?'<span class="pill rejected">Rejected</span>':'<span class="pill pending">Pending</span>';
         const slaPill = r.sla===1?'<span class="pill sla-in">In</span>':r.sla===0?'<span class="pill sla-out">Out</span>':'<span class="pill">—</span>';
         const reasonCell = `<td title="${esc(r.rej||'')}" style="max-width:240px;white-space:normal;">${esc(r.rej||'—')}</td>`;
         return `<tr><td class="mono">${esc(fmtDate(r.c))}</td><td>${esc(r.ent||'—')}</td><td>${esc(r.team||'—')}</td><td>${esc(r.qc||'—')}</td><td>${esc(r.poc_ob||'—')}</td><td>${esc(r.poc_cs||'—')}</td><td>${pill}</td><td>${slaPill}</td><td class="mono">${esc(fmtTatHrs(r.tat))}</td>${isRejView?reasonCell:''}<td class="mono">${esc(r.vid||'—')}</td>${!isRejView?reasonCell:''}<td>${videoLink(r.vurl)}</td><td class="mono">${esc(r.vmode||'—')}</td><td class="mono">${esc(r.ttype||'—')}</td><td class="mono">${esc(r.vin||'—')}</td><td class="mono">${esc(r.sku||'—')}</td><td class="mono">${esc(fmtDate(r.u))}</td></tr>`;
@@ -2558,7 +2574,7 @@ function extractRecordsForExport(){
   if (!isRejView) headers.push('Rejected Reason');
   headers.push('Video URL','View Mode','Temp Type','VIN','SKU ID','Updated');
 
-  const statusOf = r => isDelivered(r) ? 'Delivered' : isRejected(r) ? 'Rejected' : 'Pending';
+  const statusOf = r => isFailed(r) ? 'Failed' : isDelivered(r) ? 'Delivered' : isRejected(r) ? 'Rejected' : 'Pending';
   const slaOf    = r => r.sla === 1 ? 'In' : r.sla === 0 ? 'Out' : '—';
 
   const rows = _modalCtx.sortedRows.map(r => {
