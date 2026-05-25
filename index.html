@@ -758,6 +758,17 @@
       <div class="chart-wrap"><canvas id="cQc"></canvas></div>
     </div>
 
+    <div class="panel" data-panel="topSlaBreach" data-size="full">
+      <div class="panel-header">
+        <div class="panel-title-wrap">
+          <h3>Top SLA breaches</h3>
+          <div class="panel-sub" id="topSlaBreachSub">by out-of-SLA count · breach rate shown · min 10 delivered · click to filter</div>
+        </div>
+        <div class="edit-controls" data-panel-ctl="topSlaBreach"></div>
+      </div>
+      <div class="chart-wrap tall"><canvas id="cSlaBreach"></canvas></div>
+    </div>
+
     <div class="panel" data-panel="records" data-size="full" style="padding:0;">
       <div class="panel-header" style="padding:14px 18px 12px;border-bottom:1px solid var(--line);margin-bottom:0;">
         <div class="panel-title-wrap"><h3>Recent records</h3><div class="panel-sub" id="tCount">—</div></div>
@@ -1096,18 +1107,19 @@ const sortState = { col: null, dir: null };  // dir: 'asc' | 'desc' | null
 
 // Layout — saved to localStorage. Bump key to v3 because schema changed (new panels).
 const DEFAULT_LAYOUT = [
-  { id:'trend',    size:'full' },
-  { id:'sla',      size:'third' },
-  { id:'delivery', size:'third' },
-  { id:'tempType', size:'third' },
-  { id:'reasons',  size:'full' },
-  { id:'topEnt',   size:'half' },
-  { id:'topTeam',  size:'half' },
-  { id:'topQc',    size:'half' },
-  { id:'records',  size:'full' },
+  { id:'trend',        size:'full' },
+  { id:'sla',          size:'third' },
+  { id:'delivery',     size:'third' },
+  { id:'tempType',     size:'third' },
+  { id:'reasons',      size:'full' },
+  { id:'topEnt',       size:'half' },
+  { id:'topTeam',      size:'half' },
+  { id:'topQc',        size:'half' },
+  { id:'topSlaBreach', size:'full' },
+  { id:'records',      size:'full' },
 ];
-let LAYOUT = (()=>{try{const s=JSON.parse(localStorage.getItem('opsDash_layout_v5'));if(Array.isArray(s)&&s.length)return s;}catch(e){}return DEFAULT_LAYOUT.slice();})();
-const saveLayout = ()=>{try{localStorage.setItem('opsDash_layout_v5',JSON.stringify(LAYOUT));}catch(e){}};
+let LAYOUT = (()=>{try{const s=JSON.parse(localStorage.getItem('opsDash_layout_v6'));if(Array.isArray(s)&&s.length)return s;}catch(e){}return DEFAULT_LAYOUT.slice();})();
+const saveLayout = ()=>{try{localStorage.setItem('opsDash_layout_v6',JSON.stringify(LAYOUT));}catch(e){}};
 
 // Merge any missing panels (e.g. older saved layout) so new panels show up automatically.
 (function reconcileLayout(){
@@ -1325,6 +1337,23 @@ function aggregate(rows){
     topTeam: slice(sortDesc(teamCount), 12),
     topQc:   slice(sortDesc(qcCount),   15),
     topReasons, topReasonsKeys,
+    // Top SLA breachers — ranked by absolute out-of-SLA count, restricted to enterprises
+    // with at least 10 delivered records so single-record breaches don't dominate.
+    // Each entry has the raw counts + a rate so the panel can show either signal.
+    topSlaBreach: (() => {
+      const list = Object.entries(entBreak)
+        .filter(([, v]) => v.outOfSla > 0 && v.delivered >= 10)
+        .map(([name, v]) => ({
+          name,
+          outOfSla:  v.outOfSla,
+          withinSla: v.withinSla,
+          delivered: v.delivered,
+          breachRate: v.delivered ? (v.outOfSla / v.delivered) * 100 : 0,
+        }))
+        .sort((a,b) => b.outOfSla - a.outOfSla)
+        .slice(0, 12);
+      return list;
+    })(),
     entBreak, teamBreak, entPoc, teamPoc,
     dareCount, turboCount, ttOtherCount, ttBlankCount,
   };
@@ -1592,16 +1621,25 @@ function mkBar(id, canvas, map, opts={}){
       data:values, backgroundColor: opts.color || PAL.accent,
       borderRadius:4, maxBarThickness:22,
       datalabels:{ anchor:'end', align:opts.h?'end':'top', color:PAL.muted,
-        font:{family:"'JetBrains Mono',monospace",size:10}, formatter:v=>v.toLocaleString() },
+        font:{family:"'JetBrains Mono',monospace",size:10},
+        formatter: opts.formatter || (v=>v.toLocaleString()) },
     }] },
     options:{
       responsive:true, maintainAspectRatio:false,
       indexAxis: opts.h ? 'y' : 'x',
-      plugins:{ legend:{display:false}, tooltip:{displayColors:false}, datalabels:{display:true} },
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          displayColors:false,
+          callbacks: opts.tooltipFormatter
+            ? { label: ctx => opts.tooltipFormatter(ctx.label, ctx.parsed[opts.h ? 'x' : 'y']) }
+            : {},
+        },
+        datalabels:{display:true},
+      },
       onClick:(_, items)=>{ if (!items.length || !opts.onPick) return; opts.onPick(labels[items[0].index]); },
       scales:{
         x:{ grid:{color:PAL.line, display:!opts.h}, ticks:{font:{size:11},color:PAL.muted}, beginAtZero:opts.h },
-        // y reversed so the FIRST (largest, desc-sorted) bar appears at the TOP
         // Data is passed in DESC order, so default category-axis rendering
         // (first label at top) puts the largest bar on top. Do NOT reverse.
         y:{ grid:{color:PAL.line, display:opts.h}, ticks:{font:{size:11},color:PAL.muted, autoSkip:false},
@@ -1748,6 +1786,45 @@ function paint(){
     onPick:label=>{ F.team = new Set([label]); refreshMsTriggers(); refresh(); } });
   mkBar('qc',   $('cQc'),   k.topQc,   { h:true, color:PAL.ink,
     onPick:label=>{ F.user = new Set([label]); refreshMsTriggers(); refresh(); } });
+
+  // Top SLA breaches — orange to match the Out-of-SLA color used elsewhere.
+  // Datalabel shows "count (rate%)" so volume and severity are visible at once.
+  // Click filters to that enterprise AND switches SLA filter to Out-of-SLA so the
+  // rest of the dashboard zooms straight to the breaching records.
+  const breachMap = {};
+  const breachByName = {};   // label → full row (for tooltip & click)
+  for (const row of (k.topSlaBreach || [])){
+    breachMap[row.name] = row.outOfSla;
+    breachByName[row.name] = row;
+  }
+  mkBar('slaBreach', $('cSlaBreach'), breachMap, {
+    h:true, color:PAL.orange,
+    formatter: (v, ctx) => {
+      const name = ctx.chart.data.labels[ctx.dataIndex];
+      const row = breachByName[name];
+      return row ? `${v.toLocaleString()}  (${row.breachRate.toFixed(1)}%)` : v.toLocaleString();
+    },
+    tooltipFormatter: (label, v) => {
+      const row = breachByName[label];
+      if (!row) return `${v}`;
+      return [
+        `Out of SLA: ${row.outOfSla.toLocaleString()}`,
+        `Within SLA: ${row.withinSla.toLocaleString()}`,
+        `Delivered:  ${row.delivered.toLocaleString()}`,
+        `Breach rate: ${row.breachRate.toFixed(1)}%`,
+      ];
+    },
+    onPick: label => {
+      F.ent = new Set([label]);
+      F.team = null;
+      F.sla = new Set(['Out of SLA']);
+      refreshMsTriggers();
+      refresh();
+    },
+  });
+  $('topSlaBreachSub').textContent = (k.topSlaBreach||[]).length
+    ? `${num((k.topSlaBreach||[]).length)} enterprises with breaches · min 10 delivered · click to filter`
+    : 'No SLA breaches in current view';
 
   // Rejection reasons — clicking a bar toggles a filter for that reason
   mkBar('reasons', $('cReasons'), k.topReasons, { h:true, color:PAL.red,
