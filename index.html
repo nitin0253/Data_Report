@@ -624,6 +624,28 @@
       <div class="trend-legend" id="trendLegend"></div>
     </div>
 
+    <div class="panel" data-panel="hourlyTrend" data-size="full">
+      <div class="panel-header">
+        <div class="panel-title-wrap">
+          <h3>Hourly throughput</h3>
+          <div class="panel-sub" id="hourlySub">received vs qc_done · counts all verified statuses · independent of date filter</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div class="trend-tabs" id="hourlyTabs">
+            <button class="trend-tab sel" data-h="today">Today</button>
+            <button class="trend-tab" data-h="yesterday">Yesterday</button>
+            <button class="trend-tab" data-h="this_week">This week</button>
+            <button class="trend-tab" data-h="this_month">This month</button>
+            <button class="trend-tab" data-h="last_3_weeks">Last 3 weeks</button>
+            <button class="trend-tab" data-h="last_3_months">Last 3 months</button>
+          </div>
+          <div class="edit-controls" data-panel-ctl="hourlyTrend"></div>
+        </div>
+      </div>
+      <div class="chart-wrap tall"><canvas id="cHourlyTrend"></canvas></div>
+      <div class="trend-legend" id="hourlyTrendLegend"></div>
+    </div>
+
     <div class="panel" data-panel="sla" data-size="third">
       <div class="panel-header">
         <div class="panel-title-wrap">
@@ -1108,6 +1130,7 @@ const sortState = { col: null, dir: null };  // dir: 'asc' | 'desc' | null
 // Layout — saved to localStorage. Bump key to v3 because schema changed (new panels).
 const DEFAULT_LAYOUT = [
   { id:'trend',        size:'full' },
+  { id:'hourlyTrend',  size:'full' },
   { id:'sla',          size:'third' },
   { id:'delivery',     size:'third' },
   { id:'tempType',     size:'third' },
@@ -1118,8 +1141,8 @@ const DEFAULT_LAYOUT = [
   { id:'topSlaBreach', size:'full' },
   { id:'records',      size:'full' },
 ];
-let LAYOUT = (()=>{try{const s=JSON.parse(localStorage.getItem('opsDash_layout_v6'));if(Array.isArray(s)&&s.length)return s;}catch(e){}return DEFAULT_LAYOUT.slice();})();
-const saveLayout = ()=>{try{localStorage.setItem('opsDash_layout_v6',JSON.stringify(LAYOUT));}catch(e){}};
+let LAYOUT = (()=>{try{const s=JSON.parse(localStorage.getItem('opsDash_layout_v7'));if(Array.isArray(s)&&s.length)return s;}catch(e){}return DEFAULT_LAYOUT.slice();})();
+const saveLayout = ()=>{try{localStorage.setItem('opsDash_layout_v7',JSON.stringify(LAYOUT));}catch(e){}};
 
 // Merge any missing panels (e.g. older saved layout) so new panels show up automatically.
 (function reconcileLayout(){
@@ -1604,6 +1627,228 @@ function mkTrend(canvas, buckets){
   ).join('');
 }
 
+// ─────────────────────────────────────────────────────────────
+// HOURLY TREND CHART — own time-range tabs, granularity auto-adapts:
+//   Today / Yesterday      → 24 hourly buckets
+//   This week / This month → daily buckets
+//   Last 3 weeks           → daily buckets (21 points)
+//   Last 3 months          → weekly buckets (~13 points)
+// Counts Received (any row) vs QC Done (crm_status = 'qc_done' across
+// all verified statuses — verified, rejected, blank). Failed rows are
+// excluded from QC Done since they never completed QC.
+// Ignores the date filter (the tab IS the date filter) but respects every
+// other operations filter, mirroring the existing throughput trend.
+// ─────────────────────────────────────────────────────────────
+let hourlyRange = 'today';   // 'today' | 'yesterday' | 'this_week' | 'this_month' | 'last_3_weeks' | 'last_3_months'
+
+function bucketHourly(rows, range){
+  const now = new Date();
+  const buckets = [];
+
+  if (range === 'today' || range === 'yesterday'){
+    // 24 hourly buckets, anchored on either today or yesterday's midnight.
+    const anchor = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    if (range === 'yesterday') anchor.setDate(anchor.getDate() - 1);
+    for (let h = 0; h < 24; h++){
+      const s = new Date(anchor); s.setHours(h, 0, 0, 0);
+      const e = new Date(s);      e.setHours(h+1);
+      buckets.push({ start:s, end:e, label: String(h).padStart(2,'0') + ':00' });
+    }
+  } else if (range === 'this_week'){
+    // From Monday of the current week through today, one day per bucket
+    const dow = now.getDay() || 7;  // Sunday → 7
+    const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dow + 1);
+    const cursor = new Date(monday);
+    while (cursor <= now){
+      const s = new Date(cursor);
+      const e = new Date(s); e.setDate(s.getDate() + 1);
+      buckets.push({ start:s, end:e, label: s.toLocaleDateString('en-US', {day:'numeric', month:'short'}) });
+      cursor.setDate(cursor.getDate() + 1);
+    }
+  } else if (range === 'this_month'){
+    // Day by day from the 1st through today
+    const start = new Date(now.getFullYear(), now.getMonth(), 1);
+    const cursor = new Date(start);
+    while (cursor <= now){
+      const s = new Date(cursor);
+      const e = new Date(s); e.setDate(s.getDate() + 1);
+      buckets.push({ start:s, end:e, label: s.toLocaleDateString('en-US', {day:'numeric', month:'short'}) });
+      cursor.setDate(cursor.getDate() + 1);
+    }
+  } else if (range === 'last_3_weeks'){
+    // 21 daily buckets ending today
+    for (let i = 20; i >= 0; i--){
+      const s = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
+      const e = new Date(s); e.setDate(s.getDate() + 1);
+      buckets.push({ start:s, end:e, label: s.toLocaleDateString('en-US', {day:'numeric', month:'short'}) });
+    }
+  } else if (range === 'last_3_months'){
+    // 13 weekly buckets (current week + 12 prior), Monday-anchored.
+    const dow = now.getDay() || 7;
+    const thisMon = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dow + 1);
+    for (let i = -12; i <= 0; i++){
+      const s = new Date(thisMon); s.setDate(thisMon.getDate() + i*7); s.setHours(0,0,0,0);
+      const e = new Date(s);       e.setDate(s.getDate() + 7);
+      buckets.push({ start:s, end:e, label: s.toLocaleDateString('en-US', {month:'short', day:'2-digit'}) });
+    }
+  }
+
+  const result = buckets.map(b => ({...b, received:0, qcDone:0}));
+  for (const r of rows){
+    if (!r._created) continue;
+    const t = r._created.getTime();
+    for (const b of result){
+      if (t >= b.start.getTime() && t < b.end.getTime()){
+        b.received++;
+        // QC Done = reached qc_done crm_status (verified OR rejected OR blank verified),
+        // but failed videos don't count — they exited the pipeline before completing.
+        if (r.crm === 'qc_done' && !isFailed(r)) b.qcDone++;
+        break;
+      }
+    }
+  }
+  return result;
+}
+
+function mkHourlyTrend(canvas, buckets){
+  killChart('hourlyTrend');
+  if (!buckets || !buckets.length) return;
+  const PAL = getPal();
+  const labels  = buckets.map(b => b.label);
+  const recv    = buckets.map(b => b.received);
+  const qcDone  = buckets.map(b => b.qcDone);
+
+  // Theme-aware gradient under the Received line, matching the main trend chart
+  function hexToRgba(hex, a){
+    const h = String(hex || '').trim().replace('#','');
+    if (h.length !== 6) return `rgba(31,63,114,${a})`;
+    const r = parseInt(h.slice(0,2),16), g = parseInt(h.slice(2,4),16), b = parseInt(h.slice(4,6),16);
+    return `rgba(${r},${g},${b},${a})`;
+  }
+  const ctx = canvas.getContext('2d');
+  const grad = ctx.createLinearGradient(0, 0, 0, canvas.height || 340);
+  grad.addColorStop(0, hexToRgba(PAL.accent, 0.22));
+  grad.addColorStop(1, hexToRgba(PAL.accent, 0));
+  const pointBorder = isDark ? PAL.ink : '#ffffff';
+
+  // For dense ranges (today's 24 hours, this_month's 30-ish days, last_3_weeks 21 days),
+  // datalabels for every point would crowd the chart. Show every Nth label so it stays legible.
+  const isDense = buckets.length > 20;
+  const labelStride = isDense ? 3 : 1;
+
+  charts.hourlyTrend = new Chart(canvas, {
+    type:'line', plugins:[ChartDataLabels],
+    data:{ labels, datasets:[
+      { label:'Received', data:recv, borderColor:PAL.accent, backgroundColor:grad,
+        borderWidth:2.2, tension:0.35, pointRadius:isDense?2:3, pointHoverRadius:6,
+        pointBackgroundColor:PAL.accent, pointBorderColor:pointBorder, pointBorderWidth:0,
+        pointHoverBackgroundColor:PAL.accent, pointHoverBorderColor:pointBorder, pointHoverBorderWidth:2,
+        fill:true,
+        datalabels:{
+          align:'top', anchor:'end', clamp:true,
+          color:PAL.ink, font:{family:"'JetBrains Mono',monospace", size:9, weight:'600'},
+          formatter:v => v>0 ? v.toLocaleString() : '',
+          display: ctx => (ctx.dataIndex % labelStride === 0) && (ctx.dataset.data[ctx.dataIndex] > 0),
+          padding:{top:2, bottom:2},
+        },
+      },
+      { label:'QC Done', data:qcDone, borderColor:PAL.green, backgroundColor:'transparent',
+        borderWidth:2, tension:0.35, pointRadius:isDense?2:2.5, pointHoverRadius:5.5,
+        pointBackgroundColor:PAL.green, pointBorderColor:pointBorder, pointBorderWidth:0,
+        pointHoverBackgroundColor:PAL.green, pointHoverBorderColor:pointBorder, pointHoverBorderWidth:2,
+        fill:false,
+        datalabels:{
+          align:'bottom', anchor:'end', clamp:true,
+          color:PAL.green, font:{family:"'JetBrains Mono',monospace", size:9, weight:'600'},
+          formatter:v => v>0 ? v.toLocaleString() : '',
+          display: ctx => (ctx.dataIndex % labelStride === 0) && (ctx.dataset.data[ctx.dataIndex] > 0),
+          padding:{top:1, bottom:1},
+        },
+      },
+    ] },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      interaction:{ mode:'index', intersect:false },
+      layout:{ padding:{ top:18 } },
+      plugins:{
+        legend:{ display:false },
+        tooltip:{
+          backgroundColor:PAL.ink, titleColor:isDark?'#0b0b0c':'#fff', bodyColor:isDark?'#0b0b0c':'#fff',
+          padding:10, displayColors:true, boxPadding:4, cornerRadius:6,
+          callbacks:{ label:c => `${c.dataset.label}: ${c.parsed.y.toLocaleString()}` },
+        },
+      },
+      scales:{
+        x:{ grid:{display:false}, ticks:{ font:{size:11}, color:PAL.ink, autoSkip:true, maxRotation:0, maxTicksLimit:isDense?12:14 } },
+        y:{ grid:{ color:PAL.line, drawBorder:false }, beginAtZero:true,
+            ticks:{ font:{size:11}, color:PAL.muted, precision:0, callback:v => v.toLocaleString() } },
+      },
+    },
+  });
+
+  // Legend totals strip
+  const totals = {
+    Received: recv.reduce((a,b)=>a+b,0),
+    'QC Done': qcDone.reduce((a,b)=>a+b,0),
+  };
+  const cols = { Received:PAL.accent, 'QC Done':PAL.green };
+  $('hourlyTrendLegend').innerHTML = Object.entries(totals).map(([k,v])=>
+    `<div class="trend-legend-item"><span class="ldot" style="background:${cols[k]}"></span><span>${k}: </span><span class="lval">${v.toLocaleString()}</span></div>`
+  ).join('');
+}
+
+function paintHourlyTrend(){
+  // Same filter set as the main trend chart: all operations filters except date.
+  // The hourly tab IS the date filter for this chart.
+  const hourlyRows = RAW.filter(r => {
+    if (F.ent      && !F.ent.has(r.ent))           return false;
+    if (F.team     && !F.team.has(r.team))         return false;
+    if (F.user     && !F.user.has(r.qc))           return false;
+    if (F.pocOb    && !F.pocOb.has(r.poc_ob||'')) return false;
+    if (F.pocCs    && !F.pocCs.has(r.poc_cs||'')) return false;
+    if (F.verified && !F.verified.has(r.ver))      return false;
+    if (F.tempType && !F.tempType.has(r.ttype||'')) return false;
+    if (F.sla){
+      if (F.sla.size === 0) return false;
+      const isW = r.sla === 1, isO = r.sla === 0;
+      let ok = false;
+      if (F.sla.has('Within SLA') && isW) ok = true;
+      if (F.sla.has('Out of SLA') && isO) ok = true;
+      if (!ok) return false;
+    }
+    return true;
+  });
+
+  const buckets = bucketHourly(hourlyRows, hourlyRange);
+  mkHourlyTrend($('cHourlyTrend'), buckets);
+
+  const rangeLabel = ({
+    today:          'today, by hour',
+    yesterday:      'yesterday, by hour',
+    this_week:      'this week, by day',
+    this_month:     'this month, by day',
+    last_3_weeks:   'last 3 weeks, by day',
+    last_3_months:  'last 3 months, weekly',
+  })[hourlyRange];
+  $('hourlySub').textContent = `${rangeLabel} · received vs qc_done · counts all verified statuses`;
+}
+
+// Tab clicks
+document.addEventListener('DOMContentLoaded', () => {
+  // Defensive — DOMContentLoaded may have already fired by the time this script runs.
+}, { once:true });
+(function wireHourlyTabs(){
+  const tabs = $('hourlyTabs');
+  if (!tabs) return;
+  tabs.addEventListener('click', e => {
+    const btn = e.target.closest('.trend-tab');
+    if (!btn) return;
+    hourlyRange = btn.dataset.h;
+    tabs.querySelectorAll('.trend-tab').forEach(b => b.classList.toggle('sel', b === btn));
+    paintHourlyTrend();
+  });
+})();
+
 function mkBar(id, canvas, map, opts={}){
   killChart(id);
   if (!map || !Object.keys(map).length){
@@ -1883,6 +2128,10 @@ function paint(){
   mkTrend($('cTrend'), buckets);
   $('trendSub').textContent =
     `${{'15days':'last 15 days, by day','this_month':'this month, by day','6weeks':'last 6 weeks','months':'last 6 months','year':'last 12 months'}[trendRange]} · independent of date filter`;
+
+  // Paint the hourly trend right after — it builds its own row set from RAW
+  // (respects every filter except date, anchored by its own time-range tabs).
+  paintHourlyTrend();
 
   // Recent records — apply sort state if any, else default sort by created desc
   const allFiltered = filtered.slice();
