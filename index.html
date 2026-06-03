@@ -1631,6 +1631,11 @@ function mkTrend(canvas, buckets){
       scales:{
         x:{ offset:true, grid:{display:false}, ticks:{font:{size:11},color:PAL.muted, autoSkip:true, maxRotation:0} },
         y:{ grid:{color:PAL.line, drawBorder:false}, beginAtZero:true,
+            // Lock minimum y-axis width so wider labels ("16,000") don't make the chart
+            // drawing area start further right than the hourly chart's drawing area
+            // (where labels are tiny like "50"). 78px fits up to 6-digit labels comfortably
+            // and matches the natural width of the hourly chart with its narrower labels.
+            afterFit: axis => { axis.width = Math.max(axis.width, 78); },
             ticks:{font:{size:11},color:PAL.muted, precision:0, padding:14, callback:(v)=>v.toLocaleString()} },
       },
     },
@@ -1785,6 +1790,7 @@ function mkHourlyTrend(canvas, buckets){
       scales:{
         x:{ offset:true, grid:{display:false}, ticks:{ font:{size:11}, color:PAL.ink, autoSkip:false, maxRotation:0 } },
         y:{ grid:{ color:PAL.line, drawBorder:false }, beginAtZero:true,
+            afterFit: axis => { axis.width = Math.max(axis.width, 78); },
             ticks:{ font:{size:11}, color:PAL.muted, precision:0, padding:14, callback:v => v.toLocaleString() } },
       },
     },
@@ -3953,6 +3959,7 @@ function renderPerfTrend(buckets){
       scales:{
         x:{ offset:true, grid:{display:false}, ticks:{ font:{size:11}, color:PAL.muted, autoSkip:true, maxRotation:0, maxTicksLimit:isDaily?10:12 } },
         y:{ grid:{ color:PAL.line, drawBorder:false }, beginAtZero:true,
+            afterFit: axis => { axis.width = Math.max(axis.width, 78); },
             ticks:{ font:{size:11}, color:PAL.muted, precision:0, padding:14, callback:v => v.toLocaleString() } },
       },
     },
