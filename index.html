@@ -1058,17 +1058,38 @@ const esc = s => String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>
 const num = n => (n==null||isNaN(+n))?'—':(+n).toLocaleString();
 const isoDate = d => d?d.toISOString().slice(0,10):'';
 const fmtShort = d => d?d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}):'';
-const fmtDate = s => { if(!s) return '—'; const d=new Date(s); return isNaN(d)?s:d.toLocaleDateString(undefined,{month:'short',day:'2-digit'})+' '+d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}); };
+// fmtDate can take either a raw timestamp string or a parsed Date object.
+// When given a string it uses parseTs() so the displayed time is the same IST
+// value the rest of the dashboard uses for filtering / bucketing.
+const fmtDate = v => {
+  if (!v) return '—';
+  const d = (v instanceof Date) ? v : parseTs(v);
+  if (!d || isNaN(d.getTime())) return String(v);
+  return d.toLocaleDateString(undefined, {month:'short', day:'2-digit'}) + ' ' +
+         d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+};
 
-// Parse "YYYY-MM-DD[T ]HH:MM:SS[Z]" as NAIVE LOCAL time (ignore any Z / offset).
-// Source data is already in the source DB's timezone; using new Date() on a
-// "...Z" string would convert UTC→local and drift records across month
-// boundaries in non-UTC locales. Extract calendar parts directly.
+// Source data is UTC (ISO timestamps with Z suffix). The dashboard displays IST
+// across the board, so we convert once here and every downstream consumer
+// (filters, bucketing, tables) gets IST wall-clock values for free.
+//
+// Implementation: parse the UTC calendar parts → compute the UTC epoch via
+// Date.UTC() → add 5h30m → read back the result's UTC fields and construct a
+// "naive" Date from them. The returned Date's .getHours() / .getDate() etc.
+// return IST values regardless of the browser timezone. The internal epoch
+// won't match real wall-clock UTC, but no consumer in this app uses it for
+// absolute-moment comparisons — everything is calendar-arithmetic.
+const IST_OFFSET_MS = 5.5 * 3600 * 1000;
 function parseTs(s){
   if (!s) return null;
   const m = /^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2}):(\d{2})/.exec(s);
-  if (m) return new Date(+m[1], +m[2]-1, +m[3], +m[4], +m[5], +m[6]);
-  // Date-only fallback "YYYY-MM-DD"
+  if (m){
+    const utcMs = Date.UTC(+m[1], +m[2]-1, +m[3], +m[4], +m[5], +m[6]);
+    const ist   = new Date(utcMs + IST_OFFSET_MS);
+    return new Date(ist.getUTCFullYear(), ist.getUTCMonth(), ist.getUTCDate(),
+                    ist.getUTCHours(),    ist.getUTCMinutes(), ist.getUTCSeconds());
+  }
+  // Date-only fallback "YYYY-MM-DD" — no time component, no conversion needed
   const m2 = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
   if (m2) return new Date(+m2[1], +m2[2]-1, +m2[3]);
   const d = new Date(s);
@@ -1642,79 +1663,59 @@ function mkTrend(canvas, buckets){
 let hourlyRange = 'today';   // 'today' | 'yesterday' | 'this_week' | 'this_month' | 'last_3_weeks' | 'last_3_months'
 
 function bucketHourly(rows, range){
+  // 24 fixed buckets, one per hour of day (00:00 → 23:00). Every range uses the
+  // same shape — what changes is which rows roll into them:
+  //   today / yesterday → just that single calendar day
+  //   this_week         → every day from Monday of this week through today
+  //   this_month        → every day from the 1st through today
+  //   last_3_weeks      → trailing 21 days ending today
+  //   last_3_months     → trailing 90 days ending today
+  // Answers "what hours of the day get the most throughput?" rather than
+  // "what was throughput at noon on May 14?" — that's a 24-tick chart, not a
+  // 2000-tick chart, and the question fits the operational mental model.
   const now = new Date();
-  const buckets = [];
+  let startMs, endMs;   // [startMs, endMs) — exclusive end so today's hours still count
 
-  // Helper: add hourly buckets between two timestamps [from, toExclusive).
-  // Labels include a date prefix for multi-day spans so the x-axis stays parseable.
-  function pushHourlyRange(from, toExclusive, withDate){
-    const cursor = new Date(from);
-    while (cursor < toExclusive){
-      const s = new Date(cursor);
-      const e = new Date(s); e.setHours(s.getHours() + 1);
-      let label;
-      if (withDate){
-        // "Jun 02 14:00" — date + hour. Chart.js will auto-skip; we mostly need
-        // enough info on hover/zoom for the user to identify the moment.
-        label = s.toLocaleDateString('en-US', {month:'short', day:'2-digit'}) +
-                ' ' + String(s.getHours()).padStart(2,'0') + ':00';
-      } else {
-        label = String(s.getHours()).padStart(2,'0') + ':00';
-      }
-      buckets.push({ start:s, end:e, label });
-      cursor.setHours(cursor.getHours() + 1);
-    }
-  }
-
-  if (range === 'today' || range === 'yesterday'){
-    // 24 hourly buckets for a single day
-    const anchor = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    if (range === 'yesterday') anchor.setDate(anchor.getDate() - 1);
-    const dayEnd = new Date(anchor); dayEnd.setDate(anchor.getDate() + 1);
-    pushHourlyRange(anchor, dayEnd, false);
+  if (range === 'today'){
+    const s = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    startMs = s.getTime();
+    endMs   = new Date(s.getFullYear(), s.getMonth(), s.getDate()+1).getTime();
+  } else if (range === 'yesterday'){
+    const s = new Date(now.getFullYear(), now.getMonth(), now.getDate()-1);
+    startMs = s.getTime();
+    endMs   = new Date(s.getFullYear(), s.getMonth(), s.getDate()+1).getTime();
   } else if (range === 'this_week'){
-    // Hourly from Monday 00:00 of this week through "next hour after now"
-    const dow = now.getDay() || 7;
-    const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dow + 1);
-    monday.setHours(0,0,0,0);
-    // Cap at the top of the current hour to avoid a partial trailing bucket
-    const cap = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours() + 1, 0, 0, 0);
-    pushHourlyRange(monday, cap, true);
+    const dow = now.getDay() || 7;  // Sunday → 7
+    startMs = new Date(now.getFullYear(), now.getMonth(), now.getDate()-dow+1).getTime();
+    endMs   = new Date(now.getFullYear(), now.getMonth(), now.getDate()+1).getTime();
   } else if (range === 'this_month'){
-    // Hourly from 1st 00:00 of current month through top of current hour
-    const start = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
-    const cap = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours() + 1, 0, 0, 0);
-    pushHourlyRange(start, cap, true);
+    startMs = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+    endMs   = new Date(now.getFullYear(), now.getMonth(), now.getDate()+1).getTime();
   } else if (range === 'last_3_weeks'){
-    // Hourly across 21 days ending now
-    const start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 20, 0, 0, 0, 0);
-    const cap   = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours() + 1, 0, 0, 0);
-    pushHourlyRange(start, cap, true);
+    startMs = new Date(now.getFullYear(), now.getMonth(), now.getDate()-20).getTime();
+    endMs   = new Date(now.getFullYear(), now.getMonth(), now.getDate()+1).getTime();
   } else if (range === 'last_3_months'){
-    // Hourly across ~90 days. This is ~2,160 buckets — the line shape is the story;
-    // datalabels are suppressed for legibility (handled downstream in mkHourlyTrend).
-    const start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 89, 0, 0, 0, 0);
-    const cap   = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours() + 1, 0, 0, 0);
-    pushHourlyRange(start, cap, true);
+    startMs = new Date(now.getFullYear(), now.getMonth(), now.getDate()-89).getTime();
+    endMs   = new Date(now.getFullYear(), now.getMonth(), now.getDate()+1).getTime();
+  } else {
+    return [];
   }
 
-  // Build a hash for O(1) bucket lookup keyed by the hour's epoch ms.
-  // Without this, 60k rows × 2160 buckets = ~130M scan ops on Last 3 months — too slow.
-  const result = buckets.map(b => ({...b, received:0, qcDone:0}));
-  const byHour = new Map();
-  for (const b of result) byHour.set(b.start.getTime(), b);
+  // 24 hour-of-day buckets, pre-allocated so every hour is present even with no data.
+  const buckets = [];
+  for (let h = 0; h < 24; h++){
+    buckets.push({ hour:h, label: String(h).padStart(2,'0') + ':00', received:0, qcDone:0 });
+  }
 
   for (const r of rows){
     if (!r._created) continue;
-    // Truncate to the top of the hour
-    const d = r._created;
-    const hourKey = new Date(d.getFullYear(), d.getMonth(), d.getDate(), d.getHours(), 0, 0, 0).getTime();
-    const b = byHour.get(hourKey);
-    if (!b) continue;
-    b.received++;
-    if (r.crm === 'qc_done' && !isFailed(r)) b.qcDone++;
+    const t = r._created.getTime();
+    if (t < startMs || t >= endMs) continue;
+    const h = r._created.getHours();           // IST hour, since parseTs returned IST
+    buckets[h].received++;
+    if (r.crm === 'qc_done' && !isFailed(r)) buckets[h].qcDone++;
   }
-  return result;
+  return buckets;
 }
 
 function mkHourlyTrend(canvas, buckets){
@@ -1738,31 +1739,13 @@ function mkHourlyTrend(canvas, buckets){
   grad.addColorStop(1, hexToRgba(PAL.accent, 0));
   const pointBorder = isDark ? PAL.ink : '#ffffff';
 
-  // Bucket counts span two orders of magnitude across the 6 ranges:
-  //   today/yesterday → 24, this_week → up to 168, this_month → up to 744,
-  //   last_3_weeks → 504, last_3_months → ~2160.
-  // Tier the chart density so visual weight tracks the data, not the canvas:
-  //   - point radius shrinks as buckets grow (no dots at the densest tier)
-  //   - datalabels shown only at sparse tiers; at 200+ points they'd overlap
-  //   - x-axis tick budget tuned so date+hour labels don't collide
-  const N = buckets.length;
-  const tier = N <= 24  ? 'micro'    // today / yesterday
-             : N <= 200 ? 'small'    // this_week
-             : N <= 800 ? 'medium'   // this_month, last_3_weeks
-             :            'large';   // last_3_months
-  const pointRadius = ({micro:3,   small:1.8, medium:0.8, large:0})[tier];
-  const pointHover  = ({micro:6,   small:5,   medium:4.5, large:4})[tier];
-  const lineWidthR  = ({micro:2.2, small:2.0, medium:1.8, large:1.6})[tier];
-  const lineWidthQ  = ({micro:2.0, small:1.8, medium:1.6, large:1.4})[tier];
-  const maxTicks    = ({micro:14,  small:10,  medium:12,  large:14})[tier];
-  const labelStride = ({micro:1,   small:12,  medium:0,   large:0})[tier];   // 0 = no datalabels
-  const showLabels  = labelStride > 0;
-
+  // Always 24 hour-of-day buckets — chart shape is fixed, labels never collide,
+  // datalabels fit cleanly above/below each point.
   charts.hourlyTrend = new Chart(canvas, {
     type:'line', plugins:[ChartDataLabels],
     data:{ labels, datasets:[
       { label:'Received', data:recv, borderColor:PAL.accent, backgroundColor:grad,
-        borderWidth:lineWidthR, tension:0.35, pointRadius:pointRadius, pointHoverRadius:pointHover,
+        borderWidth:2.2, tension:0.35, pointRadius:3, pointHoverRadius:6,
         pointBackgroundColor:PAL.accent, pointBorderColor:pointBorder, pointBorderWidth:0,
         pointHoverBackgroundColor:PAL.accent, pointHoverBorderColor:pointBorder, pointHoverBorderWidth:2,
         fill:true,
@@ -1770,14 +1753,11 @@ function mkHourlyTrend(canvas, buckets){
           align:'top', anchor:'end', clamp:true,
           color:PAL.ink, font:{family:"'JetBrains Mono',monospace", size:9, weight:'600'},
           formatter:v => v>0 ? v.toLocaleString() : '',
-          display: showLabels
-            ? ctx => (ctx.dataIndex % labelStride === 0) && (ctx.dataset.data[ctx.dataIndex] > 0)
-            : false,
           padding:{top:2, bottom:2},
         },
       },
       { label:'QC Done', data:qcDone, borderColor:PAL.green, backgroundColor:'transparent',
-        borderWidth:lineWidthQ, tension:0.35, pointRadius:pointRadius, pointHoverRadius:pointHover-0.5,
+        borderWidth:2, tension:0.35, pointRadius:2.5, pointHoverRadius:5.5,
         pointBackgroundColor:PAL.green, pointBorderColor:pointBorder, pointBorderWidth:0,
         pointHoverBackgroundColor:PAL.green, pointHoverBorderColor:pointBorder, pointHoverBorderWidth:2,
         fill:false,
@@ -1785,9 +1765,6 @@ function mkHourlyTrend(canvas, buckets){
           align:'bottom', anchor:'end', clamp:true,
           color:PAL.green, font:{family:"'JetBrains Mono',monospace", size:9, weight:'600'},
           formatter:v => v>0 ? v.toLocaleString() : '',
-          display: showLabels
-            ? ctx => (ctx.dataIndex % labelStride === 0) && (ctx.dataset.data[ctx.dataIndex] > 0)
-            : false,
           padding:{top:1, bottom:1},
         },
       },
@@ -1805,7 +1782,7 @@ function mkHourlyTrend(canvas, buckets){
         },
       },
       scales:{
-        x:{ grid:{display:false}, ticks:{ font:{size:11}, color:PAL.ink, autoSkip:true, maxRotation:0, maxTicksLimit:maxTicks } },
+        x:{ grid:{display:false}, ticks:{ font:{size:11}, color:PAL.ink, autoSkip:false, maxRotation:0 } },
         y:{ grid:{ color:PAL.line, drawBorder:false }, beginAtZero:true,
             ticks:{ font:{size:11}, color:PAL.muted, precision:0, callback:v => v.toLocaleString() } },
       },
@@ -1849,12 +1826,12 @@ function paintHourlyTrend(){
   mkHourlyTrend($('cHourlyTrend'), buckets);
 
   const rangeLabel = ({
-    today:          'today, hourly',
-    yesterday:      'yesterday, hourly',
-    this_week:      'this week, hourly',
-    this_month:     'this month, hourly',
-    last_3_weeks:   'last 3 weeks, hourly',
-    last_3_months:  'last 3 months, hourly',
+    today:          'today, by hour',
+    yesterday:      'yesterday, by hour',
+    this_week:      'this week · summed by hour of day',
+    this_month:     'this month · summed by hour of day',
+    last_3_weeks:   'last 3 weeks · summed by hour of day',
+    last_3_months:  'last 3 months · summed by hour of day',
   })[hourlyRange];
   $('hourlySub').textContent = `${rangeLabel} · received vs qc_done · counts all verified statuses`;
 }
