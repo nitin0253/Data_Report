@@ -1617,7 +1617,8 @@ function mkTrend(canvas, buckets){
     options:{
       responsive:true, maintainAspectRatio:false,
       interaction:{ mode:'index', intersect:false },
-      layout:{ padding:{ top:18 } },   // room for the "Received" point labels
+      layout:{ padding:{ top:18, left:14, right:28 } },   // top for "Received" labels;
+                                                          // sides keep first/last point labels off the panel edge
       plugins:{
         legend:{display:false},
         tooltip:{
@@ -1772,7 +1773,7 @@ function mkHourlyTrend(canvas, buckets){
     options:{
       responsive:true, maintainAspectRatio:false,
       interaction:{ mode:'index', intersect:false },
-      layout:{ padding:{ top:18 } },
+      layout:{ padding:{ top:18, left:14, right:28 } },
       plugins:{
         legend:{ display:false },
         tooltip:{
@@ -1890,6 +1891,12 @@ function mkBar(id, canvas, map, opts={}){
         // Value axis stays muted — the numeric scale is supporting info, not the story.
         // Category axis gets the brighter ink color since those labels (enterprise names,
         // user emails, rejection reasons) are the actual content the reader is scanning.
+        //
+        // `grace` adds headroom to the value axis (chart.js v3+ feature). With it, the
+        // longest bar tops out at ~80% of the chart width instead of touching the edge,
+        // and the datalabel anchored at the bar tip has room to render without clipping.
+        // The default ('18%') handles plain numeric labels; callers with wider formatters
+        // (e.g. "480 (95.0%)" on the SLA breach chart) pass a larger value via opts.grace.
         x:{
           grid:{color:PAL.line, display:!opts.h},
           ticks:{
@@ -1897,6 +1904,7 @@ function mkBar(id, canvas, map, opts={}){
             color: opts.h ? PAL.muted : PAL.ink,   // value axis when h, else category axis
           },
           beginAtZero:opts.h,
+          grace: opts.h ? (opts.grace || '18%') : undefined,
         },
         y:{
           grid:{color:PAL.line, display:opts.h},
@@ -1906,6 +1914,7 @@ function mkBar(id, canvas, map, opts={}){
             autoSkip:false,
           },
           beginAtZero:!opts.h,
+          grace: opts.h ? undefined : (opts.grace || '18%'),
         },
       },
     },
@@ -2062,6 +2071,7 @@ function paint(){
   }
   mkBar('slaBreach', $('cSlaBreach'), breachMap, {
     h:true, color:PAL.orange,
+    grace: '32%',   // datalabel is "N (X.X%)" — wider than the default-grace bar charts
     formatter: (v, ctx) => {
       const name = ctx.chart.data.labels[ctx.dataIndex];
       const row = breachByName[name];
@@ -3931,7 +3941,7 @@ function renderPerfTrend(buckets){
     options:{
       responsive:true, maintainAspectRatio:false,
       interaction:{ mode:'index', intersect:false },
-      layout:{ padding:{ top:18 } },
+      layout:{ padding:{ top:18, left:14, right:28 } },
       plugins:{
         legend:{ display:false },
         tooltip:{
