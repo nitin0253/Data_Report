@@ -2570,14 +2570,18 @@ $('calNext').addEventListener('click', e=>{ e.stopPropagation();
   cal.view = new Date(cal.view.getFullYear(), cal.view.getMonth()+1, 1); calRender(); });
 
 // ─────────────────────────────────────────────────────────────
-// TREND TABS
+// TREND TABS  (scoped to #trendTabs — the hourly chart has its own tabs container
+// with the SAME .trend-tab class, so a document-wide selector would cross-wire
+// the two: clicking an hourly tab would fire this handler too, set trendRange
+// to undefined (hourly tabs use data-h, not data-r), and blank the trend chart.
+// Delegate from the container so we only respond to clicks inside this panel.)
 // ─────────────────────────────────────────────────────────────
-document.querySelectorAll('.trend-tab').forEach(btn=>{
-  btn.addEventListener('click', ()=>{
-    trendRange = btn.dataset.r;
-    document.querySelectorAll('.trend-tab').forEach(b=>b.classList.toggle('sel', b===btn));
-    refresh();
-  });
+$('trendTabs').addEventListener('click', e => {
+  const btn = e.target.closest('.trend-tab');
+  if (!btn) return;
+  trendRange = btn.dataset.r;
+  $('trendTabs').querySelectorAll('.trend-tab').forEach(b => b.classList.toggle('sel', b === btn));
+  refresh();
 });
 
 // ─────────────────────────────────────────────────────────────
