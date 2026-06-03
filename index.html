@@ -1645,67 +1645,74 @@ function bucketHourly(rows, range){
   const now = new Date();
   const buckets = [];
 
-  if (range === 'today' || range === 'yesterday'){
-    // 24 hourly buckets, anchored on either today or yesterday's midnight.
-    const anchor = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    if (range === 'yesterday') anchor.setDate(anchor.getDate() - 1);
-    for (let h = 0; h < 24; h++){
-      const s = new Date(anchor); s.setHours(h, 0, 0, 0);
-      const e = new Date(s);      e.setHours(h+1);
-      buckets.push({ start:s, end:e, label: String(h).padStart(2,'0') + ':00' });
-    }
-  } else if (range === 'this_week'){
-    // From Monday of the current week through today, one day per bucket
-    const dow = now.getDay() || 7;  // Sunday → 7
-    const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dow + 1);
-    const cursor = new Date(monday);
-    while (cursor <= now){
+  // Helper: add hourly buckets between two timestamps [from, toExclusive).
+  // Labels include a date prefix for multi-day spans so the x-axis stays parseable.
+  function pushHourlyRange(from, toExclusive, withDate){
+    const cursor = new Date(from);
+    while (cursor < toExclusive){
       const s = new Date(cursor);
-      const e = new Date(s); e.setDate(s.getDate() + 1);
-      buckets.push({ start:s, end:e, label: s.toLocaleDateString('en-US', {day:'numeric', month:'short'}) });
-      cursor.setDate(cursor.getDate() + 1);
-    }
-  } else if (range === 'this_month'){
-    // Day by day from the 1st through today
-    const start = new Date(now.getFullYear(), now.getMonth(), 1);
-    const cursor = new Date(start);
-    while (cursor <= now){
-      const s = new Date(cursor);
-      const e = new Date(s); e.setDate(s.getDate() + 1);
-      buckets.push({ start:s, end:e, label: s.toLocaleDateString('en-US', {day:'numeric', month:'short'}) });
-      cursor.setDate(cursor.getDate() + 1);
-    }
-  } else if (range === 'last_3_weeks'){
-    // 21 daily buckets ending today
-    for (let i = 20; i >= 0; i--){
-      const s = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
-      const e = new Date(s); e.setDate(s.getDate() + 1);
-      buckets.push({ start:s, end:e, label: s.toLocaleDateString('en-US', {day:'numeric', month:'short'}) });
-    }
-  } else if (range === 'last_3_months'){
-    // 13 weekly buckets (current week + 12 prior), Monday-anchored.
-    const dow = now.getDay() || 7;
-    const thisMon = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dow + 1);
-    for (let i = -12; i <= 0; i++){
-      const s = new Date(thisMon); s.setDate(thisMon.getDate() + i*7); s.setHours(0,0,0,0);
-      const e = new Date(s);       e.setDate(s.getDate() + 7);
-      buckets.push({ start:s, end:e, label: s.toLocaleDateString('en-US', {month:'short', day:'2-digit'}) });
+      const e = new Date(s); e.setHours(s.getHours() + 1);
+      let label;
+      if (withDate){
+        // "Jun 02 14:00" — date + hour. Chart.js will auto-skip; we mostly need
+        // enough info on hover/zoom for the user to identify the moment.
+        label = s.toLocaleDateString('en-US', {month:'short', day:'2-digit'}) +
+                ' ' + String(s.getHours()).padStart(2,'0') + ':00';
+      } else {
+        label = String(s.getHours()).padStart(2,'0') + ':00';
+      }
+      buckets.push({ start:s, end:e, label });
+      cursor.setHours(cursor.getHours() + 1);
     }
   }
 
+  if (range === 'today' || range === 'yesterday'){
+    // 24 hourly buckets for a single day
+    const anchor = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    if (range === 'yesterday') anchor.setDate(anchor.getDate() - 1);
+    const dayEnd = new Date(anchor); dayEnd.setDate(anchor.getDate() + 1);
+    pushHourlyRange(anchor, dayEnd, false);
+  } else if (range === 'this_week'){
+    // Hourly from Monday 00:00 of this week through "next hour after now"
+    const dow = now.getDay() || 7;
+    const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dow + 1);
+    monday.setHours(0,0,0,0);
+    // Cap at the top of the current hour to avoid a partial trailing bucket
+    const cap = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours() + 1, 0, 0, 0);
+    pushHourlyRange(monday, cap, true);
+  } else if (range === 'this_month'){
+    // Hourly from 1st 00:00 of current month through top of current hour
+    const start = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+    const cap = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours() + 1, 0, 0, 0);
+    pushHourlyRange(start, cap, true);
+  } else if (range === 'last_3_weeks'){
+    // Hourly across 21 days ending now
+    const start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 20, 0, 0, 0, 0);
+    const cap   = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours() + 1, 0, 0, 0);
+    pushHourlyRange(start, cap, true);
+  } else if (range === 'last_3_months'){
+    // Hourly across ~90 days. This is ~2,160 buckets — the line shape is the story;
+    // datalabels are suppressed for legibility (handled downstream in mkHourlyTrend).
+    const start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 89, 0, 0, 0, 0);
+    const cap   = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours() + 1, 0, 0, 0);
+    pushHourlyRange(start, cap, true);
+  }
+
+  // Build a hash for O(1) bucket lookup keyed by the hour's epoch ms.
+  // Without this, 60k rows × 2160 buckets = ~130M scan ops on Last 3 months — too slow.
   const result = buckets.map(b => ({...b, received:0, qcDone:0}));
+  const byHour = new Map();
+  for (const b of result) byHour.set(b.start.getTime(), b);
+
   for (const r of rows){
     if (!r._created) continue;
-    const t = r._created.getTime();
-    for (const b of result){
-      if (t >= b.start.getTime() && t < b.end.getTime()){
-        b.received++;
-        // QC Done = reached qc_done crm_status (verified OR rejected OR blank verified),
-        // but failed videos don't count — they exited the pipeline before completing.
-        if (r.crm === 'qc_done' && !isFailed(r)) b.qcDone++;
-        break;
-      }
-    }
+    // Truncate to the top of the hour
+    const d = r._created;
+    const hourKey = new Date(d.getFullYear(), d.getMonth(), d.getDate(), d.getHours(), 0, 0, 0).getTime();
+    const b = byHour.get(hourKey);
+    if (!b) continue;
+    b.received++;
+    if (r.crm === 'qc_done' && !isFailed(r)) b.qcDone++;
   }
   return result;
 }
@@ -1731,16 +1738,31 @@ function mkHourlyTrend(canvas, buckets){
   grad.addColorStop(1, hexToRgba(PAL.accent, 0));
   const pointBorder = isDark ? PAL.ink : '#ffffff';
 
-  // For dense ranges (today's 24 hours, this_month's 30-ish days, last_3_weeks 21 days),
-  // datalabels for every point would crowd the chart. Show every Nth label so it stays legible.
-  const isDense = buckets.length > 20;
-  const labelStride = isDense ? 3 : 1;
+  // Bucket counts span two orders of magnitude across the 6 ranges:
+  //   today/yesterday → 24, this_week → up to 168, this_month → up to 744,
+  //   last_3_weeks → 504, last_3_months → ~2160.
+  // Tier the chart density so visual weight tracks the data, not the canvas:
+  //   - point radius shrinks as buckets grow (no dots at the densest tier)
+  //   - datalabels shown only at sparse tiers; at 200+ points they'd overlap
+  //   - x-axis tick budget tuned so date+hour labels don't collide
+  const N = buckets.length;
+  const tier = N <= 24  ? 'micro'    // today / yesterday
+             : N <= 200 ? 'small'    // this_week
+             : N <= 800 ? 'medium'   // this_month, last_3_weeks
+             :            'large';   // last_3_months
+  const pointRadius = ({micro:3,   small:1.8, medium:0.8, large:0})[tier];
+  const pointHover  = ({micro:6,   small:5,   medium:4.5, large:4})[tier];
+  const lineWidthR  = ({micro:2.2, small:2.0, medium:1.8, large:1.6})[tier];
+  const lineWidthQ  = ({micro:2.0, small:1.8, medium:1.6, large:1.4})[tier];
+  const maxTicks    = ({micro:14,  small:10,  medium:12,  large:14})[tier];
+  const labelStride = ({micro:1,   small:12,  medium:0,   large:0})[tier];   // 0 = no datalabels
+  const showLabels  = labelStride > 0;
 
   charts.hourlyTrend = new Chart(canvas, {
     type:'line', plugins:[ChartDataLabels],
     data:{ labels, datasets:[
       { label:'Received', data:recv, borderColor:PAL.accent, backgroundColor:grad,
-        borderWidth:2.2, tension:0.35, pointRadius:isDense?2:3, pointHoverRadius:6,
+        borderWidth:lineWidthR, tension:0.35, pointRadius:pointRadius, pointHoverRadius:pointHover,
         pointBackgroundColor:PAL.accent, pointBorderColor:pointBorder, pointBorderWidth:0,
         pointHoverBackgroundColor:PAL.accent, pointHoverBorderColor:pointBorder, pointHoverBorderWidth:2,
         fill:true,
@@ -1748,12 +1770,14 @@ function mkHourlyTrend(canvas, buckets){
           align:'top', anchor:'end', clamp:true,
           color:PAL.ink, font:{family:"'JetBrains Mono',monospace", size:9, weight:'600'},
           formatter:v => v>0 ? v.toLocaleString() : '',
-          display: ctx => (ctx.dataIndex % labelStride === 0) && (ctx.dataset.data[ctx.dataIndex] > 0),
+          display: showLabels
+            ? ctx => (ctx.dataIndex % labelStride === 0) && (ctx.dataset.data[ctx.dataIndex] > 0)
+            : false,
           padding:{top:2, bottom:2},
         },
       },
       { label:'QC Done', data:qcDone, borderColor:PAL.green, backgroundColor:'transparent',
-        borderWidth:2, tension:0.35, pointRadius:isDense?2:2.5, pointHoverRadius:5.5,
+        borderWidth:lineWidthQ, tension:0.35, pointRadius:pointRadius, pointHoverRadius:pointHover-0.5,
         pointBackgroundColor:PAL.green, pointBorderColor:pointBorder, pointBorderWidth:0,
         pointHoverBackgroundColor:PAL.green, pointHoverBorderColor:pointBorder, pointHoverBorderWidth:2,
         fill:false,
@@ -1761,7 +1785,9 @@ function mkHourlyTrend(canvas, buckets){
           align:'bottom', anchor:'end', clamp:true,
           color:PAL.green, font:{family:"'JetBrains Mono',monospace", size:9, weight:'600'},
           formatter:v => v>0 ? v.toLocaleString() : '',
-          display: ctx => (ctx.dataIndex % labelStride === 0) && (ctx.dataset.data[ctx.dataIndex] > 0),
+          display: showLabels
+            ? ctx => (ctx.dataIndex % labelStride === 0) && (ctx.dataset.data[ctx.dataIndex] > 0)
+            : false,
           padding:{top:1, bottom:1},
         },
       },
@@ -1779,7 +1805,7 @@ function mkHourlyTrend(canvas, buckets){
         },
       },
       scales:{
-        x:{ grid:{display:false}, ticks:{ font:{size:11}, color:PAL.ink, autoSkip:true, maxRotation:0, maxTicksLimit:isDense?12:14 } },
+        x:{ grid:{display:false}, ticks:{ font:{size:11}, color:PAL.ink, autoSkip:true, maxRotation:0, maxTicksLimit:maxTicks } },
         y:{ grid:{ color:PAL.line, drawBorder:false }, beginAtZero:true,
             ticks:{ font:{size:11}, color:PAL.muted, precision:0, callback:v => v.toLocaleString() } },
       },
@@ -1823,12 +1849,12 @@ function paintHourlyTrend(){
   mkHourlyTrend($('cHourlyTrend'), buckets);
 
   const rangeLabel = ({
-    today:          'today, by hour',
-    yesterday:      'yesterday, by hour',
-    this_week:      'this week, by day',
-    this_month:     'this month, by day',
-    last_3_weeks:   'last 3 weeks, by day',
-    last_3_months:  'last 3 months, weekly',
+    today:          'today, hourly',
+    yesterday:      'yesterday, hourly',
+    this_week:      'this week, hourly',
+    this_month:     'this month, hourly',
+    last_3_weeks:   'last 3 weeks, hourly',
+    last_3_months:  'last 3 months, hourly',
   })[hourlyRange];
   $('hourlySub').textContent = `${rangeLabel} · received vs qc_done · counts all verified statuses`;
 }
