@@ -1629,9 +1629,9 @@ function mkTrend(canvas, buckets){
         },
       },
       scales:{
-        x:{ grid:{display:false}, ticks:{font:{size:11},color:PAL.muted, autoSkip:true, maxRotation:0} },
+        x:{ offset:true, grid:{display:false}, ticks:{font:{size:11},color:PAL.muted, autoSkip:true, maxRotation:0} },
         y:{ grid:{color:PAL.line, drawBorder:false}, beginAtZero:true,
-            ticks:{font:{size:11},color:PAL.muted, precision:0, callback:(v)=>v.toLocaleString()} },
+            ticks:{font:{size:11},color:PAL.muted, precision:0, padding:10, callback:(v)=>v.toLocaleString()} },
       },
     },
   });
@@ -1783,9 +1783,9 @@ function mkHourlyTrend(canvas, buckets){
         },
       },
       scales:{
-        x:{ grid:{display:false}, ticks:{ font:{size:11}, color:PAL.ink, autoSkip:false, maxRotation:0 } },
+        x:{ offset:true, grid:{display:false}, ticks:{ font:{size:11}, color:PAL.ink, autoSkip:false, maxRotation:0 } },
         y:{ grid:{ color:PAL.line, drawBorder:false }, beginAtZero:true,
-            ticks:{ font:{size:11}, color:PAL.muted, precision:0, callback:v => v.toLocaleString() } },
+            ticks:{ font:{size:11}, color:PAL.muted, precision:0, padding:10, callback:v => v.toLocaleString() } },
       },
     },
   });
@@ -3951,9 +3951,9 @@ function renderPerfTrend(buckets){
         },
       },
       scales:{
-        x:{ grid:{display:false}, ticks:{ font:{size:11}, color:PAL.muted, autoSkip:true, maxRotation:0, maxTicksLimit:isDaily?10:12 } },
+        x:{ offset:true, grid:{display:false}, ticks:{ font:{size:11}, color:PAL.muted, autoSkip:true, maxRotation:0, maxTicksLimit:isDaily?10:12 } },
         y:{ grid:{ color:PAL.line, drawBorder:false }, beginAtZero:true,
-            ticks:{ font:{size:11}, color:PAL.muted, precision:0, callback:v => v.toLocaleString() } },
+            ticks:{ font:{size:11}, color:PAL.muted, precision:0, padding:10, callback:v => v.toLocaleString() } },
       },
     },
   });
