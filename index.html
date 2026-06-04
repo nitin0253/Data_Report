@@ -2433,6 +2433,17 @@ async function syncFromServer({silent=false, force=false}={}){
     // a row is only excluded by a date filter if ALL three are absent — which
     // is essentially never, since updated_on is written on every status change.
     (function logFailed(){
+      // First, a tally of parsed `status` values so we know whether the API is
+      // delivering them at all. If everything is (empty) but the source CSV
+      // clearly has values, the column name in data.js's pickField fallback
+      // list is wrong — open /api/data?debug=1 to see the actual raw headers.
+      const statusTally = {};
+      for (const r of RAW){
+        const k = (r.status || '(empty)').toLowerCase();
+        statusTally[k] = (statusTally[k] || 0) + 1;
+      }
+      console.log('[parsed video-status tally]', statusTally);
+
       const failedAll       = RAW.filter(r => isFailed(r));
       const failedNoCreated = failedAll.filter(r => !r._created);
       const failedNoMedia   = failedAll.filter(r => !r._mediaCreated);
