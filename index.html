@@ -1146,12 +1146,38 @@ function videoLink(url){
 
 // Website link — show the bare domain (the most identifying piece) as label.
 // Same icon and styling as videoLink for consistency.
+// Stored URLs from the source sometimes come as bare hostnames (e.g.
+// `www.dorsettautomotive.com`) with no scheme. Browsers treat scheme-less
+// hrefs as relative paths off the current origin, so the link tries to
+// open `https://<dashboard-domain>/www.dorsettautomotive.com` and 404s.
+// This helper guarantees an absolute URL while leaving already-valid URLs
+// (http, https, mailto, data:, protocol-relative `//`, root paths `/…`) alone.
+function normalizeUrl(url){
+  if (!url) return '';
+  const s = String(url).trim();
+  if (!s) return '';
+  // Has any scheme — `http:`, `https:`, `mailto:`, `data:`, `ftp:` etc.
+  if (/^[a-z][a-z0-9+.\-]*:/i.test(s)) return s;
+  // Protocol-relative URL — browser supplies the current protocol.
+  if (s.startsWith('//')) return s;
+  // Already an absolute path on the current origin — leave for the browser
+  // to resolve. (Shouldn't appear in production data but defensive.)
+  if (s.startsWith('/')) return s;
+  // Bare hostname or hostname-with-path — assume https.
+  return 'https://' + s;
+}
+
 function websiteLink(url){
   if (!url) return '<span class="mono">—</span>';
-  const safe = esc(url);
+  const href = normalizeUrl(url);
+  const safe = esc(href);
   let label;
-  try { label = new URL(url).hostname.replace(/^www\./, ''); }
-  catch (e) { label = (url.split('/').filter(Boolean)[1] || url).replace(/^www\./, ''); }
+  try { label = new URL(href).hostname.replace(/^www\./, ''); }
+  catch (e) {
+    // URL constructor still fails (rare — invalid characters) — strip scheme
+    // and www. from the original string, take the first path segment.
+    label = String(url).replace(/^https?:\/\//i, '').replace(/^www\./i, '').split(/[\/?#]/)[0];
+  }
   if (label.length > 22) label = label.slice(0, 19) + '…';
   return `<a class="v-link" href="${safe}" target="_blank" rel="noopener noreferrer" title="${safe}">
     <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2h4v4M14 2L7 9M6 3H4a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h7a2 2 0 0 0 2-2v-2"/></svg>
@@ -1162,8 +1188,9 @@ function websiteLink(url){
 // Logo URL — usually an S3-style asset URL. Show the filename, same link style.
 function logoLink(url){
   if (!url) return '<span class="mono">—</span>';
-  const safe = esc(url);
-  let label = url.split('?')[0].split('/').filter(Boolean).pop() || 'Logo';
+  const href = normalizeUrl(url);
+  const safe = esc(href);
+  let label = href.split('?')[0].split('/').filter(Boolean).pop() || 'Logo';
   if (label.length > 22) label = label.slice(0, 19) + '…';
   return `<a class="v-link" href="${safe}" target="_blank" rel="noopener noreferrer" title="${safe}">
     <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2h4v4M14 2L7 9M6 3H4a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h7a2 2 0 0 0 2-2v-2"/></svg>
@@ -3218,8 +3245,8 @@ function extractRecordsForExport(){
       r.sku   || '',
       fmtDate(r.u),
       fmtTatHrs(r.ete),
-      r.weblink || '',   // full URL
-      r.logo    || '',   // full URL
+      normalizeUrl(r.weblink),   // ensure https:// prefix so links work when pasted
+      normalizeUrl(r.logo),
       r.mid     || '',
       fmtDate(r.mc),
     );
