@@ -829,6 +829,7 @@
             <th class="sortable" data-sort="poc_ob">POC OB<span class="sort-ind">↕</span></th>
             <th class="sortable" data-sort="poc_cs">POC CS<span class="sort-ind">↕</span></th>
             <th class="sortable" data-sort="_status">Status<span class="sort-ind">↕</span></th>
+            <th class="sortable" data-sort="status">Video Status<span class="sort-ind">↕</span></th>
             <th class="sortable" data-sort="sla">SLA<span class="sort-ind">↕</span></th>
             <th class="sortable" data-sort="tat">TAT<span class="sort-ind">↕</span></th>
             <th class="sortable" data-sort="rej">Rejected Reason<span class="sort-ind">↕</span></th>
@@ -2360,7 +2361,7 @@ function paint(){
   $('tCount').textContent = `${num(recent.length)} of ${num(filtered.length)} filtered (${num(RAW.length)} total)`;
   updateSortIndicators();
   $('tBody').innerHTML = !recent.length
-    ? `<tr><td colspan="22" class="empty">No records match these filters.</td></tr>`
+    ? `<tr><td colspan="23" class="empty">No records match these filters.</td></tr>`
     : recent.map(r=>{
         const isF=isFailed(r), isD=isDelivered(r), isR=isRejected(r);
         const pill = isF?'<span class="pill failed">Failed</span>'
@@ -2370,7 +2371,7 @@ function paint(){
         const slaPill = r.sla===1?'<span class="pill sla-in">In</span>'
                        :r.sla===0?'<span class="pill sla-out">Out</span>'
                                  :'<span class="pill">—</span>';
-        return `<tr><td class="mono">${esc(fmtDate(r.c))}</td>${copyTd(r.ent)}${copyTd(r.team)}${copyTd(r.qc)}${copyTd(r.poc_ob)}${copyTd(r.poc_cs)}<td>${pill}</td><td>${slaPill}</td><td class="mono">${esc(fmtTatHrs(r.tat))}</td><td title="${esc(r.rej||'')}">${esc(r.rej||'—')}</td>${copyTd(r.vid,{mono:true})}<td>${videoLink(r.vurl)}</td><td class="mono">${esc(r.vmode||'—')}</td><td class="mono">${esc(r.ttype||'—')}</td>${copyTd(r.vin,{mono:true})}${copyTd(r.sku,{mono:true})}<td class="mono">${esc(fmtDate(r.u))}</td><td class="mono">${esc(fmtTatHrs(r.ete))}</td><td>${websiteLink(r.weblink)}</td><td>${logoLink(r.logo)}</td>${copyTd(r.mid,{mono:true})}<td class="mono">${esc(fmtDate(r.mc))}</td></tr>`;
+        return `<tr><td class="mono">${esc(fmtDate(r.c))}</td>${copyTd(r.ent)}${copyTd(r.team)}${copyTd(r.qc)}${copyTd(r.poc_ob)}${copyTd(r.poc_cs)}<td>${pill}</td><td class="mono">${esc(r.status||'—')}</td><td>${slaPill}</td><td class="mono">${esc(fmtTatHrs(r.tat))}</td><td title="${esc(r.rej||'')}">${esc(r.rej||'—')}</td>${copyTd(r.vid,{mono:true})}<td>${videoLink(r.vurl)}</td><td class="mono">${esc(r.vmode||'—')}</td><td class="mono">${esc(r.ttype||'—')}</td>${copyTd(r.vin,{mono:true})}${copyTd(r.sku,{mono:true})}<td class="mono">${esc(fmtDate(r.u))}</td><td class="mono">${esc(fmtTatHrs(r.ete))}</td><td>${websiteLink(r.weblink)}</td><td>${logoLink(r.logo)}</td>${copyTd(r.mid,{mono:true})}<td class="mono">${esc(fmtDate(r.mc))}</td></tr>`;
       }).join('');
 
   console.log(`[paint] ${filtered.length} rows in ${(performance.now()-t0).toFixed(1)}ms`);
@@ -2978,6 +2979,7 @@ function renderRecordsModal(){
     sortableTh('poc_ob',   'POC OB'),
     sortableTh('poc_cs',   'POC CS'),
     sortableTh('_status',  'Status'),
+    sortableTh('status',   'Video Status'),
     sortableTh('sla',      'SLA'),
     sortableTh('tat',      'TAT'),
     isRejView ? reasonTh : '',
@@ -2999,12 +3001,12 @@ function renderRecordsModal(){
   $('modalBody').innerHTML = `
     <table>
       <thead><tr>${headHTML}</tr></thead>
-      <tbody>${shown.length===0?`<tr><td colspan="22" class="empty">No records match.</td></tr>`:shown.map(r=>{
+      <tbody>${shown.length===0?`<tr><td colspan="23" class="empty">No records match.</td></tr>`:shown.map(r=>{
         const isF=isFailed(r), isD=isDelivered(r), isR=isRejected(r);
         const pill = isF?'<span class="pill failed">Failed</span>':isD?'<span class="pill delivered">Delivered</span>':isR?'<span class="pill rejected">Rejected</span>':'<span class="pill pending">Pending</span>';
         const slaPill = r.sla===1?'<span class="pill sla-in">In</span>':r.sla===0?'<span class="pill sla-out">Out</span>':'<span class="pill">—</span>';
         const reasonCell = `<td title="${esc(r.rej||'')}" style="max-width:240px;white-space:normal;">${esc(r.rej||'—')}</td>`;
-        return `<tr><td class="mono">${esc(fmtDate(r.c))}</td>${copyTd(r.ent)}${copyTd(r.team)}${copyTd(r.qc)}${copyTd(r.poc_ob)}${copyTd(r.poc_cs)}<td>${pill}</td><td>${slaPill}</td><td class="mono">${esc(fmtTatHrs(r.tat))}</td>${isRejView?reasonCell:''}${copyTd(r.vid,{mono:true})}${!isRejView?reasonCell:''}<td>${videoLink(r.vurl)}</td><td class="mono">${esc(r.vmode||'—')}</td><td class="mono">${esc(r.ttype||'—')}</td>${copyTd(r.vin,{mono:true})}${copyTd(r.sku,{mono:true})}<td class="mono">${esc(fmtDate(r.u))}</td><td class="mono">${esc(fmtTatHrs(r.ete))}</td><td>${websiteLink(r.weblink)}</td><td>${logoLink(r.logo)}</td>${copyTd(r.mid,{mono:true})}<td class="mono">${esc(fmtDate(r.mc))}</td></tr>`;
+        return `<tr><td class="mono">${esc(fmtDate(r.c))}</td>${copyTd(r.ent)}${copyTd(r.team)}${copyTd(r.qc)}${copyTd(r.poc_ob)}${copyTd(r.poc_cs)}<td>${pill}</td><td class="mono">${esc(r.status||'—')}</td><td>${slaPill}</td><td class="mono">${esc(fmtTatHrs(r.tat))}</td>${isRejView?reasonCell:''}${copyTd(r.vid,{mono:true})}${!isRejView?reasonCell:''}<td>${videoLink(r.vurl)}</td><td class="mono">${esc(r.vmode||'—')}</td><td class="mono">${esc(r.ttype||'—')}</td>${copyTd(r.vin,{mono:true})}${copyTd(r.sku,{mono:true})}<td class="mono">${esc(fmtDate(r.u))}</td><td class="mono">${esc(fmtTatHrs(r.ete))}</td><td>${websiteLink(r.weblink)}</td><td>${logoLink(r.logo)}</td>${copyTd(r.mid,{mono:true})}<td class="mono">${esc(fmtDate(r.mc))}</td></tr>`;
       }).join('')}</tbody>
     </table>`;
   $('modalCount').textContent = `Showing ${num(shown.length)} of ${num(rows.length)}` + (shown.length>=500 && rows.length>500 ? ' (preview · download for all)' : '');
@@ -3169,7 +3171,7 @@ function extractRecordsForExport(){
   // Header labels match the on-screen header text (without sort indicators).
   const headers = [
     'Created','Enterprise','Team','QC User','POC OB','POC CS',
-    'Status','SLA','TAT',
+    'Status','Video Status','SLA','TAT',
   ];
   if (isRejView) headers.push('Rejected Reason');
   headers.push('Video ID');
@@ -3190,6 +3192,7 @@ function extractRecordsForExport(){
       r.poc_ob || '',
       r.poc_cs || '',
       statusOf(r),
+      r.status || '',   // raw video status from SQL ('done','failed', or blank)
       slaOf(r),
       fmtTatHrs(r.tat),
     ];
