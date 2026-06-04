@@ -346,6 +346,7 @@
   .modal-stat-value{font-family:'Bricolage Grotesque',serif;font-size:22px;font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums;line-height:1;}
   .modal-stat-value.green{color:var(--green);}.modal-stat-value.red{color:var(--red);}
   .modal-stat-value.orange{color:var(--orange);}.modal-stat-value.amber{color:var(--amber);}
+  .modal-stat-value.purple{color:var(--purple);}.modal-stat-value.blue{color:var(--accent);}
   .modal-body{flex:1;overflow:auto;}
   .modal-footer{padding:10px 26px;border-top:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);}
   .filter-chips{display:flex;flex-wrap:wrap;gap:6px;}
@@ -822,6 +823,11 @@
             <th class="sortable" data-sort="vin">VIN<span class="sort-ind">↕</span></th>
             <th class="sortable" data-sort="sku">SKU ID<span class="sort-ind">↕</span></th>
             <th class="sortable" data-sort="_updated">Updated<span class="sort-ind">↕</span></th>
+            <th class="sortable" data-sort="ete">ETE TAT<span class="sort-ind">↕</span></th>
+            <th class="sortable" data-sort="weblink">Website<span class="sort-ind">↕</span></th>
+            <th class="sortable" data-sort="logo">Logo<span class="sort-ind">↕</span></th>
+            <th class="sortable" data-sort="mid">Media ID<span class="sort-ind">↕</span></th>
+            <th class="sortable" data-sort="_mediaCreated">Media Created<span class="sort-ind">↕</span></th>
           </tr></thead>
           <tbody id="tBody"></tbody>
         </table>
@@ -1121,6 +1127,33 @@ function videoLink(url){
   </a>`;
 }
 
+// Website link — show the bare domain (the most identifying piece) as label.
+// Same icon and styling as videoLink for consistency.
+function websiteLink(url){
+  if (!url) return '<span class="mono">—</span>';
+  const safe = esc(url);
+  let label;
+  try { label = new URL(url).hostname.replace(/^www\./, ''); }
+  catch (e) { label = (url.split('/').filter(Boolean)[1] || url).replace(/^www\./, ''); }
+  if (label.length > 22) label = label.slice(0, 19) + '…';
+  return `<a class="v-link" href="${safe}" target="_blank" rel="noopener noreferrer" title="${safe}">
+    <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2h4v4M14 2L7 9M6 3H4a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h7a2 2 0 0 0 2-2v-2"/></svg>
+    ${esc(label)}
+  </a>`;
+}
+
+// Logo URL — usually an S3-style asset URL. Show the filename, same link style.
+function logoLink(url){
+  if (!url) return '<span class="mono">—</span>';
+  const safe = esc(url);
+  let label = url.split('?')[0].split('/').filter(Boolean).pop() || 'Logo';
+  if (label.length > 22) label = label.slice(0, 19) + '…';
+  return `<a class="v-link" href="${safe}" target="_blank" rel="noopener noreferrer" title="${safe}">
+    <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2h4v4M14 2L7 9M6 3H4a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h7a2 2 0 0 0 2-2v-2"/></svg>
+    ${esc(label)}
+  </a>`;
+}
+
 // ─────────────────────────────────────────────────────────────
 // STATE
 // ─────────────────────────────────────────────────────────────
@@ -1273,6 +1306,7 @@ function aggregate(rows){
   let totalReceived=0,totalDelivered=0,totalRejected=0,totalPending=0,totalFailed=0;
   let withinSla=0,outOfSla=0;
   let tatSum=0,tatCount=0;
+  let eteSum=0,eteCount=0;        // End-to-end TAT: media_created_at → updated_on, separate from `tat`
   let dareCount=0, turboCount=0, ttOtherCount=0, ttBlankCount=0;
   const entCount={},teamCount={},qcCount={};
   const entBreak={},teamBreak={};
@@ -1313,6 +1347,7 @@ function aggregate(rows){
     }
 
     if (typeof r.tat === 'number' && isFinite(r.tat)) { tatSum += r.tat; tatCount++; }
+    if (typeof r.ete === 'number' && isFinite(r.ete)) { eteSum += r.ete; eteCount++; }
 
     // Tally Temp Type. Match case-insensitively but bucket into the canonical labels.
     const tt = (r.ttype||'').trim();
@@ -1329,21 +1364,28 @@ function aggregate(rows){
       bump(entBreak, r.ent, kind);
       if (kind === 'delivered' && r.sla === 1) entBreak[r.ent].withinSla++;
       else if (kind === 'delivered' && r.sla === 0) entBreak[r.ent].outOfSla++;
-      if (!entPoc[r.ent]) entPoc[r.ent] = { ob:r.poc_ob||'', cs:r.poc_cs||'' };
+      // weblink/logo really belong to teams (each team has its own pair). At the
+      // enterprise level we record the first non-empty pair we see — useful when
+      // an enterprise has just one team, less meaningful when it has several.
+      if (!entPoc[r.ent]) entPoc[r.ent] = { ob:r.poc_ob||'', cs:r.poc_cs||'', weblink:r.weblink||'', logo:r.logo||'' };
       else {
-        if (!entPoc[r.ent].ob && r.poc_ob) entPoc[r.ent].ob = r.poc_ob;
-        if (!entPoc[r.ent].cs && r.poc_cs) entPoc[r.ent].cs = r.poc_cs;
+        if (!entPoc[r.ent].ob      && r.poc_ob) entPoc[r.ent].ob      = r.poc_ob;
+        if (!entPoc[r.ent].cs      && r.poc_cs) entPoc[r.ent].cs      = r.poc_cs;
+        if (!entPoc[r.ent].weblink && r.weblink) entPoc[r.ent].weblink = r.weblink;
+        if (!entPoc[r.ent].logo    && r.logo)    entPoc[r.ent].logo    = r.logo;
       }
     }
     if (r.team){
       bump(teamBreak, r.team, kind);
       if (kind === 'delivered' && r.sla === 1) teamBreak[r.team].withinSla++;
       else if (kind === 'delivered' && r.sla === 0) teamBreak[r.team].outOfSla++;
-      if (!teamPoc[r.team]) teamPoc[r.team] = { ob:r.poc_ob||'', cs:r.poc_cs||'', ent:r.ent||'' };
+      if (!teamPoc[r.team]) teamPoc[r.team] = { ob:r.poc_ob||'', cs:r.poc_cs||'', ent:r.ent||'', weblink:r.weblink||'', logo:r.logo||'' };
       else {
-        if (!teamPoc[r.team].ob  && r.poc_ob) teamPoc[r.team].ob  = r.poc_ob;
-        if (!teamPoc[r.team].cs  && r.poc_cs) teamPoc[r.team].cs  = r.poc_cs;
-        if (!teamPoc[r.team].ent && r.ent)    teamPoc[r.team].ent = r.ent;
+        if (!teamPoc[r.team].ob      && r.poc_ob) teamPoc[r.team].ob      = r.poc_ob;
+        if (!teamPoc[r.team].cs      && r.poc_cs) teamPoc[r.team].cs      = r.poc_cs;
+        if (!teamPoc[r.team].ent     && r.ent)    teamPoc[r.team].ent     = r.ent;
+        if (!teamPoc[r.team].weblink && r.weblink) teamPoc[r.team].weblink = r.weblink;
+        if (!teamPoc[r.team].logo    && r.logo)    teamPoc[r.team].logo    = r.logo;
       }
     }
   }
@@ -1375,6 +1417,8 @@ function aggregate(rows){
     failureRate:   totalReceived  ? +((totalFailed   /totalReceived)*100).toFixed(2) : null,
     avgTat: tatCount ? +(tatSum/tatCount).toFixed(2) : null,
     tatRecordCount: tatCount,
+    avgEte: eteCount ? +(eteSum/eteCount).toFixed(2) : null,
+    eteRecordCount: eteCount,
     enterpriseCount: Object.keys(entCount).length,
     teamCount:       Object.keys(teamCount).length,
     topEnt:  slice(sortDesc(entCount),  12),
@@ -1485,6 +1529,7 @@ const KPIS = [
   { id:'failed',    label:'Failed',            sub:'video status = failed',color:'red',  kind:'records',   view:'failed'     },
   { id:'sla',       label:'SLA Compliance',    sub:'within / delivered',color:'green',  kind:'records',   view:'within_sla' },
   { id:'tat',       label:'Avg TAT',           sub:'turnaround time',   color:'blue',   kind:'records',   view:'tat'        },
+  { id:'ete',       label:'End-to-End TAT',    sub:'media_created → updated', color:'purple', kind:'records', view:'ete'   },
 ];
 
 function renderKpiCards(){
@@ -1949,11 +1994,13 @@ function mkBar(id, canvas, map, opts={}){
 // RECORDS TABLE — SORTING
 // ─────────────────────────────────────────────────────────────
 function getRowSortVal(r, col){
-  if (col === '_created') return r._created?.getTime() ?? 0;
-  if (col === '_updated') return r._updated?.getTime() ?? 0;
+  if (col === '_created')      return r._created?.getTime()      ?? 0;
+  if (col === '_updated')      return r._updated?.getTime()      ?? 0;
+  if (col === '_mediaCreated') return r._mediaCreated?.getTime() ?? 0;
   if (col === '_status')  return isFailed(r) ? -1 : isDelivered(r) ? 2 : isRejected(r) ? 1 : 0;
   if (col === 'sla')      return (r.sla === 1) ? 1 : (r.sla === 0) ? 0 : -1;
   if (col === 'tat')      return (typeof r.tat === 'number') ? r.tat : -1;
+  if (col === 'ete')      return (typeof r.ete === 'number') ? r.ete : -1;
   return String(r[col] ?? '').toLowerCase();
 }
 
@@ -2068,6 +2115,7 @@ function paint(){
   $('kv-failed').textContent    = num(k.totalFailed);
   $('kv-sla').textContent       = k.slaCompliance!=null ? k.slaCompliance.toFixed(1)+'%' : '—';
   $('kv-tat').textContent       = fmtTatHrs(k.avgTat);
+  $('kv-ete').textContent       = fmtTatHrs(k.avgEte);
 
   // SLA + Delivery panels
   paintSla(k);
@@ -2189,7 +2237,7 @@ function paint(){
   $('tCount').textContent = `${num(recent.length)} of ${num(filtered.length)} filtered (${num(RAW.length)} total)`;
   updateSortIndicators();
   $('tBody').innerHTML = !recent.length
-    ? `<tr><td colspan="17" class="empty">No records match these filters.</td></tr>`
+    ? `<tr><td colspan="22" class="empty">No records match these filters.</td></tr>`
     : recent.map(r=>{
         const isF=isFailed(r), isD=isDelivered(r), isR=isRejected(r);
         const pill = isF?'<span class="pill failed">Failed</span>'
@@ -2199,7 +2247,7 @@ function paint(){
         const slaPill = r.sla===1?'<span class="pill sla-in">In</span>'
                        :r.sla===0?'<span class="pill sla-out">Out</span>'
                                  :'<span class="pill">—</span>';
-        return `<tr><td class="mono">${esc(fmtDate(r.c))}</td><td>${esc(r.ent||'—')}</td><td>${esc(r.team||'—')}</td><td>${esc(r.qc||'—')}</td><td>${esc(r.poc_ob||'—')}</td><td>${esc(r.poc_cs||'—')}</td><td>${pill}</td><td>${slaPill}</td><td class="mono">${esc(fmtTatHrs(r.tat))}</td><td title="${esc(r.rej||'')}">${esc(r.rej||'—')}</td><td class="mono">${esc(r.vid||'—')}</td><td>${videoLink(r.vurl)}</td><td class="mono">${esc(r.vmode||'—')}</td><td class="mono">${esc(r.ttype||'—')}</td><td class="mono">${esc(r.vin||'—')}</td><td class="mono">${esc(r.sku||'—')}</td><td class="mono">${esc(fmtDate(r.u))}</td></tr>`;
+        return `<tr><td class="mono">${esc(fmtDate(r.c))}</td><td>${esc(r.ent||'—')}</td><td>${esc(r.team||'—')}</td><td>${esc(r.qc||'—')}</td><td>${esc(r.poc_ob||'—')}</td><td>${esc(r.poc_cs||'—')}</td><td>${pill}</td><td>${slaPill}</td><td class="mono">${esc(fmtTatHrs(r.tat))}</td><td title="${esc(r.rej||'')}">${esc(r.rej||'—')}</td><td class="mono">${esc(r.vid||'—')}</td><td>${videoLink(r.vurl)}</td><td class="mono">${esc(r.vmode||'—')}</td><td class="mono">${esc(r.ttype||'—')}</td><td class="mono">${esc(r.vin||'—')}</td><td class="mono">${esc(r.sku||'—')}</td><td class="mono">${esc(fmtDate(r.u))}</td><td class="mono">${esc(fmtTatHrs(r.ete))}</td><td>${websiteLink(r.weblink)}</td><td>${logoLink(r.logo)}</td><td class="mono">${esc(r.mid||'—')}</td><td class="mono">${esc(fmtDate(r.mc))}</td></tr>`;
       }).join('');
 
   console.log(`[paint] ${filtered.length} rows in ${(performance.now()-t0).toFixed(1)}ms`);
@@ -2230,8 +2278,9 @@ async function syncFromServer({silent=false, force=false}={}){
     // Parse the calendar parts directly so months match the source CSV exactly.
     RAW.length = 0;
     for (const r of (data.rows||[])){
-      r._created = parseTs(r.c);
-      r._updated = parseTs(r.u);
+      r._created      = parseTs(r.c);
+      r._updated      = parseTs(r.u);
+      r._mediaCreated = parseTs(r.mc);   // when the VIN/media first hit our system
       RAW.push(r);
     }
     lastSynced = data.lastSynced ? new Date(data.lastSynced) : new Date();
@@ -2682,6 +2731,7 @@ function drillSubset(rows, view){
     case 'tt_dare':       return rows.filter(r => (r.ttype||'').trim().toLowerCase()==='dare');
     case 'tt_turbo':      return rows.filter(r => (r.ttype||'').trim().toLowerCase()==='turbo');
     case 'tat':           return rows.filter(r => typeof r.tat==='number').sort((a,b)=>(b.tat||0)-(a.tat||0));
+    case 'ete':           return rows.filter(r => typeof r.ete==='number').sort((a,b)=>(b.ete||0)-(a.ete||0));
     default:              return rows;
   }
 }
@@ -2715,6 +2765,7 @@ function openDrill(kpi){
     ['Out of SLA',  num(k.outOfSla),                     'orange'],
     ['SLA %',       k.slaCompliance!=null?k.slaCompliance.toFixed(1)+'%':'—', ''],
     ['Avg TAT',     fmtTatHrs(k.avgTat),                 ''],
+    ['Avg ETE TAT', fmtTatHrs(k.avgEte),                 'purple'],
   ].map(([l,v,c])=>`<div class="modal-stat"><span class="modal-stat-label">${esc(l)}</span><span class="modal-stat-value ${c}">${v}</span></div>`).join('');
 
   _modalCtx = { type:'records', kpi, rows, sort:{col:null, dir:null} };
@@ -2786,17 +2837,22 @@ function renderRecordsModal(){
     sortableTh('vin',      'VIN'),
     sortableTh('sku',      'SKU ID'),
     sortableTh('_updated', 'Updated'),
+    sortableTh('ete',           'ETE TAT'),
+    sortableTh('weblink',       'Website'),
+    sortableTh('logo',          'Logo'),
+    sortableTh('mid',           'Media ID'),
+    sortableTh('_mediaCreated', 'Media Created'),
   ].filter(Boolean).join('');
 
   $('modalBody').innerHTML = `
     <table>
       <thead><tr>${headHTML}</tr></thead>
-      <tbody>${shown.length===0?`<tr><td colspan="17" class="empty">No records match.</td></tr>`:shown.map(r=>{
+      <tbody>${shown.length===0?`<tr><td colspan="22" class="empty">No records match.</td></tr>`:shown.map(r=>{
         const isF=isFailed(r), isD=isDelivered(r), isR=isRejected(r);
         const pill = isF?'<span class="pill failed">Failed</span>':isD?'<span class="pill delivered">Delivered</span>':isR?'<span class="pill rejected">Rejected</span>':'<span class="pill pending">Pending</span>';
         const slaPill = r.sla===1?'<span class="pill sla-in">In</span>':r.sla===0?'<span class="pill sla-out">Out</span>':'<span class="pill">—</span>';
         const reasonCell = `<td title="${esc(r.rej||'')}" style="max-width:240px;white-space:normal;">${esc(r.rej||'—')}</td>`;
-        return `<tr><td class="mono">${esc(fmtDate(r.c))}</td><td>${esc(r.ent||'—')}</td><td>${esc(r.team||'—')}</td><td>${esc(r.qc||'—')}</td><td>${esc(r.poc_ob||'—')}</td><td>${esc(r.poc_cs||'—')}</td><td>${pill}</td><td>${slaPill}</td><td class="mono">${esc(fmtTatHrs(r.tat))}</td>${isRejView?reasonCell:''}<td class="mono">${esc(r.vid||'—')}</td>${!isRejView?reasonCell:''}<td>${videoLink(r.vurl)}</td><td class="mono">${esc(r.vmode||'—')}</td><td class="mono">${esc(r.ttype||'—')}</td><td class="mono">${esc(r.vin||'—')}</td><td class="mono">${esc(r.sku||'—')}</td><td class="mono">${esc(fmtDate(r.u))}</td></tr>`;
+        return `<tr><td class="mono">${esc(fmtDate(r.c))}</td><td>${esc(r.ent||'—')}</td><td>${esc(r.team||'—')}</td><td>${esc(r.qc||'—')}</td><td>${esc(r.poc_ob||'—')}</td><td>${esc(r.poc_cs||'—')}</td><td>${pill}</td><td>${slaPill}</td><td class="mono">${esc(fmtTatHrs(r.tat))}</td>${isRejView?reasonCell:''}<td class="mono">${esc(r.vid||'—')}</td>${!isRejView?reasonCell:''}<td>${videoLink(r.vurl)}</td><td class="mono">${esc(r.vmode||'—')}</td><td class="mono">${esc(r.ttype||'—')}</td><td class="mono">${esc(r.vin||'—')}</td><td class="mono">${esc(r.sku||'—')}</td><td class="mono">${esc(fmtDate(r.u))}</td><td class="mono">${esc(fmtTatHrs(r.ete))}</td><td>${websiteLink(r.weblink)}</td><td>${logoLink(r.logo)}</td><td class="mono">${esc(r.mid||'—')}</td><td class="mono">${esc(fmtDate(r.mc))}</td></tr>`;
       }).join('')}</tbody>
     </table>`;
   $('modalCount').textContent = `Showing ${num(shown.length)} of ${num(rows.length)}` + (shown.length>=500 && rows.length>500 ? ' (preview · download for all)' : '');
@@ -2814,6 +2870,8 @@ function renderBreakdownView(){
     if (col === 'enterprise') return ((pocMap[name]||{}).ent || '').toLowerCase();
     if (col === 'pocOb')      return ((pocMap[name]||{}).ob || '').toLowerCase();
     if (col === 'pocCs')      return ((pocMap[name]||{}).cs || '').toLowerCase();
+    if (col === 'weblink')    return ((pocMap[name]||{}).weblink || '').toLowerCase();
+    if (col === 'logo')       return ((pocMap[name]||{}).logo || '').toLowerCase();
     if (col === 'total')      return v.total;
     if (col === 'delivered')  return v.delivered;
     if (col === 'rejected')   return v.rejected;
@@ -2866,6 +2924,8 @@ function renderBreakdownView(){
     dim==='team' ? sortableTh('enterprise', 'Enterprise') : '',
     sortableTh('pocOb',     'POC OB'),
     sortableTh('pocCs',     'POC CS'),
+    sortableTh('weblink',   'Website'),
+    sortableTh('logo',      'Logo'),
     sortableTh('total',     'Total',       'num-cell'),
     sortableTh('delivered', 'Delivered',   'num-cell'),
     sortableTh('rejected',  'Rejected',    'num-cell'),
@@ -2882,13 +2942,15 @@ function renderBreakdownView(){
       <tbody>${entries.map(([name,v])=>{
         const dRate = v.total ? (v.delivered/v.total)*100 : 0;
         const slaPct = v.delivered ? (v.withinSla/v.delivered)*100 : null;
-        const poc = pocMap[name] || {ob:'',cs:'',ent:''};
+        const poc = pocMap[name] || {ob:'',cs:'',ent:'',weblink:'',logo:''};
         const entCol = dim==='team' ? `<td>${esc(poc.ent||'—')}</td>` : '';
         return `<tr class="breakdown-row" data-name="${esc(name)}" data-dim="${dim}" title="Click to filter">
           <td class="breakdown-name">${esc(name)}</td>
           ${entCol}
           <td>${esc(poc.ob||'—')}</td>
           <td>${esc(poc.cs||'—')}</td>
+          <td>${websiteLink(poc.weblink)}</td>
+          <td>${logoLink(poc.logo)}</td>
           <td class="num-cell">${num(v.total)}</td>
           <td class="num-cell" style="color:var(--green)">${num(v.delivered)}</td>
           <td class="num-cell" style="color:var(--red)">${num(v.rejected)}</td>
@@ -2954,7 +3016,8 @@ function extractRecordsForExport(){
   if (isRejView) headers.push('Rejected Reason');
   headers.push('Video ID');
   if (!isRejView) headers.push('Rejected Reason');
-  headers.push('Video URL','View Mode','Temp Type','VIN','SKU ID','Updated');
+  headers.push('Video URL','View Mode','Temp Type','VIN','SKU ID','Updated',
+               'ETE TAT','Website','Logo','Media ID','Media Created');
 
   const statusOf = r => isFailed(r) ? 'Failed' : isDelivered(r) ? 'Delivered' : isRejected(r) ? 'Rejected' : 'Pending';
   const slaOf    = r => r.sla === 1 ? 'In' : r.sla === 0 ? 'Out' : '—';
@@ -2982,6 +3045,11 @@ function extractRecordsForExport(){
       r.vin   || '',
       r.sku   || '',
       fmtDate(r.u),
+      fmtTatHrs(r.ete),
+      r.weblink || '',   // full URL
+      r.logo    || '',   // full URL
+      r.mid     || '',
+      fmtDate(r.mc),
     );
     return base;
   });
