@@ -310,6 +310,22 @@
   .err{background:rgba(179,38,30,.07);border:1px solid rgba(179,38,30,.25);color:var(--red);padding:12px 16px;border-radius:8px;font-size:13px;}
   .empty{padding:60px 20px;text-align:center;color:var(--muted);font-size:13px;}
 
+  /* COPY-TO-CLIPBOARD CELLS — identifier/email/name values across all record &
+     breakdown tables. Subtle accent tint on hover hints at clickability without
+     making the table feel busy. Active-state flash gives feedback even before
+     the toast appears. Theme-aware via two static rgba tints. */
+  .copy-cell{cursor:copy;transition:background .12s,color .12s;}
+  .copy-cell:hover{background:rgba(31,63,114,0.10);color:var(--accent);}
+  [data-theme="dark"] .copy-cell:hover{background:rgba(107,158,255,0.14);color:var(--accent);}
+  .copy-cell:active{background:rgba(31,63,114,0.20);}
+  [data-theme="dark"] .copy-cell:active{background:rgba(107,158,255,0.28);}
+
+  /* TOAST — bottom-center pill with green check + truncated value preview */
+  .copy-toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);color:var(--surface);padding:11px 20px 11px 18px;border-radius:999px;font:500 13px 'Inter',sans-serif;letter-spacing:-.005em;box-shadow:0 8px 28px rgba(0,0,0,.35);opacity:0;pointer-events:none;z-index:10000;transition:opacity .18s,transform .18s;display:flex;align-items:center;gap:10px;max-width:90vw;}
+  .copy-toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+  .copy-toast svg{color:var(--green);flex-shrink:0;}
+  .copy-toast .toast-val{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+
   /* LOADING OVERLAY */
   #loadOverlay{display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.35);backdrop-filter:blur(2px);align-items:center;justify-content:center;}
   #loadOverlay.show{display:flex;}
@@ -1153,6 +1169,88 @@ function logoLink(url){
     ${esc(label)}
   </a>`;
 }
+
+// ─────────────────────────────────────────────────────────────
+// COPY-TO-CLIPBOARD — used by identifier/email/name table cells.
+// Ops staff frequently paste VINs and emails into other tools; one-click copy
+// removes a friction point from the workflow.
+// ─────────────────────────────────────────────────────────────
+
+// Builds a <td> that copies its value on click. Empty values fall back to a
+// plain em-dash td so no event fires when there's nothing to copy.
+function copyTd(value, opts = {}){
+  const v = String(value ?? '').trim();
+  const monoCls = opts.mono ? 'mono' : '';
+  if (!v) return `<td class="${monoCls}">—</td>`;
+  // data-copy holds the canonical string so we copy exactly what's in the row,
+  // not what the cell happens to render (escaped, possibly truncated by CSS).
+  const cls = (monoCls ? monoCls + ' ' : '') + 'copy-cell';
+  return `<td class="${cls}" data-copy="${esc(v)}" title="Click to copy">${esc(v)}</td>`;
+}
+
+async function copyToClipboard(text){
+  // Modern path — only works in secure contexts (https or localhost).
+  try {
+    if (navigator.clipboard && window.isSecureContext){
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  } catch (e) { /* fall through to legacy path */ }
+  // Legacy fallback — hidden textarea + execCommand. Works on http and older browsers.
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.cssText = 'position:fixed;left:-9999px;top:0;opacity:0;';
+    document.body.appendChild(ta);
+    ta.select();
+    const ok = document.execCommand('copy');
+    document.body.removeChild(ta);
+    return ok;
+  } catch (e) {
+    console.warn('[copyToClipboard] both paths failed:', e);
+    return false;
+  }
+}
+
+// Reusable single-instance toast. ~2.2s visible, fades in/out smoothly.
+let _copyToastEl = null;
+let _copyToastTimer = null;
+function showCopyToast(text){
+  if (!_copyToastEl){
+    _copyToastEl = document.createElement('div');
+    _copyToastEl.className = 'copy-toast';
+    document.body.appendChild(_copyToastEl);
+  }
+  const preview = text.length > 36 ? text.slice(0, 33) + '…' : text;
+  _copyToastEl.innerHTML = `
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3,8 6.5,11.5 13,4"/></svg>
+    <span>Copied to clipboard</span>
+    <span class="toast-val">${esc(preview)}</span>
+  `;
+  // Force reflow so the show class triggers the transition even if a previous
+  // toast was already up.
+  void _copyToastEl.offsetWidth;
+  _copyToastEl.classList.add('show');
+  if (_copyToastTimer) clearTimeout(_copyToastTimer);
+  _copyToastTimer = setTimeout(() => _copyToastEl.classList.remove('show'), 2200);
+}
+
+// Global delegated click handler. Captures clicks on copy-cells anywhere in
+// the document (main records table, modal records view, breakdown view).
+// stopPropagation prevents the breakdown row-filter handler from firing on
+// the same click, so clicking a team name in the breakdown table COPIES
+// rather than DRILLS-IN. To drill into a row, click any non-copy cell
+// (Total, Delivered, etc.).
+document.addEventListener('click', async e => {
+  const cell = e.target.closest('.copy-cell');
+  if (!cell) return;
+  e.stopPropagation();
+  const text = cell.dataset.copy || cell.textContent.trim();
+  if (!text || text === '—') return;
+  const ok = await copyToClipboard(text);
+  if (ok) showCopyToast(text);
+  else    showCopyToast('(copy blocked by browser — try selecting and Ctrl+C)');
+});
 
 // ─────────────────────────────────────────────────────────────
 // STATE
@@ -2247,7 +2345,7 @@ function paint(){
         const slaPill = r.sla===1?'<span class="pill sla-in">In</span>'
                        :r.sla===0?'<span class="pill sla-out">Out</span>'
                                  :'<span class="pill">—</span>';
-        return `<tr><td class="mono">${esc(fmtDate(r.c))}</td><td>${esc(r.ent||'—')}</td><td>${esc(r.team||'—')}</td><td>${esc(r.qc||'—')}</td><td>${esc(r.poc_ob||'—')}</td><td>${esc(r.poc_cs||'—')}</td><td>${pill}</td><td>${slaPill}</td><td class="mono">${esc(fmtTatHrs(r.tat))}</td><td title="${esc(r.rej||'')}">${esc(r.rej||'—')}</td><td class="mono">${esc(r.vid||'—')}</td><td>${videoLink(r.vurl)}</td><td class="mono">${esc(r.vmode||'—')}</td><td class="mono">${esc(r.ttype||'—')}</td><td class="mono">${esc(r.vin||'—')}</td><td class="mono">${esc(r.sku||'—')}</td><td class="mono">${esc(fmtDate(r.u))}</td><td class="mono">${esc(fmtTatHrs(r.ete))}</td><td>${websiteLink(r.weblink)}</td><td>${logoLink(r.logo)}</td><td class="mono">${esc(r.mid||'—')}</td><td class="mono">${esc(fmtDate(r.mc))}</td></tr>`;
+        return `<tr><td class="mono">${esc(fmtDate(r.c))}</td>${copyTd(r.ent)}${copyTd(r.team)}${copyTd(r.qc)}${copyTd(r.poc_ob)}${copyTd(r.poc_cs)}<td>${pill}</td><td>${slaPill}</td><td class="mono">${esc(fmtTatHrs(r.tat))}</td><td title="${esc(r.rej||'')}">${esc(r.rej||'—')}</td>${copyTd(r.vid,{mono:true})}<td>${videoLink(r.vurl)}</td><td class="mono">${esc(r.vmode||'—')}</td><td class="mono">${esc(r.ttype||'—')}</td>${copyTd(r.vin,{mono:true})}${copyTd(r.sku,{mono:true})}<td class="mono">${esc(fmtDate(r.u))}</td><td class="mono">${esc(fmtTatHrs(r.ete))}</td><td>${websiteLink(r.weblink)}</td><td>${logoLink(r.logo)}</td>${copyTd(r.mid,{mono:true})}<td class="mono">${esc(fmtDate(r.mc))}</td></tr>`;
       }).join('');
 
   console.log(`[paint] ${filtered.length} rows in ${(performance.now()-t0).toFixed(1)}ms`);
@@ -2852,7 +2950,7 @@ function renderRecordsModal(){
         const pill = isF?'<span class="pill failed">Failed</span>':isD?'<span class="pill delivered">Delivered</span>':isR?'<span class="pill rejected">Rejected</span>':'<span class="pill pending">Pending</span>';
         const slaPill = r.sla===1?'<span class="pill sla-in">In</span>':r.sla===0?'<span class="pill sla-out">Out</span>':'<span class="pill">—</span>';
         const reasonCell = `<td title="${esc(r.rej||'')}" style="max-width:240px;white-space:normal;">${esc(r.rej||'—')}</td>`;
-        return `<tr><td class="mono">${esc(fmtDate(r.c))}</td><td>${esc(r.ent||'—')}</td><td>${esc(r.team||'—')}</td><td>${esc(r.qc||'—')}</td><td>${esc(r.poc_ob||'—')}</td><td>${esc(r.poc_cs||'—')}</td><td>${pill}</td><td>${slaPill}</td><td class="mono">${esc(fmtTatHrs(r.tat))}</td>${isRejView?reasonCell:''}<td class="mono">${esc(r.vid||'—')}</td>${!isRejView?reasonCell:''}<td>${videoLink(r.vurl)}</td><td class="mono">${esc(r.vmode||'—')}</td><td class="mono">${esc(r.ttype||'—')}</td><td class="mono">${esc(r.vin||'—')}</td><td class="mono">${esc(r.sku||'—')}</td><td class="mono">${esc(fmtDate(r.u))}</td><td class="mono">${esc(fmtTatHrs(r.ete))}</td><td>${websiteLink(r.weblink)}</td><td>${logoLink(r.logo)}</td><td class="mono">${esc(r.mid||'—')}</td><td class="mono">${esc(fmtDate(r.mc))}</td></tr>`;
+        return `<tr><td class="mono">${esc(fmtDate(r.c))}</td>${copyTd(r.ent)}${copyTd(r.team)}${copyTd(r.qc)}${copyTd(r.poc_ob)}${copyTd(r.poc_cs)}<td>${pill}</td><td>${slaPill}</td><td class="mono">${esc(fmtTatHrs(r.tat))}</td>${isRejView?reasonCell:''}${copyTd(r.vid,{mono:true})}${!isRejView?reasonCell:''}<td>${videoLink(r.vurl)}</td><td class="mono">${esc(r.vmode||'—')}</td><td class="mono">${esc(r.ttype||'—')}</td>${copyTd(r.vin,{mono:true})}${copyTd(r.sku,{mono:true})}<td class="mono">${esc(fmtDate(r.u))}</td><td class="mono">${esc(fmtTatHrs(r.ete))}</td><td>${websiteLink(r.weblink)}</td><td>${logoLink(r.logo)}</td>${copyTd(r.mid,{mono:true})}<td class="mono">${esc(fmtDate(r.mc))}</td></tr>`;
       }).join('')}</tbody>
     </table>`;
   $('modalCount').textContent = `Showing ${num(shown.length)} of ${num(rows.length)}` + (shown.length>=500 && rows.length>500 ? ' (preview · download for all)' : '');
@@ -2943,12 +3041,15 @@ function renderBreakdownView(){
         const dRate = v.total ? (v.delivered/v.total)*100 : 0;
         const slaPct = v.delivered ? (v.withinSla/v.delivered)*100 : null;
         const poc = pocMap[name] || {ob:'',cs:'',ent:'',weblink:'',logo:''};
-        const entCol = dim==='team' ? `<td>${esc(poc.ent||'—')}</td>` : '';
-        return `<tr class="breakdown-row" data-name="${esc(name)}" data-dim="${dim}" title="Click to filter">
-          <td class="breakdown-name">${esc(name)}</td>
+        // Name + ent + POC cells are copy-cells (click copies). To filter into
+        // this row, click any non-text cell (Total / Delivered / Rejected etc.).
+        const nameTd = `<td class="breakdown-name copy-cell" data-copy="${esc(name)}" title="Click to copy">${esc(name)}</td>`;
+        const entCol = dim==='team' ? copyTd(poc.ent) : '';
+        return `<tr class="breakdown-row" data-name="${esc(name)}" data-dim="${dim}" title="Click name/POC to copy · click counts to drill in">
+          ${nameTd}
           ${entCol}
-          <td>${esc(poc.ob||'—')}</td>
-          <td>${esc(poc.cs||'—')}</td>
+          ${copyTd(poc.ob)}
+          ${copyTd(poc.cs)}
           <td>${websiteLink(poc.weblink)}</td>
           <td>${logoLink(poc.logo)}</td>
           <td class="num-cell">${num(v.total)}</td>
@@ -2968,6 +3069,9 @@ function renderBreakdownView(){
     tr.addEventListener('click', e=>{
       // Don't trigger row-filter if user is clicking a header (delegated below)
       if (e.target.closest('th.sortable')) return;
+      // Copy-cells take their own clicks via the global handler — never filter
+      // when the user actually clicked the team-name / POC value to copy it.
+      if (e.target.closest('.copy-cell')) return;
       const name=tr.dataset.name, d=tr.dataset.dim;
       if (d==='ent'){ F.ent = new Set([name]); F.team = null; }
       else          { F.team = new Set([name]); }
@@ -4133,8 +4237,8 @@ function renderPerfEntTable(rows){
   $('perfEntBody').innerHTML = list.map(e => {
     const dRate  = e.deliveryRate;
     const rRate  = e.rejectionRate;
-    return `<tr class="breakdown-row" data-ent="${esc(e.name)}" title="Click to see records">
-      <td class="breakdown-name">${esc(e.name)}</td>
+    return `<tr class="breakdown-row" data-ent="${esc(e.name)}" title="Click name to copy · click counts to drill in">
+      <td class="breakdown-name copy-cell" data-copy="${esc(e.name)}" title="Click to copy">${esc(e.name)}</td>
       <td class="num-cell">${num(e.total)}</td>
       <td class="num-cell" style="color:var(--green)">${num(e.delivered)}</td>
       <td class="num-cell" style="color:var(--red)">${num(e.rejected)}</td>
@@ -4147,7 +4251,9 @@ function renderPerfEntTable(rows){
 
   // Row click → open drill modal with this user's records at this enterprise
   $('perfEntBody').querySelectorAll('.breakdown-row').forEach(tr=>{
-    tr.addEventListener('click', ()=>{
+    tr.addEventListener('click', e=>{
+      // Copy-cell clicks are handled by the global copy handler; don't also drill
+      if (e.target.closest('.copy-cell')) return;
       const entName = tr.dataset.ent;
       openUserEnterpriseDrill(entName, rows.filter(r => (r.ent||'(unknown)') === entName));
     });
