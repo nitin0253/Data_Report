@@ -3,6 +3,7 @@
 // All filtering and aggregation now happens client-side for sub-second filter UX.
 
 let cache = null;
+let cachedMeta = null;   // { rawHeaders: string[], rawSample: object[] }
 let lastFetch = 0;
 const CACHE_TIME = 5 * 60 * 1000; // 5 min server-side cache
 
@@ -77,6 +78,35 @@ async function loadRows() {
     console.log('[data.js] rows:', rows.length);
   }
 
+  // Stash raw CSV column names + per-status-candidate-header non-empty counts.
+  // When a parsed field is silently empty, this surfaces which raw column is
+  // actually carrying the data (e.g. `status` vs `v.status`). Counted across
+  // the FULL dataset, not a sample — definitive, not a guess.
+  const rawHeaders = rows.length ? Object.keys(rows[0]) : [];
+  const statusHeaderCandidates = rawHeaders.filter(h => /status/i.test(h));
+  const statusHeaderCoverage = {};
+  for (const h of statusHeaderCandidates){
+    let nonEmpty = 0;
+    const distinctVals = new Set();
+    for (const r of rows){
+      const v = r[h];
+      if (v != null && String(v).trim() !== ''){
+        nonEmpty++;
+        if (distinctVals.size < 6) distinctVals.add(String(v).trim().toLowerCase());
+      }
+    }
+    statusHeaderCoverage[h] = {
+      nonEmpty,
+      pctFilled: rows.length ? +(nonEmpty / rows.length * 100).toFixed(1) : 0,
+      sampleValues: Array.from(distinctVals),
+    };
+  }
+  cachedMeta = {
+    rawHeaders,
+    statusHeaderCoverage,
+    rawSample: rows.slice(0, 2),   // first two raw rows for visual inspection
+  };
+
   // Keep field names short — payload is sent to client and we want it lean.
   cache = rows.map(r => ({
     ent:    r.Ent_Name || '',
@@ -84,7 +114,14 @@ async function loadRows() {
     qc:     r.qc_email_id || '',
     poc_ob: pickField(r, ['POC_OB','poc_ob','ob_poc_email']),
     poc_cs: pickField(r, ['POC_CS','poc_cs','cs_poc_email']),
-    status: r.status || '',
+    status: pickField(r, [
+      // Plain forms (when SELECT has no table prefix or uses AS alias)
+      'status','Status','STATUS','video_status','Video_Status',
+      // Table-qualified forms — Metabase preserves dots from SELECT v.status
+      // exactly the way it preserves asku.mediaId. Without these fallbacks
+      // the value silently parses as empty string.
+      'v.status','v_status','video.status','video_video.status',
+    ]),
     crm:    (pickField(r, ['CRM_Status','crm_status']) || '').toLowerCase().trim(),
     ver:    (pickField(r, ['verified_status']) || '').toLowerCase().trim(),
     rej:    pickField(r, ['rejected_reason','reject_reason']),
@@ -120,13 +157,26 @@ async function loadRows() {
 
 export default async function handler(req, res) {
   try {
-    if (req.query.force === '1') { cache = null; lastFetch = 0; }
+    if (req.query.force === '1') { cache = null; cachedMeta = null; lastFetch = 0; }
     const rows = await loadRows();
 
     if (req.query.debug === '1') {
+      // Tally parsed status values so the operator can verify what got through.
+      const statusTally = {};
+      for (const r of rows){
+        const k = (r.status || '(empty)').toLowerCase();
+        statusTally[k] = (statusTally[k] || 0) + 1;
+      }
       return res.status(200).json({
         count: rows.length,
+        rawHeaders: cachedMeta?.rawHeaders || [],
+        // Per-header non-empty count for any raw column whose name contains
+        // "status". If `v.status` shows 100% filled but parsed `status` shows
+        // mostly (empty), the pickField fallback needs that key added.
+        statusHeaderCoverageInRawCsv: cachedMeta?.statusHeaderCoverage || {},
+        parsedStatusTally: statusTally,
         sample: rows.slice(0, 3),
+        rawSample: cachedMeta?.rawSample || [],
         tatStats: {
           withTat: rows.filter(r => r.tat != null).length,
           avg:     (() => {
