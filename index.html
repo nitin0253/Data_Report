@@ -628,7 +628,7 @@
       <div class="panel-header">
         <div class="panel-title-wrap">
           <h3>Hourly throughput</h3>
-          <div class="panel-sub" id="hourlySub">received vs qc_done · counts all verified statuses · independent of date filter</div>
+          <div class="panel-sub" id="hourlySub">received by created_on · qc_done by updated_on · all verified statuses</div>
         </div>
         <div style="display:flex;align-items:center;gap:8px;">
           <div class="trend-tabs" id="hourlyTabs">
@@ -1617,7 +1617,7 @@ function mkTrend(canvas, buckets){
     options:{
       responsive:true, maintainAspectRatio:false,
       interaction:{ mode:'index', intersect:false },
-      layout:{ padding:{ top:18, left:24, right:32 } },   // top for "Received" labels;
+      layout:{ padding:{ top:18, left:44, right:32 } },   // top for "Received" labels;
                                                           // sides keep first/last point labels off the panel edge
       plugins:{
         legend:{display:false},
@@ -1636,7 +1636,7 @@ function mkTrend(canvas, buckets){
             // (where labels are tiny like "50"). 78px fits up to 6-digit labels comfortably
             // and matches the natural width of the hourly chart with its narrower labels.
             afterFit: axis => { axis.width = Math.max(axis.width, 78); },
-            ticks:{font:{size:11},color:PAL.muted, precision:0, padding:14, callback:(v)=>v.toLocaleString()} },
+            ticks:{font:{size:11},color:PAL.muted, precision:0, padding:20, callback:(v)=>v.toLocaleString()} },
       },
     },
   });
@@ -1713,13 +1713,31 @@ function bucketHourly(rows, range){
     buckets.push({ hour:h, label: String(h).padStart(2,'0') + ':00', received:0, qcDone:0 });
   }
 
+  // Two metrics, two timestamps:
+  //   Received → bucketed by created_on ("what hour did the video arrive?")
+  //   QC Done  → bucketed by updated_on ("what hour did QC finish it?")
+  // A single row can land in different hours on the two lines (or only one of
+  // them, if the other timestamp falls outside the selected window). This lets
+  // ops see the difference between "videos came in 4-5am" and "videos QC'd 4-5am"
+  // — they're not the same set on any given day.
   for (const r of rows){
-    if (!r._created) continue;
-    const t = r._created.getTime();
-    if (t < startMs || t >= endMs) continue;
-    const h = r._created.getHours();           // IST hour, since parseTs returned IST
-    buckets[h].received++;
-    if (r.crm === 'qc_done' && !isFailed(r)) buckets[h].qcDone++;
+    // Received — every row whose creation timestamp is inside the window.
+    if (r._created){
+      const t = r._created.getTime();
+      if (t >= startMs && t < endMs){
+        buckets[r._created.getHours()].received++;
+      }
+    }
+    // QC Done — rows that reached qc_done crm-status and have an updated_on
+    // timestamp inside the window. Failed videos are excluded (they exited the
+    // pipeline before completing QC). Counted across all verified statuses
+    // (verified + rejected + blank — anything that finished the QC stage).
+    if (r.crm === 'qc_done' && !isFailed(r) && r._updated){
+      const t = r._updated.getTime();
+      if (t >= startMs && t < endMs){
+        buckets[r._updated.getHours()].qcDone++;
+      }
+    }
   }
   return buckets;
 }
@@ -1778,7 +1796,7 @@ function mkHourlyTrend(canvas, buckets){
     options:{
       responsive:true, maintainAspectRatio:false,
       interaction:{ mode:'index', intersect:false },
-      layout:{ padding:{ top:18, left:24, right:32 } },
+      layout:{ padding:{ top:18, left:44, right:32 } },
       plugins:{
         legend:{ display:false },
         tooltip:{
@@ -1791,7 +1809,7 @@ function mkHourlyTrend(canvas, buckets){
         x:{ offset:true, grid:{display:false}, ticks:{ font:{size:11}, color:PAL.ink, autoSkip:false, maxRotation:0 } },
         y:{ grid:{ color:PAL.line, drawBorder:false }, beginAtZero:true,
             afterFit: axis => { axis.width = Math.max(axis.width, 78); },
-            ticks:{ font:{size:11}, color:PAL.muted, precision:0, padding:14, callback:v => v.toLocaleString() } },
+            ticks:{ font:{size:11}, color:PAL.muted, precision:0, padding:20, callback:v => v.toLocaleString() } },
       },
     },
   });
@@ -1840,7 +1858,7 @@ function paintHourlyTrend(){
     last_3_weeks:   'last 3 weeks · summed by hour of day',
     last_3_months:  'last 3 months · summed by hour of day',
   })[hourlyRange];
-  $('hourlySub').textContent = `${rangeLabel} · received vs qc_done · counts all verified statuses`;
+  $('hourlySub').textContent = `${rangeLabel} · received by created_on · qc_done by updated_on · all verified statuses`;
 }
 
 // Tab clicks
@@ -3947,7 +3965,7 @@ function renderPerfTrend(buckets){
     options:{
       responsive:true, maintainAspectRatio:false,
       interaction:{ mode:'index', intersect:false },
-      layout:{ padding:{ top:18, left:24, right:32 } },
+      layout:{ padding:{ top:18, left:44, right:32 } },
       plugins:{
         legend:{ display:false },
         tooltip:{
@@ -3960,7 +3978,7 @@ function renderPerfTrend(buckets){
         x:{ offset:true, grid:{display:false}, ticks:{ font:{size:11}, color:PAL.muted, autoSkip:true, maxRotation:0, maxTicksLimit:isDaily?10:12 } },
         y:{ grid:{ color:PAL.line, drawBorder:false }, beginAtZero:true,
             afterFit: axis => { axis.width = Math.max(axis.width, 78); },
-            ticks:{ font:{size:11}, color:PAL.muted, precision:0, padding:14, callback:v => v.toLocaleString() } },
+            ticks:{ font:{size:11}, color:PAL.muted, precision:0, padding:20, callback:v => v.toLocaleString() } },
       },
     },
   });
