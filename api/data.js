@@ -98,7 +98,19 @@ async function loadRows() {
               'TAT_Hrs','TAT_hrs','tat_hrs','tat_Hrs',
               'TAT_Hours','TAT_hours','tat_hours','TAT','tat'
             ])),
+    // End-to-end TAT — from media_created_at to updated_on (hours). Different
+    // from `tat` which only measures the QC pipeline phase (created_on → updated_on).
+    ete:    parseTatHrs(pickField(r, [
+              'ETE_TAT_Hrs','ETE_TAT_hrs','ete_tat_hrs','ete_tat_Hrs',
+              'ETE_TAT_Hours','ETE_TAT','ete_tat','ETE_Tat_Hrs'
+            ])),
     sla:    parseSla(pickField(r, ['SLA_Flag','sla_flag','SLA','sla'])),
+    // Per-team metadata (every row for the same team carries the same values)
+    weblink: pickField(r, ['website_link','Website_Link','WebsiteLink','website','Website']),
+    logo:    pickField(r, ['logo_url','Logo_URL','LogoUrl','logo','Logo']),
+    // Media-level identifiers — separate from Video_ID; one media (image/video asset)
+    mid:    pickField(r, ['asku.mediaId','asku_mediaId','mediaId','media_id','MediaId','Media_ID']),
+    mc:     pickField(r, ['media_created_at','Media_Created_At','MediaCreatedAt','media_created']),
     c:      r.Created_ON || '',
     u:      r.Updated_ON || '',
   }));
