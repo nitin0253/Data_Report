@@ -1365,14 +1365,24 @@ function passesFilters(r){
     if (!isRejected(r)) return false;
     if (normReason(r.rej) !== F.rejReason) return false;
   }
+  // Date anchor falls through three timestamps in priority order:
+  //   1. created_on        — set when the QC pipeline accepted the video
+  //   2. media_created_at  — set when the VIN/media first hit our system
+  //   3. updated_on        — set on every row at the moment of last status change
+  // For normal rows, (1) is virtually always present so behavior is unchanged.
+  // Failed videos may lack both (1) and (2) (processing aborted before either
+  // timestamp could be written), so (3) ensures they still land in a date bucket.
+  // updated_on is reliably present because every status transition — including
+  // the transition INTO 'failed' — writes it.
+  const rowDate = r._created || r._mediaCreated || r._updated;
   if (F.from){
-    if (!r._created) return false;
-    if (r._created.getTime() < F.from.getTime()) return false;
+    if (!rowDate) return false;
+    if (rowDate.getTime() < F.from.getTime()) return false;
   }
   if (F.to){
-    if (!r._created) return false;
+    if (!rowDate) return false;
     const toExclusive = F.to.getTime() + 86400000;
-    if (r._created.getTime() >= toExclusive) return false;
+    if (rowDate.getTime() >= toExclusive) return false;
   }
   return true;
 }
@@ -1636,6 +1646,7 @@ function renderKpiCards(){
       <div class="kpi-arrow"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 11L11 5M6 5h5v5"/></svg></div>
       <div class="kpi-label">${esc(k.label)}</div>
       <div class="kpi-value ${k.color}" id="kv-${k.id}">—</div>
+      <div class="kpi-sub" id="kvs-${k.id}"></div>
     </div>
   `).join('');
   $('kpiGrid').querySelectorAll('.kpi').forEach(el=>{
@@ -2211,6 +2222,20 @@ function paint(){
   $('kv-rejected').textContent  = num(k.totalRejected);
   $('kv-pending').textContent   = num(k.totalPending);
   $('kv-failed').textContent    = num(k.totalFailed);
+  // Sub-line surfaces the gap between in-view failed count and total-in-source.
+  // Only render when there IS a gap, so the card stays clean during normal use.
+  // window._failedTotalInSource is set by the sync diagnostic above.
+  const failedSubEl = $('kvs-failed');
+  if (failedSubEl){
+    const inSource = window._failedTotalInSource || 0;
+    if (inSource > k.totalFailed){
+      failedSubEl.textContent = `${num(k.totalFailed)} of ${num(inSource)} in source · others outside filter`;
+      failedSubEl.style.color = 'var(--red)';
+    } else {
+      failedSubEl.textContent = '';
+      failedSubEl.style.color = '';
+    }
+  }
   $('kv-sla').textContent       = k.slaCompliance!=null ? k.slaCompliance.toFixed(1)+'%' : '—';
   $('kv-tat').textContent       = fmtTatHrs(k.avgTat);
   $('kv-ete').textContent       = fmtTatHrs(k.avgEte);
@@ -2399,6 +2424,35 @@ async function syncFromServer({silent=false, force=false}={}){
       }
       console.log('[monthly counts — should match CSV]');
       console.table(buckets);
+    })();
+
+    // Diagnostic: surface failed-row coverage. If the dashboard shows fewer
+    // failed rows than the source CSV, this tells you which timestamp(s) are
+    // missing. With the three-fallback chain (created → media_created → updated),
+    // a row is only excluded by a date filter if ALL three are absent — which
+    // is essentially never, since updated_on is written on every status change.
+    (function logFailed(){
+      const failedAll       = RAW.filter(r => isFailed(r));
+      const failedNoCreated = failedAll.filter(r => !r._created);
+      const failedNoMedia   = failedAll.filter(r => !r._mediaCreated);
+      const failedNoUpdated = failedAll.filter(r => !r._updated);
+      const failedNoAny     = failedAll.filter(r => !r._created && !r._mediaCreated && !r._updated);
+      console.log(
+        `[failed rows] total=${failedAll.length} · ` +
+        `missing created_on=${failedNoCreated.length} · ` +
+        `missing media_created_at=${failedNoMedia.length} · ` +
+        `missing updated_on=${failedNoUpdated.length} · ` +
+        `missing ALL three (won't render under any date filter)=${failedNoAny.length}`
+      );
+      if (failedAll.length && failedAll.length <= 20){
+        console.table(failedAll.map(r => ({
+          vin: r.vin, ent: r.ent, team: r.team,
+          status: r.status, crm: r.crm,
+          created_on: r.c, media_created_at: r.mc, updated_on: r.u,
+        })));
+      }
+      // Stash on window so we can compare in-view vs in-source counts when painting KPIs.
+      window._failedTotalInSource = failedAll.length;
     })();
 
     // Populate filter dropdowns from the FULL dataset (won't shrink as user filters)
