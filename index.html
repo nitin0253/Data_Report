@@ -645,7 +645,7 @@
       <div class="panel-header">
         <div class="panel-title-wrap">
           <h3>Hourly throughput</h3>
-          <div class="panel-sub" id="hourlySub">received by created_on · qc_done by updated_on · pending = running net within window</div>
+          <div class="panel-sub" id="hourlySub">received by created_on · qc_done by updated_on · cumulative received = running total from window start</div>
         </div>
         <div style="display:flex;align-items:center;gap:8px;">
           <div class="trend-tabs" id="hourlyTabs">
@@ -1960,19 +1960,15 @@ function bucketHourly(rows, range){
     }
   }
 
-  // Pending Queue — running net at end of each hour: cumulative received minus
-  // cumulative QC done from window start. Captures "fresh received + carried-
-  // over backlog" in a single value:
-  //   POSITIVE → queue grew this hour; we're falling behind
-  //   NEGATIVE → we processed more than arrived; clearing prior backlog
-  //   ZERO     → arrivals and completions matched exactly
-  // Note this is queue change WITHIN the visible window, not absolute queue
-  // depth (which would require knowing the queue size at window start).
-  let cumRecv = 0, cumQc = 0;
+  // Cumulative Received — running sum of received counts from window start.
+  // At each hour h, the value is "everything that's come into the pipeline
+  // through hour h" — this hour's fresh received plus everything from prior
+  // hours (whether already QC'd or still pending; from a receiving-side view
+  // they all count). Monotonically growing, always non-negative.
+  let cumRecv = 0;
   for (const b of buckets){
     cumRecv += b.received;
-    cumQc   += b.qcDone;
-    b.pending = cumRecv - cumQc;
+    b.cumReceived = cumRecv;
   }
   return buckets;
 }
@@ -1984,7 +1980,7 @@ function mkHourlyTrend(canvas, buckets){
   const labels  = buckets.map(b => b.label);
   const recv    = buckets.map(b => b.received);
   const qcDone  = buckets.map(b => b.qcDone);
-  const pending = buckets.map(b => b.pending);
+  const cumRecv = buckets.map(b => b.cumReceived);
 
   // Theme-aware gradient under the Received line, matching the main trend chart
   function hexToRgba(hex, a){
@@ -2008,7 +2004,7 @@ function mkHourlyTrend(canvas, buckets){
         borderWidth:2.2, tension:0.35, pointRadius:3, pointHoverRadius:6,
         pointBackgroundColor:PAL.accent, pointBorderColor:pointBorder, pointBorderWidth:0,
         pointHoverBackgroundColor:PAL.accent, pointHoverBorderColor:pointBorder, pointHoverBorderWidth:2,
-        fill:true,
+        fill:true, yAxisID:'y',
         datalabels:{
           align:'top', anchor:'end', clamp:true,
           color:PAL.ink, font:{family:"'JetBrains Mono',monospace", size:9, weight:'600'},
@@ -2020,7 +2016,7 @@ function mkHourlyTrend(canvas, buckets){
         borderWidth:2, tension:0.35, pointRadius:2.5, pointHoverRadius:5.5,
         pointBackgroundColor:PAL.green, pointBorderColor:pointBorder, pointBorderWidth:0,
         pointHoverBackgroundColor:PAL.green, pointHoverBorderColor:pointBorder, pointHoverBorderWidth:2,
-        fill:false,
+        fill:false, yAxisID:'y',
         datalabels:{
           align:'bottom', anchor:'end', clamp:true,
           color:PAL.green, font:{family:"'JetBrains Mono',monospace", size:9, weight:'600'},
@@ -2028,23 +2024,28 @@ function mkHourlyTrend(canvas, buckets){
           padding:{top:1, bottom:1},
         },
       },
-      // Pending Queue: running net of received minus qc-done from window start.
-      // Dashed line distinguishes it from the two solid throughput lines and
-      // signals "derived metric" — you don't add this line to the other two
-      // the way you might add receipts at two locations. Amber matches the
-      // Pending KPI color so the meaning is consistent across the dashboard.
-      { label:'Pending Queue', data:pending, borderColor:PAL.amber, backgroundColor:'transparent',
-        borderWidth:2, borderDash:[6,4], tension:0.35, pointRadius:2.5, pointHoverRadius:5.5,
+      // Cumulative Received — running sum of received from window start.
+      // Lives on its own right-side y-axis (y2) because by mid-window it grows
+      // ~5-10x the hourly peak; sharing the left axis would compress Received
+      // and QC Done into thin ribbons at the bottom. Dashed amber distinguishes
+      // it as a derived/cumulative metric, matching the "pending" semantic the
+      // user uses for it.
+      { label:'Cumulative Received', data:cumRecv, borderColor:PAL.amber, backgroundColor:'transparent',
+        borderWidth:2, borderDash:[6,4], tension:0.25, pointRadius:2.5, pointHoverRadius:5.5,
         pointBackgroundColor:PAL.amber, pointBorderColor:pointBorder, pointBorderWidth:0,
         pointHoverBackgroundColor:PAL.amber, pointHoverBorderColor:pointBorder, pointHoverBorderWidth:2,
-        fill:false,
+        fill:false, yAxisID:'y2',
         datalabels:{
-          // Place labels above on positive, below on negative — keeps them off the line.
-          align: ctx => ctx.dataset.data[ctx.dataIndex] >= 0 ? 'top' : 'bottom',
-          anchor:'end', clamp:true,
+          // Place to one side so they don't collide with the rising line.
+          align:'right', anchor:'end', clamp:true, offset:4,
           color:PAL.amber, font:{family:"'JetBrains Mono',monospace", size:9, weight:'600'},
-          // Show every non-zero value (including negatives — "we're ahead" is meaningful).
-          formatter:v => v !== 0 ? v.toLocaleString() : '',
+          // Show only at "interesting" points — every 3rd hour and the final
+          // labeled hour — to avoid 24 labels on top of each other.
+          formatter:(v, ctx) => {
+            const last = ctx.dataset.data.length - 1;
+            const i = ctx.dataIndex;
+            return (v > 0 && (i % 3 === 0 || i === last)) ? v.toLocaleString() : '';
+          },
           padding:{top:1, bottom:1},
         },
       },
@@ -2052,7 +2053,7 @@ function mkHourlyTrend(canvas, buckets){
     options:{
       responsive:true, maintainAspectRatio:false,
       interaction:{ mode:'index', intersect:false },
-      layout:{ padding:{ top:18, left:44, right:32 } },
+      layout:{ padding:{ top:18, left:44, right:48 } },   // a bit more right padding for y2 ticks
       plugins:{
         legend:{ display:false },
         tooltip:{
@@ -2063,28 +2064,31 @@ function mkHourlyTrend(canvas, buckets){
       },
       scales:{
         x:{ offset:true, grid:{display:false}, ticks:{ font:{size:11}, color:PAL.ink, autoSkip:false, maxRotation:0 } },
-        // beginAtZero still works with negative data — Chart.js extends the
-        // scale to include 0 PLUS the actual min/max. The amber Pending line
-        // crossing the zero gridline visually reads as "shifting from ahead
-        // to behind" or vice versa.
-        y:{ grid:{ color:PAL.line, drawBorder:false }, beginAtZero:true,
+        // Left axis — hourly Received & QC Done (small numbers, ~0-100 range).
+        y:{ position:'left', grid:{ color:PAL.line, drawBorder:false }, beginAtZero:true,
             afterFit: axis => { axis.width = Math.max(axis.width, 78); },
             ticks:{ font:{size:11}, color:PAL.muted, precision:0, padding:20, callback:v => v.toLocaleString() } },
+        // Right axis — Cumulative Received (large numbers, can reach thousands).
+        // grid.drawOnChartArea:false keeps it from drawing duplicate gridlines
+        // that would clash with the left axis's gridlines.
+        y2:{ position:'right', grid:{ display:false, drawOnChartArea:false, drawBorder:false }, beginAtZero:true,
+            afterFit: axis => { axis.width = Math.max(axis.width, 56); },
+            ticks:{ font:{size:11}, color:PAL.amber, precision:0, padding:8, callback:v => v.toLocaleString() } },
       },
     },
   });
 
-  // Legend totals strip. Pending isn't additive across hours (it's a running
-  // balance) so we surface the END-OF-WINDOW value instead — i.e., where the
-  // queue stood when we last had data. That's the actionable number:
-  // "we ended the day +X behind" or "−X ahead".
-  const finalPending = pending.length ? pending[pending.length - 1] : 0;
+  // Legend totals strip. Received/QC are window totals (additive sums).
+  // Cumulative Received's "total" is just its final value — same as the window
+  // sum of Received, but shown explicitly to confirm the line lands where
+  // expected.
+  const finalCum = cumRecv.length ? cumRecv[cumRecv.length - 1] : 0;
   const totals = {
     Received: recv.reduce((a,b)=>a+b,0),
     'QC Done': qcDone.reduce((a,b)=>a+b,0),
-    'Pending Queue (end)': finalPending,
+    'Cumulative Received (end)': finalCum,
   };
-  const cols = { Received:PAL.accent, 'QC Done':PAL.green, 'Pending Queue (end)':PAL.amber };
+  const cols = { Received:PAL.accent, 'QC Done':PAL.green, 'Cumulative Received (end)':PAL.amber };
   $('hourlyTrendLegend').innerHTML = Object.entries(totals).map(([k,v])=>
     `<div class="trend-legend-item"><span class="ldot" style="background:${cols[k]}"></span><span>${k}: </span><span class="lval">${v.toLocaleString()}</span></div>`
   ).join('');
@@ -2123,7 +2127,7 @@ function paintHourlyTrend(){
     last_3_weeks:   'last 3 weeks · summed by hour of day',
     last_3_months:  'last 3 months · summed by hour of day',
   })[hourlyRange];
-  $('hourlySub').textContent = `${rangeLabel} · received by created_on · qc_done by updated_on · pending = running net within window`;
+  $('hourlySub').textContent = `${rangeLabel} · received by created_on · qc_done by updated_on · cumulative received = running total from window start`;
 }
 
 // Tab clicks
