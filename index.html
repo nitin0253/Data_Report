@@ -418,6 +418,18 @@
   <span id="themeLabel">Dark</span>
 </button>
 
+<!-- Logout — fixed bottom-left, sits beside the theme toggle as a small
+     system-controls cluster. Same visual language as the theme button so they
+     read as related affordances. -->
+<button class="theme-toggle" id="logoutBtn" style="left:auto;right:24px;" title="Sign out">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+    <polyline points="16 17 21 12 16 7"/>
+    <line x1="21" y1="12" x2="9" y2="12"/>
+  </svg>
+  <span>Sign out</span>
+</button>
+
 <div id="sticky-top">
   <header>
     <div class="brand"><h1>Ops Dashboard</h1><span class="tag">QC · Throughput · SLA</span></div>
@@ -1960,22 +1972,55 @@ function bucketHourly(rows, range){
     }
   }
 
-  // Pending for QC — iterative queue simulation, hour by hour.
-  //   workload[h]    = received[h] + pendingFromPrevHour
-  //   pendingFromNextHour = max(0, workload[h] - qcDone[h])
-  // Semantically: the "pending count" carried forward to the next hour
-  // includes ONLY videos still waiting for QC. Once QC is done on a video, it
-  // is removed from the running count (per user spec). Clamped at zero —
-  // negative pending isn't physically meaningful (it would mean QC processed
-  // more videos than were in the window's queue, which happens when QC is
-  // working off pre-window backlog; from THIS window's perspective the queue
-  // is simply empty).
-  let pendingFromPrev = 0;
-  for (const b of buckets){
-    b.workload     = b.received + pendingFromPrev;
-    b.pendingNext  = Math.max(0, b.workload - b.qcDone);
-    pendingFromPrev = b.pendingNext;
+  // Pending for QC — TWO different semantics depending on the time window.
+  //
+  // SINGLE-DAY ranges (today, yesterday):
+  //   Buckets are sequential moments within one calendar day. The iterative
+  //   simulation reflects real queue dynamics — hour 7's leftover legitimately
+  //   feeds into hour 8.
+  //     workload[h]   = received[h] + pendingFromPrevHour
+  //     pendingNext   = max(0, workload[h] - qcDone[h])
+  //
+  // MULTI-DAY ranges (this_week, this_month, last_3_weeks, last_3_months):
+  //   Buckets aggregate the same hour-of-day across many disjoint days. They
+  //   are NOT sequential — bucket[5] is 30 different 5am hours summed together,
+  //   not "one continuous 5am". Carrying leftover from bucket[5] into bucket[6]
+  //   would treat distinct days' queues as one queue, which produces ever-
+  //   growing nonsense values (the user's "peak 426, end 426" complaint).
+  //   Instead, snapshot the row's CURRENT pending state (crm_status != qc_done
+  //   AND not failed) and bucket by received hour-of-day. The line answers
+  //   "of currently-pending videos, what hours did they arrive in?" — and its
+  //   total equals the Pending KPI exactly.
+  const isSingleDay = (range === 'today' || range === 'yesterday');
+
+  if (isSingleDay){
+    let pendingFromPrev = 0;
+    for (const b of buckets){
+      b.workload    = b.received + pendingFromPrev;
+      b.pendingNext = Math.max(0, b.workload - b.qcDone);
+      pendingFromPrev = b.pendingNext;
+    }
+  } else {
+    // Static snapshot. Pending = currently pending (matches isPending classifier
+    // exactly: not failed, crm not qc_done). Bucket by created_on hour-of-day
+    // within the same window the received counts use.
+    for (const r of rows){
+      if (!r._created) continue;
+      const t = r._created.getTime();
+      if (t < startMs || t >= endMs) continue;
+      if (r.crm !== 'qc_done' && !isFailed(r)){
+        buckets[r._created.getHours()].workload = (buckets[r._created.getHours()].workload || 0) + 1;
+      }
+    }
+    // Initialize workload field on buckets that had no pending rows (so the
+    // chart sees 0, not undefined).
+    for (const b of buckets){
+      if (b.workload == null) b.workload = 0;
+      b.pendingNext = 0;   // not meaningful for snapshot mode
+    }
   }
+  // Stash the mode on the array so the renderer can pick the right legend/sub.
+  buckets._pendingMode = isSingleDay ? 'simulation' : 'snapshot';
   return buckets;
 }
 
@@ -2074,15 +2119,25 @@ function mkHourlyTrend(canvas, buckets){
     },
   });
 
-  // Legend totals strip. For Pending, the "total" is the end-of-window value —
-  // i.e., the residual work still waiting for QC when the data ends. That's
-  // the actionable number: how much carried over past our visible window.
-  const finalPending = workload.length ? workload[workload.length - 1] : 0;
-  const peakPending  = workload.length ? Math.max(...workload) : 0;
+  // Legend totals strip. The Pending summary depends on which mode bucketHourly
+  // ran in — see comment block in bucketHourly for the why.
+  //   simulation mode (today/yesterday): peak workload + end-of-day residual
+  //   snapshot   mode (multi-day):      sum across buckets = total pending,
+  //                                     equals Pending KPI for the same window
+  const mode = buckets._pendingMode || 'simulation';
+  let pendingSummary;
+  if (mode === 'simulation'){
+    const finalPending = workload.length ? workload[workload.length - 1] : 0;
+    const peakPending  = workload.length ? Math.max(...workload) : 0;
+    pendingSummary = `peak ${peakPending.toLocaleString()} · end ${finalPending.toLocaleString()}`;
+  } else {
+    const totalPending = workload.reduce((a,b) => a + b, 0);
+    pendingSummary = `total ${totalPending.toLocaleString()} (currently pending)`;
+  }
   const totals = {
     Received: recv.reduce((a,b)=>a+b,0),
     'QC Done': qcDone.reduce((a,b)=>a+b,0),
-    'Pending for QC': `peak ${peakPending.toLocaleString()} · end ${finalPending.toLocaleString()}`,
+    'Pending for QC': pendingSummary,
   };
   const cols = { Received:PAL.accent, 'QC Done':PAL.green, 'Pending for QC':PAL.amber };
   $('hourlyTrendLegend').innerHTML = Object.entries(totals).map(([k,v])=>{
@@ -2124,7 +2179,13 @@ function paintHourlyTrend(){
     last_3_weeks:   'last 3 weeks · summed by hour of day',
     last_3_months:  'last 3 months · summed by hour of day',
   })[hourlyRange];
-  $('hourlySub').textContent = `${rangeLabel} · received by created_on · qc_done by updated_on · pending = fresh + prior hour's leftover (qc-done removed)`;
+  const isSingleDayRange = (hourlyRange === 'today' || hourlyRange === 'yesterday');
+  // Different semantic per mode — keep the subtitle honest about what the
+  // amber line represents so no one stares at it expecting the wrong thing.
+  const pendingMeaning = isSingleDayRange
+    ? "pending = fresh + prior hour's leftover (qc-done removed)"
+    : 'pending = currently-pending videos, bucketed by received hour-of-day';
+  $('hourlySub').textContent = `${rangeLabel} · received by created_on · qc_done by updated_on · ${pendingMeaning}`;
 }
 
 // Tab clicks
@@ -2369,11 +2430,35 @@ function paint(){
 
   // Top-X horizontal bars
   const PAL = getPal();
+
+  // Datalabel formatter: "N  (X.X%)" — same shape as the SLA breach chart so
+  // all five top-X panels read consistently. Falsy v (zero or null) and zero
+  // denominator both fall back to a bare count, preventing "0  (0.0%)" noise
+  // or "NaN%" when filters produce empty sets.
+  const pctFmt = (denom) => (v) => {
+    if (!denom || !v) return Number(v||0).toLocaleString();
+    const pct = (Number(v) / denom) * 100;
+    return `${v.toLocaleString()}  (${pct.toFixed(1)}%)`;
+  };
+  // Enterprises, teams, and QC users are all denominated by totalReceived
+  // (each job lands in exactly one ent / team / qc-user, so the % reads as
+  // "share of all jobs handled by this row"). Rejection reasons are
+  // denominated by totalRejected per the spec.
+  const denomReceived = k.totalReceived || 0;
+  const denomRejected = k.totalRejected || 0;
+  // 32% grace (vs the default 18%) — datalabel is now "1,234  (45.6%)" which
+  // is meaningfully wider than the previous bare count. Matches the SLA
+  // breach chart's grace, which already has identical-shape labels.
+  const PCT_GRACE = '32%';
+
   mkBar('ent',  $('cEnt'),  k.topEnt,  { h:true, color:PAL.accent,
+    formatter: pctFmt(denomReceived), grace: PCT_GRACE,
     onPick:label=>{ F.ent = new Set([label]); F.team = null; refreshMsTriggers(); refresh(); } });
   mkBar('team', $('cTeam'), k.topTeam, { h:true, color:PAL.purple,
+    formatter: pctFmt(denomReceived), grace: PCT_GRACE,
     onPick:label=>{ F.team = new Set([label]); refreshMsTriggers(); refresh(); } });
   mkBar('qc',   $('cQc'),   k.topQc,   { h:true, color:PAL.ink,
+    formatter: pctFmt(denomReceived), grace: PCT_GRACE,
     onPick:label=>{ F.user = new Set([label]); refreshMsTriggers(); refresh(); } });
 
   // Top SLA breaches — orange to match the Out-of-SLA color used elsewhere.
@@ -2416,8 +2501,14 @@ function paint(){
     ? `${num((k.topSlaBreach||[]).length)} enterprises with breaches · min 10 delivered · click to filter`
     : 'No SLA breaches in current view';
 
-  // Rejection reasons — clicking a bar toggles a filter for that reason
+  // Rejection reasons — clicking a bar toggles a filter for that reason.
+  // % is denominated by totalRejected (per user spec) so each bar reads as
+  // "share of rejections caused by this reason". Note: if a single rejected
+  // video carries multiple reasons, the column percentages can sum to more
+  // than 100% — that's intentional and accurate; reasons aren't mutually
+  // exclusive at the row level.
   mkBar('reasons', $('cReasons'), k.topReasons, { h:true, color:PAL.red,
+    formatter: pctFmt(denomRejected), grace: PCT_GRACE,
     onPick:label=>{
       const key = (k.topReasonsKeys||{})[label];
       if (!key) return;
@@ -2512,6 +2603,13 @@ async function syncFromServer({silent=false, force=false}={}){
   $('errBox').innerHTML='';
   try {
     const res = await fetch('/api/data' + (force ? '?force=1' : ''));
+    // Session expired or never authed — middleware returns 401. Bounce to
+    // the login page with the current path so the user lands back here.
+    if (res.status === 401){
+      const next = encodeURIComponent(window.location.pathname + window.location.search);
+      window.location.replace('/login.html?next=' + next);
+      return;
+    }
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Request failed');
 
@@ -3574,6 +3672,15 @@ function applyTheme(dark){
   if (RAW.length) refresh();
 }
 $('themeBtn').addEventListener('click', ()=> applyTheme(!isDark));
+
+// Logout: clear the cookie on the server, then send the user to the login
+// page. Best-effort — even if the POST fails (network), we still navigate
+// because the cookie is httpOnly and we can't clear it from JS anyway.
+$('logoutBtn').addEventListener('click', async () => {
+  try { await fetch('/api/auth/logout', { method: 'POST' }); }
+  catch (e) { /* network failed; navigate anyway */ }
+  window.location.replace('/login.html');
+});
 
 // ─────────────────────────────────────────────────────────────
 // LAYOUT / EDIT MODE
