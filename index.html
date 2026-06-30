@@ -1460,6 +1460,7 @@ function aggregate(rows){
   // delivered videos finish at or below this threshold). All three share the
   // same denominator: delivered videos that have a numeric TAT.
   const deliveredTats = [];
+  const deliveredEtes = [];   // ETE TAT scoped to delivered rows, parallels deliveredTats
   let within3hCount = 0, within6hCount = 0, within12hCount = 0;
   let dareCount=0, turboCount=0, ttOtherCount=0, ttBlankCount=0;
   const entCount={},teamCount={},qcCount={};
@@ -1494,6 +1495,12 @@ function aggregate(rows){
         if (r.tat <= 3) within3hCount++;
         if (r.tat <= 6) within6hCount++;
         if (r.tat <= 12) within12hCount++;
+      }
+      // Same scoping for ETE TAT — delivered-only feeds P95/P99 ETE percentiles.
+      // Failed/pending rows are excluded (failures have noisy short ETEs from
+      // early-pipeline aborts; pendings have no completion time).
+      if (typeof r.ete === 'number' && isFinite(r.ete)){
+        deliveredEtes.push(r.ete);
       }
     } else if (isRejected(r)){
       totalRejected++; kind='rejected';
@@ -1585,23 +1592,41 @@ function aggregate(rows){
     // Delivered-only TAT distribution metrics.
     // pct3h / pct6h / pct12h: percentage (0-100) of delivered-with-TAT that completed at or below threshold.
     // p95Tat: 95th-percentile TAT in hours, nearest-rank method.
-    // deliveredWithTat: shared denominator, surfaced in sub-lines so the rate has context.
+    // p95Ete / p99Ete: 95th and 99th percentile End-to-End TAT (media_created → updated)
+    //   across the same delivered scope. Tells you the typical-worst-case and
+    //   absolute-worst-case time for a video to clear the full pipeline.
+    // deliveredWithTat / deliveredWithEte: shared denominators, surfaced in
+    //   sub-lines so the rates have context.
     pct3h:  deliveredTats.length ? +((within3hCount  / deliveredTats.length) * 100).toFixed(2) : null,
     pct6h:  deliveredTats.length ? +((within6hCount  / deliveredTats.length) * 100).toFixed(2) : null,
     pct12h: deliveredTats.length ? +((within12hCount / deliveredTats.length) * 100).toFixed(2) : null,
+    // Nearest-rank percentile: smallest value v such that ≥p×100% of observations
+    // are at or below v. For sorted array of length N, index = ceil(p*N) - 1
+    // (0-indexed), clamped to [0, N-1]. The result is always an actually-
+    // observed TAT (not interpolated) so you can find the row that produced it.
     p95Tat: (() => {
       if (!deliveredTats.length) return null;
-      // Nearest-rank: P95 is the smallest value such that ≥95% of observations
-      // are at or below it. For a sorted array of length N, that's index
-      // ceil(0.95 * N) - 1 (0-indexed), clamped to [0, N-1].
       const sorted = deliveredTats.slice().sort((a, b) => a - b);
       const idx = Math.min(sorted.length - 1, Math.max(0, Math.ceil(sorted.length * 0.95) - 1));
+      return +sorted[idx].toFixed(2);
+    })(),
+    p95Ete: (() => {
+      if (!deliveredEtes.length) return null;
+      const sorted = deliveredEtes.slice().sort((a, b) => a - b);
+      const idx = Math.min(sorted.length - 1, Math.max(0, Math.ceil(sorted.length * 0.95) - 1));
+      return +sorted[idx].toFixed(2);
+    })(),
+    p99Ete: (() => {
+      if (!deliveredEtes.length) return null;
+      const sorted = deliveredEtes.slice().sort((a, b) => a - b);
+      const idx = Math.min(sorted.length - 1, Math.max(0, Math.ceil(sorted.length * 0.99) - 1));
       return +sorted[idx].toFixed(2);
     })(),
     within3hCount,
     within6hCount,
     within12hCount,
     deliveredWithTat: deliveredTats.length,
+    deliveredWithEte: deliveredEtes.length,
     enterpriseCount: Object.keys(entCount).length,
     teamCount:       Object.keys(teamCount).length,
     topEnt:  slice(sortDesc(entCount),  12),
@@ -1720,6 +1745,8 @@ const KPIS = [
   { id:'pct6h',     label:'% within 6 Hrs',    sub:'delivered ≤ 6h TAT',      color:'green',  kind:'records', view:'within_6h' },
   { id:'pct12h',    label:'% within 12 Hrs',   sub:'delivered ≤ 12h TAT',     color:'green',  kind:'records', view:'within_12h' },
   { id:'p95tat',    label:'P95 TAT',           sub:'95th percentile delivered',color:'blue',  kind:'records', view:'p95'       },
+  { id:'p95ete',    label:'P95 End-to-End TAT',sub:'95th percentile delivered (ete)', color:'purple', kind:'records', view:'p95_ete' },
+  { id:'p99ete',    label:'P99 End-to-End TAT',sub:'99th percentile delivered (ete)', color:'purple', kind:'records', view:'p99_ete' },
 ];
 
 function renderKpiCards(){
@@ -2423,11 +2450,15 @@ function paint(){
   $('kv-pct6h').textContent   = k.pct6h != null ? k.pct6h.toFixed(1) + '%' : '—';
   $('kv-pct12h').textContent  = k.pct12h != null ? k.pct12h.toFixed(1) + '%' : '—';
   $('kv-p95tat').textContent  = fmtTatHrs(k.p95Tat);
+  $('kv-p95ete').textContent  = fmtTatHrs(k.p95Ete);
+  $('kv-p99ete').textContent  = fmtTatHrs(k.p99Ete);
   const setSub = (id, txt) => { const el = $(id); if (el) el.textContent = txt; };
   setSub('kvs-pct3h',  k.deliveredWithTat ? `${num(k.within3hCount)} of ${num(k.deliveredWithTat)} delivered` : '');
   setSub('kvs-pct6h',  k.deliveredWithTat ? `${num(k.within6hCount)} of ${num(k.deliveredWithTat)} delivered` : '');
   setSub('kvs-pct12h', k.deliveredWithTat ? `${num(k.within12hCount)} of ${num(k.deliveredWithTat)} delivered` : '');
   setSub('kvs-p95tat', k.deliveredWithTat ? `across ${num(k.deliveredWithTat)} delivered` : '');
+  setSub('kvs-p95ete', k.deliveredWithEte ? `across ${num(k.deliveredWithEte)} delivered` : '');
+  setSub('kvs-p99ete', k.deliveredWithEte ? `across ${num(k.deliveredWithEte)} delivered` : '');
 
   // SLA + Delivery panels
   paintSla(k);
@@ -3142,6 +3173,28 @@ function drillSubset(rows, view){
       return rows.filter(r => isDelivered(r) && typeof r.tat === 'number' && r.tat >= threshold)
                  .sort((a, b) => (b.tat||0) - (a.tat||0));
     }
+    // P95/P99 ETE drills follow the same pattern as P95 TAT — recompute the
+    // percentile from the filtered set and show only rows at or above it,
+    // sorted slowest-first. These are the rows that are pulling the percentile
+    // upward; the rows you'd want to investigate when the ETE tail looks ugly.
+    case 'p95_ete': {
+      const etes = rows.filter(r => isDelivered(r) && typeof r.ete === 'number')
+                       .map(r => r.ete).sort((a, b) => a - b);
+      if (!etes.length) return [];
+      const idx = Math.min(etes.length - 1, Math.max(0, Math.ceil(etes.length * 0.95) - 1));
+      const threshold = etes[idx];
+      return rows.filter(r => isDelivered(r) && typeof r.ete === 'number' && r.ete >= threshold)
+                 .sort((a, b) => (b.ete||0) - (a.ete||0));
+    }
+    case 'p99_ete': {
+      const etes = rows.filter(r => isDelivered(r) && typeof r.ete === 'number')
+                       .map(r => r.ete).sort((a, b) => a - b);
+      if (!etes.length) return [];
+      const idx = Math.min(etes.length - 1, Math.max(0, Math.ceil(etes.length * 0.99) - 1));
+      const threshold = etes[idx];
+      return rows.filter(r => isDelivered(r) && typeof r.ete === 'number' && r.ete >= threshold)
+                 .sort((a, b) => (b.ete||0) - (a.ete||0));
+    }
     default:              return rows;
   }
 }
@@ -3177,6 +3230,8 @@ function openDrill(kpi){
     ['Avg TAT',     fmtTatHrs(k.avgTat),                 ''],
     ['P95 TAT',     fmtTatHrs(k.p95Tat),                 'blue'],
     ['Avg ETE TAT', fmtTatHrs(k.avgEte),                 'purple'],
+    ['P95 ETE TAT', fmtTatHrs(k.p95Ete),                 'purple'],
+    ['P99 ETE TAT', fmtTatHrs(k.p99Ete),                 'purple'],
   ].map(([l,v,c])=>`<div class="modal-stat"><span class="modal-stat-label">${esc(l)}</span><span class="modal-stat-value ${c}">${v}</span></div>`).join('');
 
   _modalCtx = { type:'records', kpi, rows, sort:{col:null, dir:null} };
