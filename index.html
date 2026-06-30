@@ -1460,7 +1460,7 @@ function aggregate(rows){
   // delivered videos finish at or below this threshold). All three share the
   // same denominator: delivered videos that have a numeric TAT.
   const deliveredTats = [];
-  let within3hCount = 0, within6hCount = 0;
+  let within3hCount = 0, within6hCount = 0, within12hCount = 0;
   let dareCount=0, turboCount=0, ttOtherCount=0, ttBlankCount=0;
   const entCount={},teamCount={},qcCount={};
   const entBreak={},teamBreak={};
@@ -1493,6 +1493,7 @@ function aggregate(rows){
         deliveredTats.push(r.tat);
         if (r.tat <= 3) within3hCount++;
         if (r.tat <= 6) within6hCount++;
+        if (r.tat <= 12) within12hCount++;
       }
     } else if (isRejected(r)){
       totalRejected++; kind='rejected';
@@ -1582,11 +1583,12 @@ function aggregate(rows){
     avgEte: eteCount ? +(eteSum/eteCount).toFixed(2) : null,
     eteRecordCount: eteCount,
     // Delivered-only TAT distribution metrics.
-    // pct3h / pct6h: percentage (0-100) of delivered-with-TAT that completed at or below threshold.
+    // pct3h / pct6h / pct12h: percentage (0-100) of delivered-with-TAT that completed at or below threshold.
     // p95Tat: 95th-percentile TAT in hours, nearest-rank method.
     // deliveredWithTat: shared denominator, surfaced in sub-lines so the rate has context.
-    pct3h: deliveredTats.length ? +((within3hCount / deliveredTats.length) * 100).toFixed(2) : null,
-    pct6h: deliveredTats.length ? +((within6hCount / deliveredTats.length) * 100).toFixed(2) : null,
+    pct3h:  deliveredTats.length ? +((within3hCount  / deliveredTats.length) * 100).toFixed(2) : null,
+    pct6h:  deliveredTats.length ? +((within6hCount  / deliveredTats.length) * 100).toFixed(2) : null,
+    pct12h: deliveredTats.length ? +((within12hCount / deliveredTats.length) * 100).toFixed(2) : null,
     p95Tat: (() => {
       if (!deliveredTats.length) return null;
       // Nearest-rank: P95 is the smallest value such that ≥95% of observations
@@ -1598,6 +1600,7 @@ function aggregate(rows){
     })(),
     within3hCount,
     within6hCount,
+    within12hCount,
     deliveredWithTat: deliveredTats.length,
     enterpriseCount: Object.keys(entCount).length,
     teamCount:       Object.keys(teamCount).length,
@@ -1715,6 +1718,7 @@ const KPIS = [
   // complete at or below this hour). All three drill into delivered subsets.
   { id:'pct3h',     label:'% within 3 Hrs',    sub:'delivered ≤ 3h TAT',      color:'green',  kind:'records', view:'within_3h' },
   { id:'pct6h',     label:'% within 6 Hrs',    sub:'delivered ≤ 6h TAT',      color:'green',  kind:'records', view:'within_6h' },
+  { id:'pct12h',    label:'% within 12 Hrs',   sub:'delivered ≤ 12h TAT',     color:'green',  kind:'records', view:'within_12h' },
   { id:'p95tat',    label:'P95 TAT',           sub:'95th percentile delivered',color:'blue',  kind:'records', view:'p95'       },
 ];
 
@@ -2417,10 +2421,12 @@ function paint(){
   // "47.3%" on its own can mean "of 10" or "of 10,000" which feel very different.
   $('kv-pct3h').textContent   = k.pct3h != null ? k.pct3h.toFixed(1) + '%' : '—';
   $('kv-pct6h').textContent   = k.pct6h != null ? k.pct6h.toFixed(1) + '%' : '—';
+  $('kv-pct12h').textContent  = k.pct12h != null ? k.pct12h.toFixed(1) + '%' : '—';
   $('kv-p95tat').textContent  = fmtTatHrs(k.p95Tat);
   const setSub = (id, txt) => { const el = $(id); if (el) el.textContent = txt; };
   setSub('kvs-pct3h',  k.deliveredWithTat ? `${num(k.within3hCount)} of ${num(k.deliveredWithTat)} delivered` : '');
   setSub('kvs-pct6h',  k.deliveredWithTat ? `${num(k.within6hCount)} of ${num(k.deliveredWithTat)} delivered` : '');
+  setSub('kvs-pct12h', k.deliveredWithTat ? `${num(k.within12hCount)} of ${num(k.deliveredWithTat)} delivered` : '');
   setSub('kvs-p95tat', k.deliveredWithTat ? `across ${num(k.deliveredWithTat)} delivered` : '');
 
   // SLA + Delivery panels
@@ -3121,6 +3127,8 @@ function drillSubset(rows, view){
     case 'within_3h':     return rows.filter(r => isDelivered(r) && typeof r.tat === 'number' && r.tat <= 3)
                                      .sort((a,b) => (a.tat||0) - (b.tat||0));
     case 'within_6h':     return rows.filter(r => isDelivered(r) && typeof r.tat === 'number' && r.tat <= 6)
+                                     .sort((a,b) => (a.tat||0) - (b.tat||0));
+    case 'within_12h':    return rows.filter(r => isDelivered(r) && typeof r.tat === 'number' && r.tat <= 12)
                                      .sort((a,b) => (a.tat||0) - (b.tat||0));
     // P95 drill: recompute the percentile from the filtered set passed in
     // (so it reflects the user's current filters), then show only rows AT OR
