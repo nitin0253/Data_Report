@@ -856,7 +856,7 @@
             <th class="sortable" data-sort="weblink">Website<span class="sort-ind">↕</span></th>
             <th class="sortable" data-sort="logo">Logo<span class="sort-ind">↕</span></th>
             <th class="sortable" data-sort="mid">Media ID<span class="sort-ind">↕</span></th>
-            <th class="sortable" data-sort="_mediaCreated">Media Created<span class="sort-ind">↕</span></th>
+            <th class="sortable" data-sort="_mediaUpdated">Media Updated<span class="sort-ind">↕</span></th>
           </tr></thead>
           <tbody id="tBody"></tbody>
         </table>
@@ -1407,14 +1407,14 @@ function passesFilters(r){
   }
   // Date anchor falls through three timestamps in priority order:
   //   1. created_on        — set when the QC pipeline accepted the video
-  //   2. media_created_at  — set when the VIN/media first hit our system
+  //   2. media_processed_at  — set when the VIN/media first hit our system
   //   3. updated_on        — set on every row at the moment of last status change
   // For normal rows, (1) is virtually always present so behavior is unchanged.
   // Failed videos may lack both (1) and (2) (processing aborted before either
   // timestamp could be written), so (3) ensures they still land in a date bucket.
   // updated_on is reliably present because every status transition — including
   // the transition INTO 'failed' — writes it.
-  const rowDate = r._created || r._mediaCreated || r._updated;
+  const rowDate = r._created || r._mediaUpdated || r._updated;
   if (F.from){
     if (!rowDate) return false;
     if (rowDate.getTime() < F.from.getTime()) return false;
@@ -1454,7 +1454,7 @@ function aggregate(rows){
   let totalReceived=0,totalDelivered=0,totalRejected=0,totalPending=0,totalFailed=0;
   let withinSla=0,outOfSla=0;
   let tatSum=0,tatCount=0;
-  let eteSum=0,eteCount=0;        // End-to-end TAT: media_created_at → updated_on, separate from `tat`
+  let eteSum=0,eteCount=0;        // End-to-end TAT: media_processed_at → updated_on, separate from `tat`
   // Delivered-only TAT distribution. % within 3h / 6h answer "how often do we
   // hit fast turnarounds"; P95 captures the worst-case typical (95% of
   // delivered videos finish at or below this threshold). All three share the
@@ -1592,7 +1592,7 @@ function aggregate(rows){
     // Delivered-only TAT distribution metrics.
     // pct3h / pct6h / pct12h: percentage (0-100) of delivered-with-TAT that completed at or below threshold.
     // p95Tat: 95th-percentile TAT in hours, nearest-rank method.
-    // p95Ete / p99Ete: 95th and 99th percentile End-to-End TAT (media_created → updated)
+    // p95Ete / p99Ete: 95th and 99th percentile End-to-End TAT (media_processed → updated)
     //   across the same delivered scope. Tells you the typical-worst-case and
     //   absolute-worst-case time for a video to clear the full pipeline.
     // deliveredWithTat / deliveredWithEte: shared denominators, surfaced in
@@ -1737,7 +1737,7 @@ const KPIS = [
   { id:'failed',    label:'Failed',            sub:'video status = failed',color:'red',  kind:'records',   view:'failed'     },
   { id:'sla',       label:'SLA Compliance',    sub:'within / delivered',color:'green',  kind:'records',   view:'within_sla' },
   { id:'tat',       label:'Avg TAT',           sub:'turnaround time',   color:'blue',   kind:'records',   view:'tat'        },
-  { id:'ete',       label:'End-to-End TAT',    sub:'media_created → updated', color:'purple', kind:'records', view:'ete'   },
+  { id:'ete',       label:'End-to-End TAT',    sub:'media_processed → updated', color:'purple', kind:'records', view:'ete'   },
   // Delivered-only TAT distribution. % within 3h / 6h reflect how often we hit
   // fast turnarounds; P95 reflects the worst-case typical (95% of deliveries
   // complete at or below this hour). All three drill into delivered subsets.
@@ -2309,7 +2309,7 @@ function mkBar(id, canvas, map, opts={}){
 function getRowSortVal(r, col){
   if (col === '_created')      return r._created?.getTime()      ?? 0;
   if (col === '_updated')      return r._updated?.getTime()      ?? 0;
-  if (col === '_mediaCreated') return r._mediaCreated?.getTime() ?? 0;
+  if (col === '_mediaUpdated') return r._mediaUpdated?.getTime() ?? 0;
   if (col === '_status')  return isFailed(r) ? -1 : isDelivered(r) ? 2 : isRejected(r) ? 1 : 0;
   if (col === 'sla')      return (r.sla === 1) ? 1 : (r.sla === 0) ? 0 : -1;
   if (col === 'tat')      return (typeof r.tat === 'number') ? r.tat : -1;
@@ -2660,7 +2660,7 @@ async function syncFromServer({silent=false, force=false}={}){
     for (const r of (data.rows||[])){
       r._created      = parseTs(r.c);
       r._updated      = parseTs(r.u);
-      r._mediaCreated = parseTs(r.mc);   // when the VIN/media first hit our system
+      r._mediaUpdated = parseTs(r.mc);   // when the VIN/media first hit our system
       RAW.push(r);
     }
     lastSynced = data.lastSynced ? new Date(data.lastSynced) : new Date();
@@ -2685,7 +2685,7 @@ async function syncFromServer({silent=false, force=false}={}){
 
     // Diagnostic: surface failed-row coverage. If the dashboard shows fewer
     // failed rows than the source CSV, this tells you which timestamp(s) are
-    // missing. With the three-fallback chain (created → media_created → updated),
+    // missing. With the three-fallback chain (created → media_processed → updated),
     // a row is only excluded by a date filter if ALL three are absent — which
     // is essentially never, since updated_on is written on every status change.
     (function logFailed(){
@@ -2702,13 +2702,13 @@ async function syncFromServer({silent=false, force=false}={}){
 
       const failedAll       = RAW.filter(r => isFailed(r));
       const failedNoCreated = failedAll.filter(r => !r._created);
-      const failedNoMedia   = failedAll.filter(r => !r._mediaCreated);
+      const failedNoMedia   = failedAll.filter(r => !r._mediaUpdated);
       const failedNoUpdated = failedAll.filter(r => !r._updated);
-      const failedNoAny     = failedAll.filter(r => !r._created && !r._mediaCreated && !r._updated);
+      const failedNoAny     = failedAll.filter(r => !r._created && !r._mediaUpdated && !r._updated);
       console.log(
         `[failed rows] total=${failedAll.length} · ` +
         `missing created_on=${failedNoCreated.length} · ` +
-        `missing media_created_at=${failedNoMedia.length} · ` +
+        `missing media_processed_at=${failedNoMedia.length} · ` +
         `missing updated_on=${failedNoUpdated.length} · ` +
         `missing ALL three (won't render under any date filter)=${failedNoAny.length}`
       );
@@ -2716,7 +2716,7 @@ async function syncFromServer({silent=false, force=false}={}){
         console.table(failedAll.map(r => ({
           vin: r.vin, ent: r.ent, team: r.team,
           status: r.status, crm: r.crm,
-          created_on: r.c, media_created_at: r.mc, updated_on: r.u,
+          created_on: r.c, media_processed_at: r.mc, updated_on: r.u,
         })));
       }
       // Stash on window so we can compare in-view vs in-source counts when painting KPIs.
@@ -3308,7 +3308,7 @@ function renderRecordsModal(){
     sortableTh('weblink',       'Website'),
     sortableTh('logo',          'Logo'),
     sortableTh('mid',           'Media ID'),
-    sortableTh('_mediaCreated', 'Media Created'),
+    sortableTh('_mediaUpdated', 'Media Updated'),
   ].filter(Boolean).join('');
 
   $('modalBody').innerHTML = `
@@ -3490,7 +3490,7 @@ function extractRecordsForExport(){
   headers.push('Video ID');
   if (!isRejView) headers.push('Rejected Reason');
   headers.push('Video URL','View Mode','Temp Type','VIN','SKU ID','Updated',
-               'ETE TAT','Website','Logo','Media ID','Media Created');
+               'ETE TAT','Website','Logo','Media ID','Media Updated');
 
   const statusOf = r => isFailed(r) ? 'Failed' : isDelivered(r) ? 'Delivered' : isRejected(r) ? 'Rejected' : 'Pending';
   const slaOf    = r => r.sla === 1 ? 'In' : r.sla === 0 ? 'Out' : '—';
