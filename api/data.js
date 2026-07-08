@@ -78,32 +78,43 @@ async function loadRows() {
     console.log('[data.js] rows:', rows.length);
   }
 
-  // Stash raw CSV column names + per-status-candidate-header non-empty counts.
-  // When a parsed field is silently empty, this surfaces which raw column is
-  // actually carrying the data (e.g. `status` vs `v.status`). Counted across
-  // the FULL dataset, not a sample — definitive, not a guess.
+  // Stash raw CSV column names + per-candidate-header non-empty counts. When a
+  // parsed field is silently empty, this surfaces which raw column is actually
+  // carrying the data (e.g. `status` vs `v.status`, or `media_processed_at` vs
+  // `media_updated_at` vs `media_created_at` — this field's name has drifted
+  // three times, hence generalizing this into a reusable check). Counted
+  // across the FULL dataset, not a sample — definitive, not a guess.
   const rawHeaders = rows.length ? Object.keys(rows[0]) : [];
-  const statusHeaderCandidates = rawHeaders.filter(h => /status/i.test(h));
-  const statusHeaderCoverage = {};
-  for (const h of statusHeaderCandidates){
-    let nonEmpty = 0;
-    const distinctVals = new Set();
-    for (const r of rows){
-      const v = r[h];
-      if (v != null && String(v).trim() !== ''){
-        nonEmpty++;
-        if (distinctVals.size < 6) distinctVals.add(String(v).trim().toLowerCase());
+  function computeHeaderCoverage(pattern){
+    const candidates = rawHeaders.filter(h => pattern.test(h));
+    const coverage = {};
+    for (const h of candidates){
+      let nonEmpty = 0;
+      const distinctVals = new Set();
+      for (const r of rows){
+        const v = r[h];
+        if (v != null && String(v).trim() !== ''){
+          nonEmpty++;
+          if (distinctVals.size < 6) distinctVals.add(String(v).trim().toLowerCase());
+        }
       }
+      coverage[h] = {
+        nonEmpty,
+        pctFilled: rows.length ? +(nonEmpty / rows.length * 100).toFixed(1) : 0,
+        sampleValues: Array.from(distinctVals),
+      };
     }
-    statusHeaderCoverage[h] = {
-      nonEmpty,
-      pctFilled: rows.length ? +(nonEmpty / rows.length * 100).toFixed(1) : 0,
-      sampleValues: Array.from(distinctVals),
-    };
+    return coverage;
   }
+  const statusHeaderCoverage = computeHeaderCoverage(/status/i);
+  // Matches media_created_at / media_updated_at / media_processed_at / any
+  // future variant — anything with "media" and a created/updated/processed
+  // timestamp-ish word in the header.
+  const mediaHeaderCoverage  = computeHeaderCoverage(/media.*(created|updated|processed|_at)/i);
   cachedMeta = {
     rawHeaders,
     statusHeaderCoverage,
+    mediaHeaderCoverage,
     rawSample: rows.slice(0, 2),   // first two raw rows for visual inspection
   };
 
@@ -135,7 +146,7 @@ async function loadRows() {
               'TAT_Hrs','TAT_hrs','tat_hrs','tat_Hrs',
               'TAT_Hours','TAT_hours','tat_hours','TAT','tat'
             ])),
-    // End-to-end TAT — from media_updated_at to updated_on (hours). Different
+    // End-to-end TAT — from media_processed_at to updated_on (hours). Different
     // from `tat` which only measures the QC pipeline phase (created_on → updated_on).
     ete:    parseTatHrs(pickField(r, [
               'ETE_TAT_Hrs','ETE_TAT_hrs','ete_tat_hrs','ete_tat_Hrs',
@@ -148,11 +159,13 @@ async function loadRows() {
     // Media-level identifiers — separate from Video_ID; one media (image/video asset)
     mid:    pickField(r, ['asku.mediaId','asku_mediaId','mediaId','media_id','MediaId','Media_ID']),
     // NOTE: despite the internal field name `mc` (kept for backward-compat with
-    // downstream code), this column actually holds media_updated_at, not
-    // media_created_at — confirmed against the source SQL. Both name variants
-    // are listed as fallback candidates in case the CSV header changes between
-    // the two, so parsing doesn't silently break either way.
+    // downstream code), this column actually holds media_processed_at — CONFIRMED
+    // against the source SQL after two earlier incorrect guesses (media_created_at,
+    // then media_updated_at). All three name variants are kept as fallback
+    // candidates, confirmed name first, so parsing survives if the CSV header
+    // ever reverts or varies across environments.
     mc:     pickField(r, [
+              'media_processed_at','Media_Processed_At','MediaProcessedAt','media_processed',
               'media_updated_at','Media_Updated_At','MediaUpdatedAt','media_updated',
               'media_created_at','Media_Created_At','MediaCreatedAt','media_created',
             ]),
@@ -175,6 +188,7 @@ export default async function handler(req, res) {
         const k = (r.status || '(empty)').toLowerCase();
         statusTally[k] = (statusTally[k] || 0) + 1;
       }
+      const mcNonEmpty = rows.filter(r => r.mc != null && String(r.mc).trim() !== '').length;
       return res.status(200).json({
         count: rows.length,
         rawHeaders: cachedMeta?.rawHeaders || [],
@@ -183,6 +197,14 @@ export default async function handler(req, res) {
         // mostly (empty), the pickField fallback needs that key added.
         statusHeaderCoverageInRawCsv: cachedMeta?.statusHeaderCoverage || {},
         parsedStatusTally: statusTally,
+        // Same idea for the media-timestamp field (`mc`, feeds End-to-End TAT/
+        // P95/P99 ETE). This field's expected column name has drifted three
+        // times (media_created_at → media_updated_at → media_processed_at) —
+        // if parsedMcNonEmpty is near 0 while one of these shows high
+        // pctFilled, the pickField list in this file needs that exact key added.
+        mediaHeaderCoverageInRawCsv: cachedMeta?.mediaHeaderCoverage || {},
+        parsedMcNonEmpty: mcNonEmpty,
+        parsedMcPctFilled: rows.length ? +(mcNonEmpty / rows.length * 100).toFixed(1) : 0,
         sample: rows.slice(0, 3),
         rawSample: cachedMeta?.rawSample || [],
         tatStats: {
