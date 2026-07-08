@@ -820,6 +820,28 @@
       <div class="chart-wrap tall"><canvas id="cSlaBreach"></canvas></div>
     </div>
 
+    <div class="panel" data-panel="entPerf" data-size="full" style="padding:0;">
+      <div class="panel-header" style="padding:14px 18px 12px;border-bottom:1px solid var(--line);margin-bottom:0;">
+        <div class="panel-title-wrap"><h3>Enterprise-wise performance</h3><div class="panel-sub" id="opsEntPerfSub">delivery & rejection % per enterprise · click row to drill</div></div>
+        <div class="edit-controls" data-panel-ctl="entPerf"></div>
+      </div>
+      <div class="table-scroll">
+        <table>
+          <thead id="opsEntPerfHead"><tr>
+            <th class="sortable" data-sort="name">Enterprise<span class="sort-ind">↕</span></th>
+            <th class="sortable num-cell" data-sort="total">Records<span class="sort-ind">↕</span></th>
+            <th class="sortable num-cell" data-sort="delivered">Delivered<span class="sort-ind">↕</span></th>
+            <th class="sortable num-cell" data-sort="rejected">Rejected<span class="sort-ind">↕</span></th>
+            <th class="sortable num-cell" data-sort="deliveryRate">Delivery %<span class="sort-ind">↕</span></th>
+            <th class="sortable num-cell" data-sort="rejectionRate">Rejection %<span class="sort-ind">↕</span></th>
+            <th class="sortable num-cell" data-sort="slaPct">SLA %<span class="sort-ind">↕</span></th>
+            <th class="sortable num-cell" data-sort="avgTat">Avg TAT<span class="sort-ind">↕</span></th>
+          </tr></thead>
+          <tbody id="opsEntPerfBody"></tbody>
+        </table>
+      </div>
+    </div>
+
     <div class="panel" data-panel="records" data-size="full" style="padding:0;">
       <div class="panel-header" style="padding:14px 18px 12px;border-bottom:1px solid var(--line);margin-bottom:0;">
         <div class="panel-title-wrap"><h3>Recent records</h3><div class="panel-sub" id="tCount">—</div></div>
@@ -856,7 +878,7 @@
             <th class="sortable" data-sort="weblink">Website<span class="sort-ind">↕</span></th>
             <th class="sortable" data-sort="logo">Logo<span class="sort-ind">↕</span></th>
             <th class="sortable" data-sort="mid">Media ID<span class="sort-ind">↕</span></th>
-            <th class="sortable" data-sort="_mediaUpdated">Media Updated<span class="sort-ind">↕</span></th>
+            <th class="sortable" data-sort="_mediaCreated">Media Created<span class="sort-ind">↕</span></th>
           </tr></thead>
           <tbody id="tBody"></tbody>
         </table>
@@ -1318,6 +1340,10 @@ const F = {
 
 // Records-table column sort
 const sortState = { col: null, dir: null };  // dir: 'asc' | 'desc' | null
+// Sort state for the Operations "Enterprise-wise performance" table.
+// Independent of PV.entSort (the QC Performance version) — this one is
+// scoped to Operations filters, not a single QC user's rows.
+const opsEntSort = { col: null, dir: null };
 
 // Layout — saved to localStorage. Bump key to v3 because schema changed (new panels).
 const DEFAULT_LAYOUT = [
@@ -1331,6 +1357,7 @@ const DEFAULT_LAYOUT = [
   { id:'topTeam',      size:'half' },
   { id:'topQc',        size:'half' },
   { id:'topSlaBreach', size:'full' },
+  { id:'entPerf',      size:'full' },
   { id:'records',      size:'full' },
 ];
 let LAYOUT = (()=>{try{const s=JSON.parse(localStorage.getItem('opsDash_layout_v7'));if(Array.isArray(s)&&s.length)return s;}catch(e){}return DEFAULT_LAYOUT.slice();})();
@@ -1407,14 +1434,14 @@ function passesFilters(r){
   }
   // Date anchor falls through three timestamps in priority order:
   //   1. created_on        — set when the QC pipeline accepted the video
-  //   2. media_processed_at  — set when the VIN/media first hit our system
+  //   2. media_created_at  — set when the VIN/media first hit our system
   //   3. updated_on        — set on every row at the moment of last status change
   // For normal rows, (1) is virtually always present so behavior is unchanged.
   // Failed videos may lack both (1) and (2) (processing aborted before either
   // timestamp could be written), so (3) ensures they still land in a date bucket.
   // updated_on is reliably present because every status transition — including
   // the transition INTO 'failed' — writes it.
-  const rowDate = r._created || r._mediaUpdated || r._updated;
+  const rowDate = r._created || r._mediaCreated || r._updated;
   if (F.from){
     if (!rowDate) return false;
     if (rowDate.getTime() < F.from.getTime()) return false;
@@ -1454,7 +1481,7 @@ function aggregate(rows){
   let totalReceived=0,totalDelivered=0,totalRejected=0,totalPending=0,totalFailed=0;
   let withinSla=0,outOfSla=0;
   let tatSum=0,tatCount=0;
-  let eteSum=0,eteCount=0;        // End-to-end TAT: media_processed_at → updated_on, separate from `tat`
+  let eteSum=0,eteCount=0;        // End-to-end TAT: media_created_at → updated_on, separate from `tat`
   // Delivered-only TAT distribution. % within 3h / 6h answer "how often do we
   // hit fast turnarounds"; P95 captures the worst-case typical (95% of
   // delivered videos finish at or below this threshold). All three share the
@@ -1592,7 +1619,7 @@ function aggregate(rows){
     // Delivered-only TAT distribution metrics.
     // pct3h / pct6h / pct12h: percentage (0-100) of delivered-with-TAT that completed at or below threshold.
     // p95Tat: 95th-percentile TAT in hours, nearest-rank method.
-    // p95Ete / p99Ete: 95th and 99th percentile End-to-End TAT (media_processed → updated)
+    // p95Ete / p99Ete: 95th and 99th percentile End-to-End TAT (media_created → updated)
     //   across the same delivered scope. Tells you the typical-worst-case and
     //   absolute-worst-case time for a video to clear the full pipeline.
     // deliveredWithTat / deliveredWithEte: shared denominators, surfaced in
@@ -1737,7 +1764,7 @@ const KPIS = [
   { id:'failed',    label:'Failed',            sub:'video status = failed',color:'red',  kind:'records',   view:'failed'     },
   { id:'sla',       label:'SLA Compliance',    sub:'within / delivered',color:'green',  kind:'records',   view:'within_sla' },
   { id:'tat',       label:'Avg TAT',           sub:'turnaround time',   color:'blue',   kind:'records',   view:'tat'        },
-  { id:'ete',       label:'End-to-End TAT',    sub:'media_processed → updated', color:'purple', kind:'records', view:'ete'   },
+  { id:'ete',       label:'End-to-End TAT',    sub:'media_created → updated', color:'purple', kind:'records', view:'ete'   },
   // Delivered-only TAT distribution. % within 3h / 6h reflect how often we hit
   // fast turnarounds; P95 reflects the worst-case typical (95% of deliveries
   // complete at or below this hour). All three drill into delivered subsets.
@@ -2309,7 +2336,7 @@ function mkBar(id, canvas, map, opts={}){
 function getRowSortVal(r, col){
   if (col === '_created')      return r._created?.getTime()      ?? 0;
   if (col === '_updated')      return r._updated?.getTime()      ?? 0;
-  if (col === '_mediaUpdated') return r._mediaUpdated?.getTime() ?? 0;
+  if (col === '_mediaCreated') return r._mediaCreated?.getTime() ?? 0;
   if (col === '_status')  return isFailed(r) ? -1 : isDelivered(r) ? 2 : isRejected(r) ? 1 : 0;
   if (col === 'sla')      return (r.sla === 1) ? 1 : (r.sla === 0) ? 0 : -1;
   if (col === 'tat')      return (typeof r.tat === 'number') ? r.tat : -1;
@@ -2410,6 +2437,138 @@ function paintTempType(k){
   if (blank) extras.push(`${num(blank)} unspecified`);
   $('ttExtraMeta').textContent = extras.length ? extras.join(' · ') : '\u00a0';
   $('ttMeta').textContent      = known ? `${num(known)} Dare + Turbo records` : 'No Dare/Turbo records in view';
+}
+
+// ─────────────────────────────────────────────────────────────
+// ENTERPRISE-WISE PERFORMANCE (Operations view)
+// Same shape as the QC Performance version (renderPerfEntTable) but scoped to
+// whatever the Operations filter bar currently selects — date range,
+// enterprise/team/user/POC/verified/SLA/temp-type — rather than a single QC
+// user's rows. Kept as a separate function (not a shared helper) because the
+// two versions differ in: sort state (opsEntSort vs PV.entSort), drill title/
+// chips (activeFilterChips() vs PV.user+PV.gran), and target DOM ids.
+// ─────────────────────────────────────────────────────────────
+function renderOpsEntTable(rows){
+  // Aggregate per enterprise — identical accumulator shape to renderPerfEntTable
+  const byEnt = {};
+  for (const r of rows){
+    const key = r.ent || '(unknown)';
+    if (!byEnt[key]) byEnt[key] = {
+      name:key, total:0, delivered:0, rejected:0, pending:0,
+      withinSla:0, outOfSla:0, tatSum:0, tatN:0,
+    };
+    const e = byEnt[key];
+    e.total++;
+    if (isDelivered(r)){
+      e.delivered++;
+      if (r.sla === 1) e.withinSla++;
+      else if (r.sla === 0) e.outOfSla++;
+    } else if (isRejected(r)) e.rejected++;
+    else e.pending++;
+    if (typeof r.tat === 'number' && isFinite(r.tat)){ e.tatSum += r.tat; e.tatN++; }
+  }
+  const list = Object.values(byEnt).map(e => ({
+    ...e,
+    deliveryRate:  e.total ? (e.delivered / e.total) * 100 : 0,
+    rejectionRate: e.total ? (e.rejected  / e.total) * 100 : 0,
+    slaPct:        e.delivered ? (e.withinSla / e.delivered) * 100 : null,
+    avgTat:        e.tatN ? (e.tatSum / e.tatN) : null,
+  }));
+
+  // Sort
+  const s = opsEntSort;
+  if (s.col){
+    list.sort((a,b)=>{
+      const av = a[s.col], bv = b[s.col];
+      const aN = av == null ? -Infinity : av;
+      const bN = bv == null ? -Infinity : bv;
+      const cmp = (typeof aN === 'number' && typeof bN === 'number')
+        ? aN - bN
+        : String(av).localeCompare(String(bv), undefined, {numeric:true, sensitivity:'base'});
+      return s.dir === 'asc' ? cmp : -cmp;
+    });
+  } else {
+    list.sort((a,b)=> b.total - a.total);
+  }
+
+  // Update sort indicators
+  $('opsEntPerfHead').querySelectorAll('th.sortable').forEach(th=>{
+    const col = th.dataset.sort, ind = th.querySelector('.sort-ind');
+    if (s.col === col){ th.classList.add('sorted'); ind.textContent = s.dir === 'asc' ? '↑' : '↓'; }
+    else { th.classList.remove('sorted'); ind.textContent = '↕'; }
+  });
+
+  $('opsEntPerfSub').textContent = `${num(list.length)} enterprises · click row to drill into records`;
+
+  if (!list.length){
+    $('opsEntPerfBody').innerHTML = `<tr><td colspan="8" class="empty">No records match these filters.</td></tr>`;
+    return;
+  }
+
+  $('opsEntPerfBody').innerHTML = list.map(e => {
+    const dRate  = e.deliveryRate;
+    const rRate  = e.rejectionRate;
+    return `<tr class="breakdown-row" data-ent="${esc(e.name)}" title="Click name to copy · click counts to drill in">
+      <td class="breakdown-name copy-cell" data-copy="${esc(e.name)}" title="Click to copy">${esc(e.name)}</td>
+      <td class="num-cell">${num(e.total)}</td>
+      <td class="num-cell" style="color:var(--green)">${num(e.delivered)}</td>
+      <td class="num-cell" style="color:var(--red)">${num(e.rejected)}</td>
+      <td class="num-cell">${dRate.toFixed(1)}%<span class="pct-bar"><span class="pct-bar-fill" style="width:${dRate.toFixed(1)}%"></span></span></td>
+      <td class="num-cell">${rRate.toFixed(1)}%<span class="pct-bar"><span class="pct-bar-fill" style="width:${rRate.toFixed(1)}%;background:var(--red);"></span></span></td>
+      <td class="num-cell">${e.slaPct!=null ? e.slaPct.toFixed(1)+'%' : '—'}</td>
+      <td class="num-cell">${esc(fmtTatHrs(e.avgTat))}</td>
+    </tr>`;
+  }).join('');
+
+  // Row click → open drill modal with this enterprise's rows from the CURRENT
+  // Operations filter set (not all-time — respects date range + every other
+  // active filter, same as every other drillable panel in this view).
+  $('opsEntPerfBody').querySelectorAll('.breakdown-row').forEach(tr=>{
+    tr.addEventListener('click', e=>{
+      // Copy-cell clicks are handled by the global copy handler; don't also drill
+      if (e.target.closest('.copy-cell')) return;
+      const entName = tr.dataset.ent;
+      openOpsEntDrill(entName, rows.filter(r => (r.ent||'(unknown)') === entName));
+    });
+  });
+}
+
+// Sort header clicks on the Operations enterprise-performance table
+$('opsEntPerfHead').addEventListener('click', e=>{
+  const th = e.target.closest('th.sortable');
+  if (!th) return;
+  const col = th.dataset.sort;
+  if (opsEntSort.col === col) opsEntSort.dir = opsEntSort.dir === 'asc' ? 'desc' : 'asc';
+  else { opsEntSort.col = col; opsEntSort.dir = 'desc'; }
+  refresh();
+});
+
+// Drill modal for a single enterprise row from the Operations table. Chips
+// reflect the ACTIVE Operations filters (date range, team, user, etc.) via
+// activeFilterChips() — the QC-Performance equivalent (openUserEnterpriseDrill)
+// hardcodes PV.user/PV.gran chips, which don't apply here.
+function openOpsEntDrill(entName, rows){
+  const title = `${entName} — enterprise detail`;
+  $('modalTitle').textContent = title;
+  $('modalSub').textContent   = `${num(rows.length)} RECORDS`;
+  $('modalChips').innerHTML   = activeFilterChips();
+  $('modal').classList.add('show');
+
+  const k = aggregate(rows);
+  $('modalStats').innerHTML = [
+    ['In view',     num(rows.length),                    ''],
+    ['Delivered',   num(k.totalDelivered),               'green'],
+    ['Rejected',    num(k.totalRejected),                'red'],
+    ['Within SLA',  num(k.withinSla),                    'green'],
+    ['Out of SLA',  num(k.outOfSla),                      'orange'],
+    ['SLA %',       k.slaCompliance!=null?k.slaCompliance.toFixed(1)+'%':'—', ''],
+    ['Avg TAT',     fmtTatHrs(k.avgTat),                 ''],
+    ['P95 TAT',     fmtTatHrs(k.p95Tat),                 'blue'],
+    ['Avg ETE TAT', fmtTatHrs(k.avgEte),                 'purple'],
+  ].map(([l,v,c])=>`<div class="modal-stat"><span class="modal-stat-label">${esc(l)}</span><span class="modal-stat-value ${c}">${v}</span></div>`).join('');
+
+  _modalCtx = { type:'records', kpi:{view:'all', label:title, sub:''}, rows, sort:{col:null,dir:null} };
+  renderRecordsModal();
 }
 
 function paint(){
@@ -2591,6 +2750,12 @@ function paint(){
   // (respects every filter except date, anchored by its own time-range tabs).
   paintHourlyTrend();
 
+  // Enterprise-wise performance table — uses the SAME `filtered` set as the
+  // KPI cards and every other Operations panel, so it responds to date range
+  // + every filter in the bar, unlike the QC Performance version which is
+  // scoped to a single selected user.
+  renderOpsEntTable(filtered);
+
   // Recent records — apply sort state if any, else default sort by created desc
   const allFiltered = filtered.slice();
   let sortedRows;
@@ -2660,7 +2825,7 @@ async function syncFromServer({silent=false, force=false}={}){
     for (const r of (data.rows||[])){
       r._created      = parseTs(r.c);
       r._updated      = parseTs(r.u);
-      r._mediaUpdated = parseTs(r.mc);   // when the VIN/media first hit our system
+      r._mediaCreated = parseTs(r.mc);   // when the VIN/media first hit our system
       RAW.push(r);
     }
     lastSynced = data.lastSynced ? new Date(data.lastSynced) : new Date();
@@ -2685,7 +2850,7 @@ async function syncFromServer({silent=false, force=false}={}){
 
     // Diagnostic: surface failed-row coverage. If the dashboard shows fewer
     // failed rows than the source CSV, this tells you which timestamp(s) are
-    // missing. With the three-fallback chain (created → media_processed → updated),
+    // missing. With the three-fallback chain (created → media_created → updated),
     // a row is only excluded by a date filter if ALL three are absent — which
     // is essentially never, since updated_on is written on every status change.
     (function logFailed(){
@@ -2702,13 +2867,13 @@ async function syncFromServer({silent=false, force=false}={}){
 
       const failedAll       = RAW.filter(r => isFailed(r));
       const failedNoCreated = failedAll.filter(r => !r._created);
-      const failedNoMedia   = failedAll.filter(r => !r._mediaUpdated);
+      const failedNoMedia   = failedAll.filter(r => !r._mediaCreated);
       const failedNoUpdated = failedAll.filter(r => !r._updated);
-      const failedNoAny     = failedAll.filter(r => !r._created && !r._mediaUpdated && !r._updated);
+      const failedNoAny     = failedAll.filter(r => !r._created && !r._mediaCreated && !r._updated);
       console.log(
         `[failed rows] total=${failedAll.length} · ` +
         `missing created_on=${failedNoCreated.length} · ` +
-        `missing media_processed_at=${failedNoMedia.length} · ` +
+        `missing media_created_at=${failedNoMedia.length} · ` +
         `missing updated_on=${failedNoUpdated.length} · ` +
         `missing ALL three (won't render under any date filter)=${failedNoAny.length}`
       );
@@ -2716,7 +2881,7 @@ async function syncFromServer({silent=false, force=false}={}){
         console.table(failedAll.map(r => ({
           vin: r.vin, ent: r.ent, team: r.team,
           status: r.status, crm: r.crm,
-          created_on: r.c, media_processed_at: r.mc, updated_on: r.u,
+          created_on: r.c, media_created_at: r.mc, updated_on: r.u,
         })));
       }
       // Stash on window so we can compare in-view vs in-source counts when painting KPIs.
@@ -3308,7 +3473,7 @@ function renderRecordsModal(){
     sortableTh('weblink',       'Website'),
     sortableTh('logo',          'Logo'),
     sortableTh('mid',           'Media ID'),
-    sortableTh('_mediaUpdated', 'Media Updated'),
+    sortableTh('_mediaCreated', 'Media Created'),
   ].filter(Boolean).join('');
 
   $('modalBody').innerHTML = `
@@ -3490,7 +3655,7 @@ function extractRecordsForExport(){
   headers.push('Video ID');
   if (!isRejView) headers.push('Rejected Reason');
   headers.push('Video URL','View Mode','Temp Type','VIN','SKU ID','Updated',
-               'ETE TAT','Website','Logo','Media ID','Media Updated');
+               'ETE TAT','Website','Logo','Media ID','Media Created');
 
   const statusOf = r => isFailed(r) ? 'Failed' : isDelivered(r) ? 'Delivered' : isRejected(r) ? 'Rejected' : 'Pending';
   const slaOf    = r => r.sla === 1 ? 'In' : r.sla === 0 ? 'Out' : '—';
