@@ -135,7 +135,7 @@ async function loadRows() {
               'TAT_Hrs','TAT_hrs','tat_hrs','tat_Hrs',
               'TAT_Hours','TAT_hours','tat_hours','TAT','tat'
             ])),
-    // End-to-end TAT — from media_processed_at (was media_created_at) to updated_on (hours). Different
+    // End-to-end TAT — from media_updated_at to updated_on (hours). Different
     // from `tat` which only measures the QC pipeline phase (created_on → updated_on).
     ete:    parseTatHrs(pickField(r, [
               'ETE_TAT_Hrs','ETE_TAT_hrs','ete_tat_hrs','ete_tat_Hrs',
@@ -147,7 +147,15 @@ async function loadRows() {
     logo:    pickField(r, ['logo_url','Logo_URL','LogoUrl','logo','Logo']),
     // Media-level identifiers — separate from Video_ID; one media (image/video asset)
     mid:    pickField(r, ['asku.mediaId','asku_mediaId','mediaId','media_id','MediaId','Media_ID']),
-    mc:     pickField(r, ['media_processed_at','Media_Processed_At','media_updated_at','Media_Updated_At','media_created_at','Media_Created_At']),
+    // NOTE: despite the internal field name `mc` (kept for backward-compat with
+    // downstream code), this column actually holds media_updated_at, not
+    // media_created_at — confirmed against the source SQL. Both name variants
+    // are listed as fallback candidates in case the CSV header changes between
+    // the two, so parsing doesn't silently break either way.
+    mc:     pickField(r, [
+              'media_updated_at','Media_Updated_At','MediaUpdatedAt','media_updated',
+              'media_created_at','Media_Created_At','MediaCreatedAt','media_created',
+            ]),
     c:      r.Created_ON || '',
     u:      r.Updated_ON || '',
   }));
