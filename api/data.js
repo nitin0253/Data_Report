@@ -216,8 +216,8 @@ async function loadRows() {
               'media_updated_at','Media_Updated_At','MediaUpdatedAt','media_updated',
               'media_created_at','Media_Created_At','MediaCreatedAt','media_created',
             ]),
-    c:      r.Created_ON || '',
-    u:      r.Updated_ON || '',
+    c:      pickField(r, ['Created_ON','Created On','Created_on','created_on']),
+    u:      pickField(r, ['Updated_ON','Updated On','Updated_on','updated_on']),
   }));
   lastFetch = Date.now();
   return cache;
