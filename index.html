@@ -2744,8 +2744,14 @@ function paint(){
   // video carries multiple reasons, the column percentages can sum to more
   // than 100% — that's intentional and accurate; reasons aren't mutually
   // exclusive at the row level.
+  const rejReasonFmt = (v) => {
+    if (!v) return '0';
+    const pctOfRej  = denomRejected ? ((v / denomRejected) * 100).toFixed(1) : '0.0';
+    const pctOfAll  = denomReceived ? ((v / denomReceived) * 100).toFixed(1) : '0.0';
+    return `${v.toLocaleString()}  (${pctOfRej}%)  (${pctOfAll}% of all)`;
+  };
   mkBar('reasons', $('cReasons'), k.topReasons, { h:true, color:PAL.red,
-    formatter: pctFmt(denomRejected), grace: PCT_GRACE,
+    formatter: rejReasonFmt, grace: '48%',
     onPick:label=>{
       const key = (k.topReasonsKeys||{})[label];
       if (!key) return;
