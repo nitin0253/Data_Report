@@ -2748,10 +2748,10 @@ function paint(){
     if (!v) return '0';
     const pctOfRej  = denomRejected ? ((v / denomRejected) * 100).toFixed(1) : '0.0';
     const pctOfAll  = denomReceived ? ((v / denomReceived) * 100).toFixed(1) : '0.0';
-    return `${v.toLocaleString()}  (${pctOfRej}%)  (${pctOfAll}% of all)`;
+    return `${v.toLocaleString()}  (${pctOfRej}%) · ${pctOfAll}% of all`;
   };
   mkBar('reasons', $('cReasons'), k.topReasons, { h:true, color:PAL.red,
-    formatter: rejReasonFmt, grace: '48%',
+    formatter: rejReasonFmt, grace: '55%',
     onPick:label=>{
       const key = (k.topReasonsKeys||{})[label];
       if (!key) return;
