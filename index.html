@@ -1488,14 +1488,9 @@ function mediaScopedRows(){
 }
 
 function buildFilterScopes(){
-  // Build option lists from rows that fall within the selected date range.
-  // Only the date filter is applied here (not enterprise/team/user filters)
-  // so that changing the date range updates which options appear in dropdowns,
-  // but selecting an enterprise doesn't hide other enterprises from the list.
+  // Build option lists from the full dataset so dropdowns don't shrink as filters apply.
   const ent=new Set(),team=new Set(),user=new Set(),ver=new Set(),pocOb=new Set(),pocCs=new Set(),tt=new Set();
   for (const r of RAW){
-    const rowDate = r._created || r._mediaProcessed || r._updated;
-    if (!dateInRange(rowDate)) continue;
     if (r.ent) ent.add(r.ent);
     if (r.team) team.add(r.team);
     if (r.qc) user.add(r.qc);
@@ -2612,18 +2607,6 @@ function openOpsEntDrill(entName, rows){
 function paint(){
   if (!RAW.length) return;
   const t0 = performance.now();
-
-  // Rebuild filter dropdown options scoped to the current date range so that
-  // enterprise/team/user counts reflect what exists in the selected period.
-  const sc = buildFilterScopes();
-  msEnt.setOptions(sc.enterpriseList);
-  msTeam.setOptions(sc.teamList);
-  msUser.setOptions(sc.userList);
-  msPocOb.setOptions(sc.pocObList);
-  msPocCs.setOptions(sc.pocCsList);
-  msVerified.setOptions(sc.verifiedList);
-  msTempType.setOptions(sc.tempTypeList);
-
   const filtered = RAW.filter(passesFilters);
   const k = aggregate(filtered);
   // Separate aggregate scoped by media_processed_at falling within the selected
@@ -2986,17 +2969,7 @@ function createMultiSelect({
   const text = $(textId), searchEl = searchId ? $(searchId) : null, list = $(listId);
 
   function setOptions(items){
-    const prev = options;
     options = items.slice();
-    // Preserve the user's deselection state: if they had hidden some items,
-    // intersect the selection with the new options so removed items drop out
-    // and newly appearing items default to selected (visible).
-    const sel = F[field];
-    if (sel) {
-      const optSet = new Set(options);
-      const pruned = new Set([...sel].filter(v => optSet.has(v)));
-      F[field] = pruned.size === options.length ? null : pruned;
-    }
     renderList();
     refreshTrigger();
   }
