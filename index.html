@@ -730,7 +730,7 @@
         <div class="sla-bar"><div class="sla-bar-in" id="delvBarDone"></div><div class="sla-bar-out" id="delvBarRej" style="background:var(--red);"></div></div>
         <div class="sla-tick"><span>0%</span><span>100%</span></div>
         <div class="sla-bottom">
-          <span>Rejected: <strong id="delvRejCount">—</strong> · Pending: <strong id="delvPendCount">—</strong> · Failed: <strong id="delvFailCount">—</strong></span>
+          <span>Rejected: <strong id="delvRejCount">—</strong> · Auto QC: <strong id="delvAutoQcCount">—</strong> · Pending: <strong id="delvPendCount">—</strong> · Failed: <strong id="delvFailCount">—</strong></span>
           <span id="delvMeta">—</span>
         </div>
       </div>
@@ -2449,9 +2449,10 @@ function paintDelivery(k){
   $('delvPctRej').textContent  = total ? pctNot.toFixed(1)+'%'  : '—%';
   $('delvBarDone').style.width = pctDone+'%';
   $('delvBarRej').style.width  = pctNot+'%';
-  $('delvRejCount').textContent  = num(k.totalRejected||0);
-  $('delvPendCount').textContent = num(k.totalPending||0);
-  $('delvFailCount').textContent = num(k.totalFailed||0);
+  $('delvRejCount').textContent    = num(k.totalRejected||0);
+  $('delvAutoQcCount').textContent = num(k.totalAutoQc||0);
+  $('delvPendCount').textContent   = num(k.totalPending||0);
+  $('delvFailCount').textContent   = num(k.totalFailed||0);
   $('delvMeta').textContent = total ? `${num(total)} received in view` : 'No records in view';
 }
 
