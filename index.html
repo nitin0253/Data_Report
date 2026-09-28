@@ -299,6 +299,7 @@
   .pill.rejected{background:rgba(179,38,30,.1);color:var(--red);border-color:rgba(179,38,30,.3);}
   .pill.pending{background:rgba(178,122,0,.1);color:var(--amber);border-color:rgba(178,122,0,.3);}
   .pill.failed{background:rgba(180,60,180,.12);color:var(--purple);border-color:rgba(180,60,180,.3);}
+  .pill.auto-qc{background:rgba(100,120,140,.1);color:var(--ink-2);border-color:rgba(100,120,140,.3);}
   .pill.sla-in{background:rgba(31,122,82,.1);color:var(--green);border-color:rgba(31,122,82,.3);}
   .pill.sla-out{background:rgba(194,65,12,.1);color:var(--orange);border-color:rgba(194,65,12,.3);}
   /* Inline video link in records tables */
@@ -1401,7 +1402,8 @@ function presetRange(p){
 // so a failed video is never also counted as Delivered/Rejected/Pending.
 function isFailed(r){    return (r.status||'').toLowerCase() === 'failed'; }
 function isDelivered(r){ return !isFailed(r) && r.crm==='qc_done' && r.ver==='verified'; }
-function isRejected(r){  return !isFailed(r) && r.crm==='qc_done' && (r.ver==='rejected' || !r.ver || r.ver==='none'); }
+function isRejected(r){  return !isFailed(r) && r.crm==='qc_done' && r.ver==='rejected'; }
+function isAutoQc(r){    return !isFailed(r) && r.crm==='qc_done' && (!r.ver || r.ver==='none'); }
 function isPending(r){   return !isFailed(r) && r.crm!=='qc_done'; }
 
 // Helper: normalize a rejection reason for comparison (lowercase, collapsed whitespace)
@@ -1511,7 +1513,7 @@ function buildFilterScopes(){
 }
 
 function aggregate(rows){
-  let totalReceived=0,totalDelivered=0,totalRejected=0,totalPending=0,totalFailed=0;
+  let totalReceived=0,totalDelivered=0,totalRejected=0,totalAutoQc=0,totalPending=0,totalFailed=0;
   let withinSla=0,outOfSla=0;
   let tatSum=0,tatCount=0;
   let eteSum=0,eteCount=0;        // End-to-end TAT: media_processed_at → updated_on, separate from `tat`
@@ -1531,7 +1533,7 @@ function aggregate(rows){
   const entPoc={}, teamPoc={};
 
   function bump(map,key,kind){
-    if(!map[key]) map[key]={total:0,delivered:0,rejected:0,pending:0,failed:0,withinSla:0,outOfSla:0};
+    if(!map[key]) map[key]={total:0,delivered:0,rejected:0,autoQc:0,pending:0,failed:0,withinSla:0,outOfSla:0};
     map[key].total++; map[key][kind]++;
   }
 
@@ -1572,6 +1574,8 @@ function aggregate(rows){
         reasonsCount['(unspecified)'] = (reasonsCount['(unspecified)']||0)+1;
         reasonDisplay['(unspecified)'] = '(no reason recorded)';
       }
+    } else if (isAutoQc(r)){
+      totalAutoQc++; kind='autoQc';
     } else {
       totalPending++;
     }
@@ -1639,7 +1643,7 @@ function aggregate(rows){
   Object.keys(topReasons).forEach(label => { topReasonsKeys[label] = reasonsKeys[label]; });
 
   return {
-    totalReceived, totalDelivered, totalRejected, totalPending, totalFailed,
+    totalReceived, totalDelivered, totalRejected, totalAutoQc, totalPending, totalFailed,
     withinSla, outOfSla,
     slaCompliance: totalDelivered ? +((withinSla/totalDelivered)*100).toFixed(2) : null,
     deliveryRate:  totalReceived  ? +((totalDelivered/totalReceived)*100).toFixed(2) : null,
@@ -1765,7 +1769,7 @@ function bucketTrend(rows, range){
     }
   }
 
-  const result = buckets.map(b => ({...b, received:0, delivered:0, rejected:0, dare:0, turbo:0}));
+  const result = buckets.map(b => ({...b, received:0, delivered:0, rejected:0, autoQc:0, dare:0, turbo:0}));
   for (const r of rows){
     if (!r._created) continue;
     const t = r._created.getTime();
@@ -1774,6 +1778,7 @@ function bucketTrend(rows, range){
         b.received++;
         if (isDelivered(r)) b.delivered++;
         else if (isRejected(r)) b.rejected++;
+        else if (isAutoQc(r)) b.autoQc++;
         const tt = (r.ttype||'').trim().toLowerCase();
         if (tt === 'dare') b.dare++;
         else if (tt === 'turbo') b.turbo++;
@@ -1793,6 +1798,7 @@ const KPIS = [
   { id:'received',  label:'Total Received',    sub:'all records',       color:'',       kind:'records',   view:'all'        },
   { id:'delivered', label:'Delivered',         sub:'qc_done & verified',color:'green',  kind:'records',   view:'delivered'  },
   { id:'rejected',  label:'Rejected',          sub:'qc_done & rejected',color:'red',    kind:'records',   view:'rejected'   },
+  { id:'autoQc',    label:'Auto QC Done',      sub:'qc_done without QC', color:'',      kind:'records',   view:'auto_qc'    },
   { id:'pending',   label:'Pending',           sub:'crm_status ≠ qc_done',color:'amber',kind:'records',   view:'pending'    },
   { id:'failed',    label:'Failed',            sub:'video status = failed',color:'red',  kind:'records',   view:'failed'     },
   { id:'sla',       label:'SLA Compliance',    sub:'within / delivered',color:'green',  kind:'records',   view:'within_sla' },
@@ -2370,7 +2376,7 @@ function getRowSortVal(r, col){
   if (col === '_created')      return r._created?.getTime()      ?? 0;
   if (col === '_updated')      return r._updated?.getTime()      ?? 0;
   if (col === '_mediaProcessed') return r._mediaProcessed?.getTime() ?? 0;
-  if (col === '_status')  return isFailed(r) ? -1 : isDelivered(r) ? 2 : isRejected(r) ? 1 : 0;
+  if (col === '_status')  return isFailed(r) ? -1 : isDelivered(r) ? 3 : isRejected(r) ? 2 : isAutoQc(r) ? 1 : 0;
   if (col === 'sla')      return (r.sla === 1) ? 1 : (r.sla === 0) ? 0 : -1;
   if (col === 'tat')      return (typeof r.tat === 'number') ? r.tat : -1;
   if (col === 'ete')      return (typeof r.ete === 'number') ? r.ete : -1;
@@ -2433,7 +2439,7 @@ function paintDelivery(k){
   // "Not delivered" = everything that isn't a successful delivery: rejected + pending + failed.
   // This makes the math add up to total received and matches user expectation when
   // they see Rejected + Pending + Failed under the bar.
-  const notDeliv = (k.totalRejected||0) + (k.totalPending||0) + (k.totalFailed||0);
+  const notDeliv = (k.totalRejected||0) + (k.totalAutoQc||0) + (k.totalPending||0) + (k.totalFailed||0);
   const total = k.totalReceived || 0;
   const pctDone = total ? (deliv/total)*100 : 0;
   const pctNot  = total ? (notDeliv/total)*100 : 0;
@@ -2487,7 +2493,7 @@ function renderOpsEntTable(rows){
   for (const r of rows){
     const key = r.ent || '(unknown)';
     if (!byEnt[key]) byEnt[key] = {
-      name:key, total:0, delivered:0, rejected:0, pending:0,
+      name:key, total:0, delivered:0, rejected:0, autoQc:0, pending:0,
       withinSla:0, outOfSla:0, tatSum:0, tatN:0,
     };
     const e = byEnt[key];
@@ -2497,6 +2503,7 @@ function renderOpsEntTable(rows){
       if (r.sla === 1) e.withinSla++;
       else if (r.sla === 0) e.outOfSla++;
     } else if (isRejected(r)) e.rejected++;
+    else if (isAutoQc(r)) e.autoQc++;
     else e.pending++;
     if (typeof r.tat === 'number' && isFinite(r.tat)){ e.tatSum += r.tat; e.tatN++; }
   }
@@ -2592,6 +2599,7 @@ function openOpsEntDrill(entName, rows){
     ['In view',     num(rows.length),                    ''],
     ['Delivered',   num(k.totalDelivered),               'green'],
     ['Rejected',    num(k.totalRejected),                'red'],
+    ['Auto QC',     num(k.totalAutoQc),                  ''],
     ['Within SLA',  num(k.withinSla),                    'green'],
     ['Out of SLA',  num(k.outOfSla),                      'orange'],
     ['SLA %',       k.slaCompliance!=null?k.slaCompliance.toFixed(1)+'%':'—', ''],
@@ -2621,6 +2629,7 @@ function paint(){
   $('kv-received').textContent  = num(k.totalReceived);
   $('kv-delivered').textContent = num(k.totalDelivered);
   $('kv-rejected').textContent  = num(k.totalRejected);
+  $('kv-autoQc').textContent    = num(k.totalAutoQc);
   $('kv-pending').textContent   = num(k.totalPending);
   $('kv-failed').textContent    = num(k.totalFailed);
   // Sub-line surfaces the gap between in-view failed count and total-in-source.
@@ -2824,10 +2833,11 @@ function paint(){
   $('tBody').innerHTML = !recent.length
     ? `<tr><td colspan="23" class="empty">No records match these filters.</td></tr>`
     : recent.map(r=>{
-        const isF=isFailed(r), isD=isDelivered(r), isR=isRejected(r);
+        const isF=isFailed(r), isD=isDelivered(r), isR=isRejected(r), isA=isAutoQc(r);
         const pill = isF?'<span class="pill failed">Failed</span>'
                    :isD?'<span class="pill delivered">Delivered</span>'
                    :isR?'<span class="pill rejected">Rejected</span>'
+                   :isA?'<span class="pill auto-qc">Auto QC</span>'
                        :'<span class="pill pending">Pending</span>';
         const slaPill = r.sla===1?'<span class="pill sla-in">In</span>'
                        :r.sla===0?'<span class="pill sla-out">Out</span>'
@@ -2885,10 +2895,11 @@ async function syncFromServer({silent=false, force=false}={}){
       for (const r of RAW){
         if (!r._created) continue;
         const k = r._created.getFullYear() + '-' + String(r._created.getMonth()+1).padStart(2,'0');
-        if (!buckets[k]) buckets[k] = {recv:0,deliv:0,rej:0,pend:0,inSla:0,outSla:0};
+        if (!buckets[k]) buckets[k] = {recv:0,deliv:0,rej:0,autoQc:0,pend:0,inSla:0,outSla:0};
         buckets[k].recv++;
         if (isDelivered(r)) { buckets[k].deliv++; if (r.sla===1) buckets[k].inSla++; else if (r.sla===0) buckets[k].outSla++; }
         else if (isRejected(r)) buckets[k].rej++;
+        else if (isAutoQc(r)) buckets[k].autoQc++;
         else buckets[k].pend++;
       }
       console.log('[monthly counts — should match CSV]');
@@ -3355,6 +3366,7 @@ function drillSubset(rows, view){
   switch(view){
     case 'delivered':     return rows.filter(isDelivered);
     case 'rejected':      return rows.filter(isRejected);
+    case 'auto_qc':       return rows.filter(isAutoQc);
     case 'pending':       return rows.filter(isPending);
     case 'failed':        return rows.filter(isFailed);
     case 'not_delivered': return rows.filter(r => !isDelivered(r));  // includes rejected + pending + failed
@@ -4424,7 +4436,7 @@ function getUserRowsInRange(buckets){
 }
 
 function bucketizeUserRows(rows, buckets){
-  const result = buckets.map(b => ({ ...b, received:0, delivered:0, rejected:0, withinSla:0, outOfSla:0, dare:0, turbo:0 }));
+  const result = buckets.map(b => ({ ...b, received:0, delivered:0, rejected:0, autoQc:0, withinSla:0, outOfSla:0, dare:0, turbo:0 }));
   for (const r of rows){
     const t = r._created.getTime();
     for (const b of result){
@@ -4436,6 +4448,8 @@ function bucketizeUserRows(rows, buckets){
           else if (r.sla === 0) b.outOfSla++;
         } else if (isRejected(r)){
           b.rejected++;
+        } else if (isAutoQc(r)){
+          b.autoQc++;
         }
         const tt = (r.ttype||'').trim().toLowerCase();
         if (tt === 'dare') b.dare++;
@@ -4786,7 +4800,7 @@ function renderPerfEntTable(rows){
   for (const r of rows){
     const key = r.ent || '(unknown)';
     if (!byEnt[key]) byEnt[key] = {
-      name:key, total:0, delivered:0, rejected:0, pending:0,
+      name:key, total:0, delivered:0, rejected:0, autoQc:0, pending:0,
       withinSla:0, outOfSla:0, tatSum:0, tatN:0,
     };
     const e = byEnt[key];
@@ -4796,6 +4810,7 @@ function renderPerfEntTable(rows){
       if (r.sla === 1) e.withinSla++;
       else if (r.sla === 0) e.outOfSla++;
     } else if (isRejected(r)) e.rejected++;
+    else if (isAutoQc(r)) e.autoQc++;
     else e.pending++;
     if (typeof r.tat === 'number' && isFinite(r.tat)){ e.tatSum += r.tat; e.tatN++; }
   }
