@@ -1813,7 +1813,6 @@ const KPIS = [
   { id:'autoQc',    label:'Auto QC Done',      sub:'qc_done without QC', color:'',      kind:'records',   view:'auto_qc'    },
   { id:'pending',   label:'Pending',           sub:'crm_status ≠ qc_done',color:'amber',kind:'records',   view:'pending'    },
   { id:'failed',    label:'Failed',            sub:'video status = failed',color:'red',  kind:'records',   view:'failed'     },
-  { id:'sla',       label:'SLA Compliance',    sub:'≤ 6h TAT / delivered',color:'green',  kind:'records',   view:'within_sla' },
   { id:'tat',       label:'Avg TAT',           sub:'turnaround time',   color:'blue',   kind:'records',   view:'tat'        },
   { id:'ete',       label:'End-to-End TAT',    sub:'media_processed_at → updated_on', color:'purple', kind:'records', view:'ete'   },
   // Delivered-only TAT distribution. % within 3h / 6h reflect how often we hit
@@ -2660,7 +2659,6 @@ function paint(){
       failedSubEl.style.color = '';
     }
   }
-  $('kv-sla').textContent       = k.slaCompliance!=null ? k.slaCompliance.toFixed(1)+'%' : '—';
   $('kv-tat').textContent       = fmtTatHrs(k.avgTat);
   // These four are scoped by media_processed_at within the selected date range
   // (kMedia), NOT by the general filtered set (k) — see mediaScopedRows().
