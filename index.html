@@ -830,6 +830,7 @@
         <table>
           <thead id="opsEntPerfHead"><tr>
             <th class="sortable" data-sort="name">Enterprise<span class="sort-ind">↕</span></th>
+            <th class="sortable" data-sort="eid">Ent ID<span class="sort-ind">↕</span></th>
             <th class="sortable num-cell" data-sort="total">Records<span class="sort-ind">↕</span></th>
             <th class="sortable num-cell" data-sort="delivered">Delivered<span class="sort-ind">↕</span></th>
             <th class="sortable num-cell" data-sort="rejected">Rejected<span class="sort-ind">↕</span></th>
@@ -859,7 +860,9 @@
           <thead id="tHead"><tr>
             <th class="sortable" data-sort="_created">Created<span class="sort-ind">↕</span></th>
             <th class="sortable" data-sort="ent">Enterprise<span class="sort-ind">↕</span></th>
+            <th class="sortable" data-sort="eid">Ent ID<span class="sort-ind">↕</span></th>
             <th class="sortable" data-sort="team">Team<span class="sort-ind">↕</span></th>
+            <th class="sortable" data-sort="tid">Team ID<span class="sort-ind">↕</span></th>
             <th class="sortable" data-sort="qc">QC User<span class="sort-ind">↕</span></th>
             <th class="sortable" data-sort="poc_ob">POC OB<span class="sort-ind">↕</span></th>
             <th class="sortable" data-sort="poc_cs">POC CS<span class="sort-ind">↕</span></th>
@@ -1028,6 +1031,7 @@
             <table>
               <thead id="perfEntHead"><tr>
                 <th class="sortable" data-sort="name">Enterprise<span class="sort-ind">↕</span></th>
+                <th class="sortable" data-sort="eid">Ent ID<span class="sort-ind">↕</span></th>
                 <th class="sortable num-cell" data-sort="total">Records<span class="sort-ind">↕</span></th>
                 <th class="sortable num-cell" data-sort="delivered">Delivered<span class="sort-ind">↕</span></th>
                 <th class="sortable num-cell" data-sort="rejected">Rejected<span class="sort-ind">↕</span></th>
@@ -1601,8 +1605,9 @@ function aggregate(rows){
       // weblink/logo really belong to teams (each team has its own pair). At the
       // enterprise level we record the first non-empty pair we see — useful when
       // an enterprise has just one team, less meaningful when it has several.
-      if (!entPoc[r.ent]) entPoc[r.ent] = { ob:r.poc_ob||'', cs:r.poc_cs||'', weblink:r.weblink||'', logo:r.logo||'' };
+      if (!entPoc[r.ent]) entPoc[r.ent] = { eid:r.eid||'', ob:r.poc_ob||'', cs:r.poc_cs||'', weblink:r.weblink||'', logo:r.logo||'' };
       else {
+        if (!entPoc[r.ent].eid     && r.eid)    entPoc[r.ent].eid     = r.eid;
         if (!entPoc[r.ent].ob      && r.poc_ob) entPoc[r.ent].ob      = r.poc_ob;
         if (!entPoc[r.ent].cs      && r.poc_cs) entPoc[r.ent].cs      = r.poc_cs;
         if (!entPoc[r.ent].weblink && r.weblink) entPoc[r.ent].weblink = r.weblink;
@@ -1613,8 +1618,10 @@ function aggregate(rows){
       bump(teamBreak, r.team, kind);
       if (kind === 'delivered' && r.sla === 1) teamBreak[r.team].withinSla++;
       else if (kind === 'delivered' && r.sla === 0) teamBreak[r.team].outOfSla++;
-      if (!teamPoc[r.team]) teamPoc[r.team] = { ob:r.poc_ob||'', cs:r.poc_cs||'', ent:r.ent||'', weblink:r.weblink||'', logo:r.logo||'' };
+      if (!teamPoc[r.team]) teamPoc[r.team] = { tid:r.tid||'', eid:r.eid||'', ob:r.poc_ob||'', cs:r.poc_cs||'', ent:r.ent||'', weblink:r.weblink||'', logo:r.logo||'' };
       else {
+        if (!teamPoc[r.team].tid     && r.tid)    teamPoc[r.team].tid     = r.tid;
+        if (!teamPoc[r.team].eid     && r.eid)    teamPoc[r.team].eid     = r.eid;
         if (!teamPoc[r.team].ob      && r.poc_ob) teamPoc[r.team].ob      = r.poc_ob;
         if (!teamPoc[r.team].cs      && r.poc_cs) teamPoc[r.team].cs      = r.poc_cs;
         if (!teamPoc[r.team].ent     && r.ent)    teamPoc[r.team].ent     = r.ent;
@@ -2494,10 +2501,11 @@ function renderOpsEntTable(rows){
   for (const r of rows){
     const key = r.ent || '(unknown)';
     if (!byEnt[key]) byEnt[key] = {
-      name:key, total:0, delivered:0, rejected:0, autoQc:0, pending:0,
+      name:key, eid:r.eid||'', total:0, delivered:0, rejected:0, autoQc:0, pending:0,
       withinSla:0, outOfSla:0, tatSum:0, tatN:0,
     };
     const e = byEnt[key];
+    if (!e.eid && r.eid) e.eid = r.eid;
     e.total++;
     if (isDelivered(r)){
       e.delivered++;
@@ -2542,7 +2550,7 @@ function renderOpsEntTable(rows){
   $('opsEntPerfSub').textContent = `${num(list.length)} enterprises · click row to drill into records`;
 
   if (!list.length){
-    $('opsEntPerfBody').innerHTML = `<tr><td colspan="8" class="empty">No records match these filters.</td></tr>`;
+    $('opsEntPerfBody').innerHTML = `<tr><td colspan="9" class="empty">No records match these filters.</td></tr>`;
     return;
   }
 
@@ -2551,6 +2559,7 @@ function renderOpsEntTable(rows){
     const rRate  = e.rejectionRate;
     return `<tr class="breakdown-row" data-ent="${esc(e.name)}" title="Click name to copy · click counts to drill in">
       <td class="breakdown-name copy-cell" data-copy="${esc(e.name)}" title="Click to copy">${esc(e.name)}</td>
+      ${copyTd(e.eid, {mono:true})}
       <td class="num-cell">${num(e.total)}</td>
       <td class="num-cell" style="color:var(--green)">${num(e.delivered)}</td>
       <td class="num-cell" style="color:var(--red)">${num(e.rejected)}</td>
@@ -2832,7 +2841,7 @@ function paint(){
   $('tCount').textContent = `${num(recent.length)} of ${num(filtered.length)} filtered (${num(RAW.length)} total)`;
   updateSortIndicators();
   $('tBody').innerHTML = !recent.length
-    ? `<tr><td colspan="23" class="empty">No records match these filters.</td></tr>`
+    ? `<tr><td colspan="25" class="empty">No records match these filters.</td></tr>`
     : recent.map(r=>{
         const isF=isFailed(r), isD=isDelivered(r), isR=isRejected(r), isA=isAutoQc(r);
         const pill = isF?'<span class="pill failed">Failed</span>'
@@ -2843,7 +2852,7 @@ function paint(){
         const slaPill = r.sla===1?'<span class="pill sla-in">In</span>'
                        :r.sla===0?'<span class="pill sla-out">Out</span>'
                                  :'<span class="pill">—</span>';
-        return `<tr><td class="mono">${esc(fmtDate(r.c))}</td>${copyTd(r.ent)}${copyTd(r.team)}${copyTd(r.qc)}${copyTd(r.poc_ob)}${copyTd(r.poc_cs)}<td>${pill}</td><td class="mono">${esc(r.status||'—')}</td><td>${slaPill}</td><td class="mono">${esc(fmtTatHrs(r.tat))}</td><td title="${esc(r.rej||'')}">${esc(r.rej||'—')}</td>${copyTd(r.vid,{mono:true})}<td>${videoLink(r.vurl)}</td><td class="mono">${esc(r.vmode||'—')}</td><td class="mono">${esc(r.ttype||'—')}</td>${copyTd(r.vin,{mono:true})}${copyTd(r.sku,{mono:true})}<td class="mono">${esc(fmtDate(r.u))}</td><td class="mono">${esc(fmtTatHrs(r.ete))}</td><td>${websiteLink(r.weblink)}</td><td>${logoLink(r.logo)}</td>${copyTd(r.mid,{mono:true})}<td class="mono">${esc(fmtDate(r.mc))}</td></tr>`;
+        return `<tr><td class="mono">${esc(fmtDate(r.c))}</td>${copyTd(r.ent)}${copyTd(r.eid,{mono:true})}${copyTd(r.team)}${copyTd(r.tid,{mono:true})}${copyTd(r.qc)}${copyTd(r.poc_ob)}${copyTd(r.poc_cs)}<td>${pill}</td><td class="mono">${esc(r.status||'—')}</td><td>${slaPill}</td><td class="mono">${esc(fmtTatHrs(r.tat))}</td><td title="${esc(r.rej||'')}">${esc(r.rej||'—')}</td>${copyTd(r.vid,{mono:true})}<td>${videoLink(r.vurl)}</td><td class="mono">${esc(r.vmode||'—')}</td><td class="mono">${esc(r.ttype||'—')}</td>${copyTd(r.vin,{mono:true})}${copyTd(r.sku,{mono:true})}<td class="mono">${esc(fmtDate(r.u))}</td><td class="mono">${esc(fmtTatHrs(r.ete))}</td><td>${websiteLink(r.weblink)}</td><td>${logoLink(r.logo)}</td>${copyTd(r.mid,{mono:true})}<td class="mono">${esc(fmtDate(r.mc))}</td></tr>`;
       }).join('');
 
   console.log(`[paint] ${filtered.length} rows in ${(performance.now()-t0).toFixed(1)}ms`);
@@ -3524,7 +3533,9 @@ function renderRecordsModal(){
   const headHTML = [
     sortableTh('_created', 'Created'),
     sortableTh('ent',      'Enterprise'),
+    sortableTh('eid',      'Ent ID'),
     sortableTh('team',     'Team'),
+    sortableTh('tid',      'Team ID'),
     sortableTh('qc',       'QC User'),
     sortableTh('poc_ob',   'POC OB'),
     sortableTh('poc_cs',   'POC CS'),
@@ -3551,12 +3562,12 @@ function renderRecordsModal(){
   $('modalBody').innerHTML = `
     <table>
       <thead><tr>${headHTML}</tr></thead>
-      <tbody>${shown.length===0?`<tr><td colspan="23" class="empty">No records match.</td></tr>`:shown.map(r=>{
+      <tbody>${shown.length===0?`<tr><td colspan="25" class="empty">No records match.</td></tr>`:shown.map(r=>{
         const isF=isFailed(r), isD=isDelivered(r), isR=isRejected(r);
         const pill = isF?'<span class="pill failed">Failed</span>':isD?'<span class="pill delivered">Delivered</span>':isR?'<span class="pill rejected">Rejected</span>':'<span class="pill pending">Pending</span>';
         const slaPill = r.sla===1?'<span class="pill sla-in">In</span>':r.sla===0?'<span class="pill sla-out">Out</span>':'<span class="pill">—</span>';
         const reasonCell = `<td title="${esc(r.rej||'')}" style="max-width:240px;white-space:normal;">${esc(r.rej||'—')}</td>`;
-        return `<tr><td class="mono">${esc(fmtDate(r.c))}</td>${copyTd(r.ent)}${copyTd(r.team)}${copyTd(r.qc)}${copyTd(r.poc_ob)}${copyTd(r.poc_cs)}<td>${pill}</td><td class="mono">${esc(r.status||'—')}</td><td>${slaPill}</td><td class="mono">${esc(fmtTatHrs(r.tat))}</td>${isRejView?reasonCell:''}${copyTd(r.vid,{mono:true})}${!isRejView?reasonCell:''}<td>${videoLink(r.vurl)}</td><td class="mono">${esc(r.vmode||'—')}</td><td class="mono">${esc(r.ttype||'—')}</td>${copyTd(r.vin,{mono:true})}${copyTd(r.sku,{mono:true})}<td class="mono">${esc(fmtDate(r.u))}</td><td class="mono">${esc(fmtTatHrs(r.ete))}</td><td>${websiteLink(r.weblink)}</td><td>${logoLink(r.logo)}</td>${copyTd(r.mid,{mono:true})}<td class="mono">${esc(fmtDate(r.mc))}</td></tr>`;
+        return `<tr><td class="mono">${esc(fmtDate(r.c))}</td>${copyTd(r.ent)}${copyTd(r.eid,{mono:true})}${copyTd(r.team)}${copyTd(r.tid,{mono:true})}${copyTd(r.qc)}${copyTd(r.poc_ob)}${copyTd(r.poc_cs)}<td>${pill}</td><td class="mono">${esc(r.status||'—')}</td><td>${slaPill}</td><td class="mono">${esc(fmtTatHrs(r.tat))}</td>${isRejView?reasonCell:''}${copyTd(r.vid,{mono:true})}${!isRejView?reasonCell:''}<td>${videoLink(r.vurl)}</td><td class="mono">${esc(r.vmode||'—')}</td><td class="mono">${esc(r.ttype||'—')}</td>${copyTd(r.vin,{mono:true})}${copyTd(r.sku,{mono:true})}<td class="mono">${esc(fmtDate(r.u))}</td><td class="mono">${esc(fmtTatHrs(r.ete))}</td><td>${websiteLink(r.weblink)}</td><td>${logoLink(r.logo)}</td>${copyTd(r.mid,{mono:true})}<td class="mono">${esc(fmtDate(r.mc))}</td></tr>`;
       }).join('')}</tbody>
     </table>`;
   $('modalCount').textContent = `Showing ${num(shown.length)} of ${num(rows.length)}` + (shown.length>=500 && rows.length>500 ? ' (preview · download for all)' : '');
@@ -3571,6 +3582,8 @@ function renderBreakdownView(){
   // Resolve a sort value for each row
   const valueOf = (name, v, col) => {
     if (col === 'name')       return name.toLowerCase();
+    if (col === 'eid')        return ((pocMap[name]||{}).eid || '').toLowerCase();
+    if (col === 'tid')        return ((pocMap[name]||{}).tid || '').toLowerCase();
     if (col === 'enterprise') return ((pocMap[name]||{}).ent || '').toLowerCase();
     if (col === 'pocOb')      return ((pocMap[name]||{}).ob || '').toLowerCase();
     if (col === 'pocCs')      return ((pocMap[name]||{}).cs || '').toLowerCase();
@@ -3625,7 +3638,9 @@ function renderBreakdownView(){
   // Build header (Team view gets an extra Enterprise column)
   const headParts = [
     sortableTh('name', dim==='ent'?'Enterprise':'Team'),
+    dim==='team' ? sortableTh('tid', 'Team ID') : '',
     dim==='team' ? sortableTh('enterprise', 'Enterprise') : '',
+    sortableTh('eid', 'Ent ID'),
     sortableTh('pocOb',     'POC OB'),
     sortableTh('pocCs',     'POC CS'),
     sortableTh('weblink',   'Website'),
@@ -3650,10 +3665,13 @@ function renderBreakdownView(){
         // Name + ent + POC cells are copy-cells (click copies). To filter into
         // this row, click any non-text cell (Total / Delivered / Rejected etc.).
         const nameTd = `<td class="breakdown-name copy-cell" data-copy="${esc(name)}" title="Click to copy">${esc(name)}</td>`;
+        const tidCol = dim==='team' ? copyTd(poc.tid, {mono:true}) : '';
         const entCol = dim==='team' ? copyTd(poc.ent) : '';
         return `<tr class="breakdown-row" data-name="${esc(name)}" data-dim="${dim}" title="Click name/POC to copy · click counts to drill in">
           ${nameTd}
+          ${tidCol}
           ${entCol}
+          ${copyTd(poc.eid, {mono:true})}
           ${copyTd(poc.ob)}
           ${copyTd(poc.cs)}
           <td>${websiteLink(poc.weblink)}</td>
@@ -3720,7 +3738,7 @@ function extractRecordsForExport(){
   const isRejView = _modalCtx.recordsView === 'rejected';
   // Header labels match the on-screen header text (without sort indicators).
   const headers = [
-    'Created','Enterprise','Team','QC User','POC OB','POC CS',
+    'Created','Enterprise','Ent ID','Team','Team ID','QC User','POC OB','POC CS',
     'Status','Video Status','SLA','TAT',
   ];
   if (isRejView) headers.push('Rejected Reason');
@@ -3737,7 +3755,9 @@ function extractRecordsForExport(){
     const base = [
       fmtDate(r.c),
       r.ent  || '',
+      r.eid  || '',
       r.team || '',
+      r.tid  || '',
       r.qc   || '',
       r.poc_ob || '',
       r.poc_cs || '',
@@ -4801,10 +4821,11 @@ function renderPerfEntTable(rows){
   for (const r of rows){
     const key = r.ent || '(unknown)';
     if (!byEnt[key]) byEnt[key] = {
-      name:key, total:0, delivered:0, rejected:0, autoQc:0, pending:0,
+      name:key, eid:r.eid||'', total:0, delivered:0, rejected:0, autoQc:0, pending:0,
       withinSla:0, outOfSla:0, tatSum:0, tatN:0,
     };
     const e = byEnt[key];
+    if (!e.eid && r.eid) e.eid = r.eid;
     e.total++;
     if (isDelivered(r)){
       e.delivered++;
@@ -4849,7 +4870,7 @@ function renderPerfEntTable(rows){
   $('perfEntSub').textContent = `${num(list.length)} enterprises · click row to drill into records`;
 
   if (!list.length){
-    $('perfEntBody').innerHTML = `<tr><td colspan="8" class="empty">No records for this user in the selected range.</td></tr>`;
+    $('perfEntBody').innerHTML = `<tr><td colspan="9" class="empty">No records for this user in the selected range.</td></tr>`;
     return;
   }
 
@@ -4858,6 +4879,7 @@ function renderPerfEntTable(rows){
     const rRate  = e.rejectionRate;
     return `<tr class="breakdown-row" data-ent="${esc(e.name)}" title="Click name to copy · click counts to drill in">
       <td class="breakdown-name copy-cell" data-copy="${esc(e.name)}" title="Click to copy">${esc(e.name)}</td>
+      ${copyTd(e.eid, {mono:true})}
       <td class="num-cell">${num(e.total)}</td>
       <td class="num-cell" style="color:var(--green)">${num(e.delivered)}</td>
       <td class="num-cell" style="color:var(--red)">${num(e.rejected)}</td>

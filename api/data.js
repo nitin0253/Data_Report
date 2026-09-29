@@ -167,7 +167,9 @@ async function loadRows() {
 
   // Keep field names short — payload is sent to client and we want it lean.
   cache = rows.map(r => ({
+    eid:    pickField(r, ['Ent_ID','ent_id','Ent_Id','enterprise_id']),
     ent:    r.Ent_Name || '',
+    tid:    pickField(r, ['Team_ID','team_id','Team_Id']),
     team:   pickField(r, ['Team_Name','team_name','Team','team']),
     qc:     r.qc_email_id || '',
     poc_ob: pickField(r, ['POC_OB','poc_ob','ob_poc_email']),
