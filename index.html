@@ -715,11 +715,16 @@
         <div class="edit-controls" data-panel-ctl="delivery"></div>
       </div>
       <div class="sla-content">
-        <div class="sla-cells">
+        <div class="sla-cells" style="grid-template-columns:1fr 1fr 1fr;">
           <div class="sla-cell sla-in" id="delvCellDone" tabindex="0" role="button">
             <div class="sla-num green" id="delvNumDone">—</div>
             <div class="sla-pct" id="delvPctDone">—%</div>
             <div class="sla-cell-label">Delivered</div>
+          </div>
+          <div class="sla-cell" id="delvCellPend" tabindex="0" role="button" style="border-left:3px solid var(--amber, #f59e0b);">
+            <div class="sla-num" id="delvNumPend" style="color:var(--amber, #f59e0b);">—</div>
+            <div class="sla-pct" id="delvPctPend">—%</div>
+            <div class="sla-cell-label">Pending</div>
           </div>
           <div class="sla-cell sla-out" id="delvCellRej" tabindex="0" role="button" style="border-left-color:var(--red);">
             <div class="sla-num" id="delvNumRej" style="color:var(--red);">—</div>
@@ -727,10 +732,10 @@
             <div class="sla-cell-label">Not delivered</div>
           </div>
         </div>
-        <div class="sla-bar"><div class="sla-bar-in" id="delvBarDone"></div><div class="sla-bar-out" id="delvBarRej" style="background:var(--red);"></div></div>
+        <div class="sla-bar"><div class="sla-bar-in" id="delvBarDone"></div><div id="delvBarPend" style="background:var(--amber, #f59e0b);height:100%;transition:width .4s;"></div><div class="sla-bar-out" id="delvBarRej" style="background:var(--red);"></div></div>
         <div class="sla-tick"><span>0%</span><span>100%</span></div>
         <div class="sla-bottom">
-          <span>Rejected: <strong id="delvRejCount">—</strong> · Auto QC: <strong id="delvAutoQcCount">—</strong> · Pending: <strong id="delvPendCount">—</strong> · Failed: <strong id="delvFailCount">—</strong></span>
+          <span>Rejected: <strong id="delvRejCount">—</strong> · Auto QC: <strong id="delvAutoQcCount">—</strong> · Failed: <strong id="delvFailCount">—</strong></span>
           <span id="delvMeta">—</span>
         </div>
       </div>
@@ -1808,7 +1813,7 @@ const KPIS = [
   { id:'autoQc',    label:'Auto QC Done',      sub:'qc_done without QC', color:'',      kind:'records',   view:'auto_qc'    },
   { id:'pending',   label:'Pending',           sub:'crm_status ≠ qc_done',color:'amber',kind:'records',   view:'pending'    },
   { id:'failed',    label:'Failed',            sub:'video status = failed',color:'red',  kind:'records',   view:'failed'     },
-  { id:'sla',       label:'SLA Compliance',    sub:'within / delivered',color:'green',  kind:'records',   view:'within_sla' },
+  { id:'sla',       label:'SLA Compliance',    sub:'≤ 6h TAT / delivered',color:'green',  kind:'records',   view:'within_sla' },
   { id:'tat',       label:'Avg TAT',           sub:'turnaround time',   color:'blue',   kind:'records',   view:'tat'        },
   { id:'ete',       label:'End-to-End TAT',    sub:'media_processed_at → updated_on', color:'purple', kind:'records', view:'ete'   },
   // Delivered-only TAT distribution. % within 3h / 6h reflect how often we hit
@@ -2442,23 +2447,24 @@ function paintSla(k){
 }
 
 function paintDelivery(k){
-  const deliv = k.totalDelivered||0;
-  // "Not delivered" = everything that isn't a successful delivery: rejected + pending + failed.
-  // This makes the math add up to total received and matches user expectation when
-  // they see Rejected + Pending + Failed under the bar.
-  const notDeliv = (k.totalRejected||0) + (k.totalAutoQc||0) + (k.totalPending||0) + (k.totalFailed||0);
+  const deliv   = k.totalDelivered||0;
+  const pending = k.totalPending||0;
+  const notDeliv = (k.totalRejected||0) + (k.totalAutoQc||0) + (k.totalFailed||0);
   const total = k.totalReceived || 0;
   const pctDone = total ? (deliv/total)*100 : 0;
+  const pctPend = total ? (pending/total)*100 : 0;
   const pctNot  = total ? (notDeliv/total)*100 : 0;
   $('delvNumDone').textContent = num(deliv);
+  $('delvNumPend').textContent = num(pending);
   $('delvNumRej').textContent  = num(notDeliv);
   $('delvPctDone').textContent = total ? pctDone.toFixed(1)+'%' : '—%';
+  $('delvPctPend').textContent = total ? pctPend.toFixed(1)+'%' : '—%';
   $('delvPctRej').textContent  = total ? pctNot.toFixed(1)+'%'  : '—%';
   $('delvBarDone').style.width = pctDone+'%';
+  $('delvBarPend').style.width = pctPend+'%';
   $('delvBarRej').style.width  = pctNot+'%';
   $('delvRejCount').textContent    = num(k.totalRejected||0);
   $('delvAutoQcCount').textContent = num(k.totalAutoQc||0);
-  $('delvPendCount').textContent   = num(k.totalPending||0);
   $('delvFailCount').textContent   = num(k.totalFailed||0);
   $('delvMeta').textContent = total ? `${num(total)} received in view` : 'No records in view';
 }
@@ -2642,17 +2648,15 @@ function paint(){
   $('kv-autoQc').textContent    = num(k.totalAutoQc);
   $('kv-pending').textContent   = num(k.totalPending);
   $('kv-failed').textContent    = num(k.totalFailed);
-  // Sub-line surfaces the gap between in-view failed count and total-in-source.
-  // Only render when there IS a gap, so the card stays clean during normal use.
-  // window._failedTotalInSource is set by the sync diagnostic above.
+  const pctOf = (n) => k.totalReceived ? ((n/k.totalReceived)*100).toFixed(1)+'%' : '';
   const failedSubEl = $('kvs-failed');
   if (failedSubEl){
     const inSource = window._failedTotalInSource || 0;
     if (inSource > k.totalFailed){
-      failedSubEl.textContent = `${num(k.totalFailed)} of ${num(inSource)} in source · others outside filter`;
+      failedSubEl.textContent = `${pctOf(k.totalFailed)} · ${num(k.totalFailed)} of ${num(inSource)} in source`;
       failedSubEl.style.color = 'var(--red)';
     } else {
-      failedSubEl.textContent = '';
+      failedSubEl.textContent = pctOf(k.totalFailed);
       failedSubEl.style.color = '';
     }
   }
@@ -2671,6 +2675,10 @@ function paint(){
   $('kv-p95ete').textContent  = fmtTatHrs(kMedia.p95Ete);
   $('kv-p99ete').textContent  = fmtTatHrs(kMedia.p99Ete);
   const setSub = (id, txt) => { const el = $(id); if (el) el.textContent = txt; };
+  setSub('kvs-delivered', pctOf(k.totalDelivered));
+  setSub('kvs-rejected',  pctOf(k.totalRejected));
+  setSub('kvs-autoQc',    pctOf(k.totalAutoQc));
+  setSub('kvs-pending',   pctOf(k.totalPending));
   setSub('kvs-pct3h',  k.deliveredWithTat ? `${num(k.within3hCount)} of ${num(k.deliveredWithTat)} delivered` : '');
   setSub('kvs-pct6h',  k.deliveredWithTat ? `${num(k.within6hCount)} of ${num(k.deliveredWithTat)} delivered` : '');
   setSub('kvs-pct12h', k.deliveredWithTat ? `${num(k.within12hCount)} of ${num(k.deliveredWithTat)} delivered` : '');
@@ -2893,6 +2901,8 @@ async function syncFromServer({silent=false, force=false}={}){
       r._created      = parseTs(r.c);
       r._updated      = parseTs(r.u);
       r._mediaProcessed = parseTs(r.mc);   // when the media asset was processed at the source
+      // SLA: 6hrs from created_on (overrides enterprise-specific SLA_Flag from API)
+      if (typeof r.tat === 'number') r.sla = r.tat <= 6 ? 1 : 0;
       RAW.push(r);
     }
     lastSynced = data.lastSynced ? new Date(data.lastSynced) : new Date();
@@ -3333,10 +3343,13 @@ function bindSlaCells(){
 
   // Delivery rate cells
   const openDelv = ()=>openDrill({label:'Delivered', sub:'qc_done & verified', view:'delivered', kind:'records'});
-  const openNot  = ()=>openDrill({label:'Not delivered', sub:'rejected + pending', view:'not_delivered', kind:'records'});
+  const openNot  = ()=>openDrill({label:'Not delivered', sub:'rejected + auto QC + failed', view:'not_delivered', kind:'records'});
+  const openPend = ()=>openDrill({label:'Pending', sub:'not yet qc_done', view:'pending', kind:'records'});
   $('delvCellDone').addEventListener('click', openDelv);
+  $('delvCellPend').addEventListener('click', openPend);
   $('delvCellRej').addEventListener('click', openNot);
   $('delvCellDone').addEventListener('keydown', e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openDelv();}});
+  $('delvCellPend').addEventListener('keydown', e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openPend();}});
   $('delvCellRej').addEventListener('keydown',  e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openNot();}});
 
   // Temp Type cells
@@ -3379,7 +3392,7 @@ function drillSubset(rows, view){
     case 'auto_qc':       return rows.filter(isAutoQc);
     case 'pending':       return rows.filter(isPending);
     case 'failed':        return rows.filter(isFailed);
-    case 'not_delivered': return rows.filter(r => !isDelivered(r));  // includes rejected + pending + failed
+    case 'not_delivered': return rows.filter(r => !isDelivered(r) && !isPending(r));
     case 'within_sla':    return rows.filter(r => isDelivered(r) && r.sla===1);
     case 'out_of_sla':    return rows.filter(r => isDelivered(r) && r.sla===0);
     case 'tt_dare':       return rows.filter(r => (r.ttype||'').trim().toLowerCase()==='dare');
