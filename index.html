@@ -106,19 +106,20 @@
   body.view-hourly #msSlaWrap,
   body.view-hourly #msTempTypeWrap{display:none;}
   .hourly-table-wrap{overflow-x:auto;margin-top:8px;}
-  .hourly-table{width:100%;border-collapse:collapse;font-size:13px;}
-  .hourly-table th,.hourly-table td{padding:7px 8px;text-align:center;border-bottom:1px solid var(--line);white-space:nowrap;}
-  .hourly-table th{background:var(--surface);font-family:'JetBrains Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);position:sticky;top:0;z-index:1;}
-  .hourly-table th:first-child,.hourly-table td:first-child{text-align:left;position:sticky;left:0;background:var(--bg);z-index:2;min-width:180px;}
+  .hourly-table{width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed;}
+  .hourly-table th,.hourly-table td{padding:5px 2px;text-align:center;border-bottom:1px solid var(--line);white-space:nowrap;}
+  .hourly-table th{background:var(--surface);font-family:'JetBrains Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.02em;color:var(--muted);position:sticky;top:0;z-index:1;}
+  .hourly-table th:first-child,.hourly-table td:first-child{text-align:left;position:sticky;left:0;background:var(--bg);z-index:2;min-width:140px;max-width:180px;overflow:hidden;text-overflow:ellipsis;padding-left:6px;padding-right:4px;}
   .hourly-table th:first-child{z-index:3;background:var(--surface);}
-  .hourly-table td.user-cell{font-weight:600;color:var(--ink);}
-  .hourly-table td.hour-cell{font-family:'JetBrains Mono',monospace;font-size:12px;}
-  .hourly-table td.hour-cell.zero{color:var(--muted);opacity:.4;}
-  .hourly-table td.hour-cell[onclick]:hover,.hourly-table td.total-cell[onclick]:hover,.hourly-table tfoot td[onclick]:hover{background:color-mix(in srgb,var(--accent) 14%,transparent);text-decoration:underline;}
-  .hourly-table td.total-cell{font-weight:700;font-family:'JetBrains Mono',monospace;background:color-mix(in srgb,var(--accent) 6%,transparent);}
-  .hourly-table tr:hover td{background:color-mix(in srgb,var(--accent) 4%,transparent);}
-  .hourly-table tr:hover td:first-child{background:color-mix(in srgb,var(--accent) 8%,var(--bg));}
-  .hourly-table tfoot td{font-weight:700;border-top:2px solid var(--line);background:var(--surface);font-family:'JetBrains Mono',monospace;}
+  .hourly-table th:last-child,.hourly-table td:last-child{min-width:44px;}
+  .hourly-table td.user-cell{font-weight:600;color:var(--ink);font-size:11px;}
+  .hourly-table td.hour-cell{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;color:var(--ink);}
+  .hourly-table td.hour-cell.zero{color:var(--muted);opacity:.35;font-weight:400;}
+  .hourly-table td.hour-cell[onclick]:hover,.hourly-table td.total-cell[onclick]:hover,.hourly-table tfoot td[onclick]:hover{background:color-mix(in srgb,var(--accent) 18%,transparent);text-decoration:underline;}
+  .hourly-table td.total-cell{font-weight:700;font-family:'JetBrains Mono',monospace;background:color-mix(in srgb,var(--accent) 8%,transparent);color:var(--ink);}
+  .hourly-table tr:hover td{background:color-mix(in srgb,var(--accent) 5%,transparent);}
+  .hourly-table tr:hover td:first-child{background:color-mix(in srgb,var(--accent) 10%,var(--bg));}
+  .hourly-table tfoot td{font-weight:700;border-top:2px solid var(--line);background:var(--surface);font-family:'JetBrains Mono',monospace;color:var(--ink);}
   .hourly-table tfoot td:first-child{background:var(--surface);}
 
   /* User picker — large, prominent */
@@ -4299,6 +4300,10 @@ $('downloadBtn').addEventListener('click', downloadReport);
 // HOURLY THROUGHPUT VIEW
 // ─────────────────────────────────────────────────────────────
 const HOUR_LABELS = [
+  '12a','1a','2a','3a','4a','5a','6a','7a','8a','9a','10a','11a',
+  '12p','1p','2p','3p','4p','5p','6p','7p','8p','9p','10p','11p',
+];
+const HOUR_LABELS_LONG = [
   '12–1 AM','1–2 AM','2–3 AM','3–4 AM','4–5 AM','5–6 AM',
   '6–7 AM','7–8 AM','8–9 AM','9–10 AM','10–11 AM','11–12 PM',
   '12–1 PM','1–2 PM','2–3 PM','3–4 PM','4–5 PM','5–6 PM',
@@ -4343,26 +4348,18 @@ function renderHourlyThroughput(){
 
   const clk = (user, hr) => `onclick="openHourlyDrill('${esc(user).replace(/'/g,"\\'")}',${hr})" style="cursor:pointer"`;
 
-  function buildHalfTable(label, startHr, endHr){
-    const hrs = [];
-    for (let h=startHr;h<endHr;h++) hrs.push(h);
-    const thCells = hrs.map(h => `<th>${esc(HOUR_LABELS[h])}</th>`).join('');
-    let tbl = `<div style="margin-bottom:6px;font-family:'JetBrains Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);padding:4px 0;">${esc(label)}</div>`;
-    tbl += `<table class="hourly-table"><thead><tr><th>QC User</th>${thCells}<th>Total</th></tr></thead><tbody>`;
-    for (const u of users){
-      const row = userMap[u];
-      const halfTotal = hrs.reduce((s,h)=>s+row[h],0);
-      const cells = hrs.map(h => row[h] ? `<td class="hour-cell" ${clk(u,h)}>${row[h]}</td>` : `<td class="hour-cell zero">–</td>`).join('');
-      tbl += `<tr><td class="user-cell">${esc(u)}</td>${cells}<td class="total-cell" ${clk(u,-1)}>${halfTotal||'–'}</td></tr>`;
-    }
-    const halfColTotals = hrs.map(h => colTotals[h]);
-    const halfGrand = halfColTotals.reduce((s,v)=>s+v,0);
-    const footCells = hrs.map(h => colTotals[h] ? `<td onclick="openHourlyDrill(null,${h})" style="cursor:pointer">${num(colTotals[h])}</td>` : `<td>–</td>`).join('');
-    tbl += `</tbody><tfoot><tr><td>Total (${num(users.length)} users)</td>${footCells}<td onclick="openHourlyDrill(null,-1)" style="cursor:pointer">${num(halfGrand)}</td></tr></tfoot></table>`;
-    return tbl;
+  const thCells = HOUR_LABELS.map((l,h) => `<th>${esc(l)}</th>`).join('');
+  let tbl = `<table class="hourly-table"><thead><tr><th>QC User</th>${thCells}<th>Total</th></tr></thead><tbody>`;
+  for (const u of users){
+    const row = userMap[u];
+    const rowTotal = row.reduce((s,v)=>s+v,0);
+    const cells = row.map((v,h) => v ? `<td class="hour-cell" ${clk(u,h)}>${v}</td>` : `<td class="hour-cell zero">–</td>`).join('');
+    tbl += `<tr><td class="user-cell" title="${esc(u)}">${esc(u)}</td>${cells}<td class="total-cell" ${clk(u,-1)}>${rowTotal||'–'}</td></tr>`;
   }
+  const footCells = colTotals.map((v,h) => v ? `<td onclick="openHourlyDrill(null,${h})" style="cursor:pointer">${num(v)}</td>` : `<td>–</td>`).join('');
+  tbl += `</tbody><tfoot><tr><td>Total (${num(users.length)} users)</td>${footCells}<td onclick="openHourlyDrill(null,-1)" style="cursor:pointer">${num(grandTotal)}</td></tr></tfoot></table>`;
 
-  wrap.innerHTML = buildHalfTable('AM · 12:00 AM – 11:59 AM', 0, 12) + '<div style="height:20px;"></div>' + buildHalfTable('PM · 12:00 PM – 11:59 PM', 12, 24);
+  wrap.innerHTML = tbl;
   $('hourlyMeta').textContent = `${num(qcDone.length)} QC-done records · ${num(users.length)} users`;
 }
 
@@ -4375,8 +4372,8 @@ function openHourlyDrill(user, hr){
   if (hr >= 0) rows = rows.filter(r => r._qcUpdated.getHours() === hr);
 
   const label = user
-    ? (hr >= 0 ? `${user} · ${HOUR_LABELS[hr]}` : `${user} · All hours`)
-    : (hr >= 0 ? `All users · ${HOUR_LABELS[hr]}` : 'All users · All hours');
+    ? (hr >= 0 ? `${user} · ${HOUR_LABELS_LONG[hr]}` : `${user} · All hours`)
+    : (hr >= 0 ? `All users · ${HOUR_LABELS_LONG[hr]}` : 'All users · All hours');
 
   const agg = {};
   for (const r of rows){
