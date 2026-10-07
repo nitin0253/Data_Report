@@ -81,7 +81,7 @@ async function handleCredentialResponse(response) {
 // Fetch the client ID from server config, then init Google Sign-In
 async function initAuth() {
   try {
-    const res = await fetch('/api/auth-config');
+    const res = await fetch('/api/auth-config?_t=' + Date.now());
     if (res.ok) {
       const cfg = await res.json();
       if (cfg.clientId) initGoogle(cfg.clientId);
