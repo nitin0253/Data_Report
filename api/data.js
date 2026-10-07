@@ -220,6 +220,7 @@ async function loadRows() {
             ]),
     c:      pickField(r, ['Created_ON','Created On','Created_on','created_on']),
     u:      pickField(r, ['Updated_ON','Updated On','Updated_on','updated_on']),
+    qu:     pickField(r, ['qc_updated_on','QC_Updated_ON','qc_Updated_On','Qc_Updated_On']),
   }));
   lastFetch = Date.now();
   return cache;

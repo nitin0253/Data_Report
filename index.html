@@ -1113,7 +1113,7 @@
       <div class="panel-header" style="padding:0 0 12px;border-bottom:1px solid var(--line);margin-bottom:0;">
         <div class="panel-title-wrap">
           <h3>QC Hourly Breakdown</h3>
-          <div class="panel-sub" id="hourlySub2">videos QC'd per hour by updated_on (IST) · rows = QC users · columns = hourly brackets</div>
+          <div class="panel-sub" id="hourlySub2">videos QC'd per hour by qc_updated_on (IST) · rows = QC users · columns = hourly brackets</div>
         </div>
         <span class="sync-info" id="hourlyMeta" style="margin-left:auto;"></span>
       </div>
@@ -2945,6 +2945,7 @@ async function syncFromServer({silent=false, force=false}={}){
     for (const r of (data.rows||[])){
       r._created      = parseTs(r.c);
       r._updated      = parseTs(r.u);
+      r._qcUpdated    = parseTs(r.qu) || r._updated;
       r._mediaProcessed = parseTs(r.mc);   // when the media asset was processed at the source
       // SLA: 6hrs from created_on (overrides enterprise-specific SLA_Flag from API)
       if (typeof r.tat === 'number') r.sla = r.tat <= 6 ? 1 : 0;
@@ -4312,14 +4313,14 @@ function renderHourlyThroughput(){
     const rowDate = r._created || r._mediaProcessed || r._updated;
     return dateInRange(rowDate);
   });
-  const qcDone = filtered.filter(r => r.crm === 'qc_done' && r._updated);
+  const qcDone = filtered.filter(r => r.crm === 'qc_done' && r._qcUpdated);
   _hourlyQcDone = qcDone;
 
   const userMap = {};
   for (const r of qcDone){
     const user = r.qc || '(unknown)';
     if (!userMap[user]) userMap[user] = new Array(24).fill(0);
-    const hr = r._updated.getHours();
+    const hr = r._qcUpdated.getHours();
     userMap[user][hr]++;
   }
 
@@ -4371,7 +4372,7 @@ const _hourlyDrillSort = { col:'total', dir:'desc' };
 function openHourlyDrill(user, hr){
   let rows = _hourlyQcDone;
   if (user) rows = rows.filter(r => (r.qc||'(unknown)') === user);
-  if (hr >= 0) rows = rows.filter(r => r._updated.getHours() === hr);
+  if (hr >= 0) rows = rows.filter(r => r._qcUpdated.getHours() === hr);
 
   const label = user
     ? (hr >= 0 ? `${user} · ${HOUR_LABELS[hr]}` : `${user} · All hours`)
