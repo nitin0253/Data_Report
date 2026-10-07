@@ -4355,6 +4355,9 @@ function renderHourlyThroughput(){
   $('hourlyMeta').textContent = `${num(qcDone.length)} QC-done records · ${num(users.length)} users`;
 }
 
+let _hourlyDrillData = [];
+const _hourlyDrillSort = { col:'total', dir:'desc' };
+
 function openHourlyDrill(user, hr){
   let rows = _hourlyQcDone;
   if (user) rows = rows.filter(r => (r.qc||'(unknown)') === user);
@@ -4367,14 +4370,18 @@ function openHourlyDrill(user, hr){
   const agg = {};
   for (const r of rows){
     const key = `${r.ent||'(unknown)'}|||${r.eid||'–'}|||${r.team||'(unknown)'}|||${r.tid||'–'}`;
-    if (!agg[key]) agg[key] = { ent:r.ent||'(unknown)', eid:r.eid||'–', team:r.team||'(unknown)', tid:r.tid||'–', approved:0, rejected:0, total:0 };
+    if (!agg[key]) agg[key] = { ent:r.ent||'(unknown)', eid:r.eid||'–', team:r.team||'(unknown)', tid:r.tid||'–', approved:0, rejected:0, autoqc:0, total:0 };
     if (isDelivered(r)) agg[key].approved++;
     else if (isRejected(r)) agg[key].rejected++;
+    else agg[key].autoqc++;
     agg[key].total++;
   }
-  const sorted = Object.values(agg).sort((a,b) => b.total - a.total);
-  const totApproved = sorted.reduce((s,r)=>s+r.approved,0);
-  const totRejected = sorted.reduce((s,r)=>s+r.rejected,0);
+  _hourlyDrillData = Object.values(agg);
+  _hourlyDrillSort.col = 'total';
+  _hourlyDrillSort.dir = 'desc';
+
+  const totApproved = _hourlyDrillData.reduce((s,r)=>s+r.approved,0);
+  const totRejected = _hourlyDrillData.reduce((s,r)=>s+r.rejected,0);
   const totOther    = rows.length - totApproved - totRejected;
 
   $('modalTitle').textContent = label;
@@ -4387,15 +4394,41 @@ function openHourlyDrill(user, hr){
     ['Auto QC',  num(totOther),    ''],
   ].map(([l,v,c])=>`<div class="modal-stat"><span class="modal-stat-label">${esc(l)}</span><span class="modal-stat-value ${c}">${v}</span></div>`).join('');
 
-  $('modalBody').innerHTML = `<div class="table-scroll"><table><thead><tr><th>Enterprise</th><th class="mono">Ent ID</th><th>Team</th><th class="mono">Team ID</th><th class="num-cell">Approved</th><th class="num-cell">Rejected</th><th class="num-cell">Auto QC</th><th class="num-cell">Total</th></tr></thead><tbody>${
-    sorted.map(r => {
-      const other = r.total - r.approved - r.rejected;
-      return `<tr><td>${esc(r.ent)}</td><td class="mono">${esc(r.eid)}</td><td>${esc(r.team)}</td><td class="mono">${esc(r.tid)}</td><td class="num-cell" style="color:var(--green)">${r.approved||'–'}</td><td class="num-cell" style="color:var(--red)">${r.rejected||'–'}</td><td class="num-cell">${other||'–'}</td><td class="num-cell" style="font-weight:600">${r.total}</td></tr>`;
-    }).join('')
-  }<tr style="font-weight:700;border-top:2px solid var(--line)"><td colspan="4">Total</td><td class="num-cell" style="color:var(--green)">${num(totApproved)}</td><td class="num-cell" style="color:var(--red)">${num(totRejected)}</td><td class="num-cell">${num(totOther)}</td><td class="num-cell">${num(rows.length)}</td></tr></tbody></table></div>`;
+  renderHourlyDrillTable();
   $('modalCount').textContent = `${num(rows.length)} records`;
   $('modal').classList.add('show');
   _modalCtx = null;
+}
+
+function hourlyDrillSortClick(col){
+  if (_hourlyDrillSort.col === col) _hourlyDrillSort.dir = _hourlyDrillSort.dir === 'asc' ? 'desc' : 'asc';
+  else { _hourlyDrillSort.col = col; _hourlyDrillSort.dir = (col==='ent'||col==='eid'||col==='team'||col==='tid') ? 'asc' : 'desc'; }
+  renderHourlyDrillTable();
+}
+
+function renderHourlyDrillTable(){
+  const S = _hourlyDrillSort;
+  const data = _hourlyDrillData.slice();
+  data.sort((a,b) => {
+    let av = a[S.col], bv = b[S.col];
+    if (S.col === 'autoqc'){ av = a.total-a.approved-a.rejected; bv = b.total-b.approved-b.rejected; }
+    let cmp;
+    if (typeof av === 'number' && typeof bv === 'number') cmp = av - bv;
+    else cmp = String(av).localeCompare(String(bv), undefined, {numeric:true, sensitivity:'base'});
+    return S.dir === 'asc' ? cmp : -cmp;
+  });
+  const totApproved = data.reduce((s,r)=>s+r.approved,0);
+  const totRejected = data.reduce((s,r)=>s+r.rejected,0);
+  const totAll      = data.reduce((s,r)=>s+r.total,0);
+  const totOther    = totAll - totApproved - totRejected;
+  const ind = (col) => S.col===col ? (S.dir==='asc'?'↑':'↓') : '↕';
+  const th = (col, label, cls) => `<th class="sortable ${cls||''}" onclick="hourlyDrillSortClick('${col}')">${label}<span class="sort-ind">${ind(col)}</span></th>`;
+  $('modalBody').innerHTML = `<div class="table-scroll"><table><thead><tr>${th('ent','Enterprise')}${th('eid','Ent ID','mono')}${th('team','Team')}${th('tid','Team ID','mono')}${th('approved','Approved','num-cell')}${th('rejected','Rejected','num-cell')}${th('autoqc','Auto QC','num-cell')}${th('total','Total','num-cell')}</tr></thead><tbody>${
+    data.map(r => {
+      const other = r.total - r.approved - r.rejected;
+      return `<tr><td>${esc(r.ent)}</td><td class="mono">${esc(r.eid)}</td><td>${esc(r.team)}</td><td class="mono">${esc(r.tid)}</td><td class="num-cell" style="color:var(--green)">${r.approved||'–'}</td><td class="num-cell" style="color:var(--red)">${r.rejected||'–'}</td><td class="num-cell">${other||'–'}</td><td class="num-cell" style="font-weight:600">${r.total}</td></tr>`;
+    }).join('')
+  }<tr style="font-weight:700;border-top:2px solid var(--line)"><td colspan="4">Total</td><td class="num-cell" style="color:var(--green)">${num(totApproved)}</td><td class="num-cell" style="color:var(--red)">${num(totRejected)}</td><td class="num-cell">${num(totOther)}</td><td class="num-cell">${num(totAll)}</td></tr></tbody></table></div>`;
 }
 
 // ─────────────────────────────────────────────────────────────
