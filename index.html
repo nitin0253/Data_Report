@@ -2945,7 +2945,7 @@ async function syncFromServer({silent=false, force=false}={}){
     for (const r of (data.rows||[])){
       r._created      = parseTs(r.c);
       r._updated      = parseTs(r.u);
-      r._qcUpdated    = parseTs(r.qu) || r._updated;
+      r._qcUpdated    = parseTs(r.qu);
       r._mediaProcessed = parseTs(r.mc);   // when the media asset was processed at the source
       // SLA: 6hrs from created_on (overrides enterprise-specific SLA_Flag from API)
       if (typeof r.tat === 'number') r.sla = r.tat <= 6 ? 1 : 0;
