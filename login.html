@@ -6,46 +6,116 @@
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://accounts.google.com/gsi/client" async></script>
 <style>
   *{margin:0;padding:0;box-sizing:border-box;}
-  :root{--bg:#f6f5f1;--surface:#ffffff;--ink:#0b0b0c;--ink2:#404045;--muted:#8a8a90;--line:#e8e6df;--accent:#1f3f72;--red:#b3261e;--shadow:rgba(0,0,0,0.08);}
-  @media(prefers-color-scheme:dark){
-    :root{--bg:#111113;--surface:#1c1c1f;--ink:#f0efe9;--ink2:#b0b0b8;--muted:#76767e;--line:#2a2a2f;--accent:#6b9eff;--red:#f87171;--shadow:rgba(0,0,0,0.4);}
+  :root{
+    --bg:#0f1117;--surface:#1a1c25;--surface2:#222430;--ink:#eef0f6;--ink2:#a0a4b8;
+    --muted:#6b6f82;--line:#2a2d3a;--accent:#4f7cff;--accent2:#7c5cfc;
+    --green:#34d399;--red:#f87171;--glow:rgba(79,124,255,0.15);
   }
-  body{background:var(--bg);color:var(--ink);font-family:'Inter',system-ui,sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;}
-  .card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:48px 40px;max-width:420px;width:100%;text-align:center;box-shadow:0 8px 32px var(--shadow);}
-  .brand{font-family:'Bricolage Grotesque',serif;font-size:28px;font-weight:700;letter-spacing:-.02em;margin-bottom:6px;}
-  .tag{font-size:12px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;margin-bottom:32px;display:block;}
-  .desc{font-size:14px;color:var(--ink2);line-height:1.5;margin-bottom:32px;}
-  .google-btn-wrap{display:flex;justify-content:center;margin-bottom:20px;min-height:44px;}
+  body{
+    background:var(--bg);color:var(--ink);font-family:'Inter',system-ui,sans-serif;
+    min-height:100vh;display:flex;align-items:center;justify-content:center;
+    background-image:
+      radial-gradient(ellipse 600px 400px at 20% 20%, rgba(79,124,255,0.08), transparent),
+      radial-gradient(ellipse 500px 500px at 80% 80%, rgba(124,92,252,0.06), transparent);
+  }
+  .card{
+    background:var(--surface);border:1px solid var(--line);border-radius:20px;
+    padding:52px 44px;max-width:440px;width:100%;text-align:center;
+    box-shadow:0 4px 60px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.03) inset;
+    position:relative;overflow:hidden;
+  }
+  .card::before{
+    content:'';position:absolute;top:0;left:0;right:0;height:3px;
+    background:linear-gradient(90deg, var(--accent), var(--accent2), var(--green));
+  }
+  .logo{
+    width:56px;height:56px;margin:0 auto 20px;border-radius:14px;
+    background:linear-gradient(135deg, var(--accent), var(--accent2));
+    display:flex;align-items:center;justify-content:center;
+    box-shadow:0 8px 24px rgba(79,124,255,0.25);
+  }
+  .logo svg{width:28px;height:28px;fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+  .brand{font-family:'Bricolage Grotesque',serif;font-size:30px;font-weight:700;letter-spacing:-.02em;margin-bottom:6px;}
+  .tag{
+    font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:500;
+    color:var(--muted);text-transform:uppercase;letter-spacing:.14em;
+    margin-bottom:28px;display:block;
+  }
+  .desc{font-size:14px;color:var(--ink2);line-height:1.6;margin-bottom:36px;}
+  .google-btn-wrap{display:flex;justify-content:center;margin-bottom:16px;min-height:44px;}
+  .divider{
+    display:flex;align-items:center;gap:12px;margin:20px 0;color:var(--muted);font-size:11px;
+    text-transform:uppercase;letter-spacing:.1em;font-family:'JetBrains Mono',monospace;
+  }
+  .divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--line);}
+  .features{
+    display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:24px;
+  }
+  .feat{
+    background:var(--surface2);border:1px solid var(--line);border-radius:10px;
+    padding:14px 8px;text-align:center;
+  }
+  .feat-icon{font-size:20px;margin-bottom:6px;display:block;}
+  .feat-label{font-size:10px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;}
   .error{color:var(--red);font-size:13px;font-weight:500;margin-top:16px;display:none;}
   .error.show{display:block;}
-  .loading{display:none;align-items:center;justify-content:center;gap:10px;font-size:14px;color:var(--muted);margin-top:16px;}
+  .loading{display:none;align-items:center;justify-content:center;gap:10px;font-size:14px;color:var(--ink2);margin-top:16px;}
   .loading.show{display:flex;}
   .loading .dot{width:8px;height:8px;border-radius:50%;background:var(--accent);animation:pulse .8s ease-in-out infinite alternate;}
   .loading .dot:nth-child(2){animation-delay:.15s;}
   .loading .dot:nth-child(3){animation-delay:.3s;}
   @keyframes pulse{from{opacity:.3;transform:scale(.8);}to{opacity:1;transform:scale(1);}}
-  .domain{font-size:12px;color:var(--muted);margin-top:24px;}
-  @media(max-width:480px){.card{margin:16px;padding:36px 24px;}}
+  .domain{
+    font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);
+    margin-top:24px;display:flex;align-items:center;justify-content:center;gap:6px;
+  }
+  .domain .lock{width:12px;height:12px;stroke:var(--green);fill:none;stroke-width:2;}
+  @media(max-width:480px){.card{margin:16px;padding:40px 24px;}.features{grid-template-columns:1fr;}}
 </style>
 </head>
 <body>
 <div class="card">
+  <div class="logo">
+    <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+  </div>
   <div class="brand">Ops Dashboard</div>
   <span class="tag">QC · Throughput · SLA</span>
-  <p class="desc">Sign in with your Spyne Google account to access the dashboard.</p>
+  <p class="desc">Sign in with your Spyne Google account to access real-time video QC analytics.</p>
   <div class="google-btn-wrap" id="gBtnWrap"></div>
-  <div class="loading" id="loading"><div class="dot"></div><div class="dot"></div><div class="dot"></div><span>Signing in…</span></div>
+  <div class="loading" id="loading"><div class="dot"></div><div class="dot"></div><div class="dot"></div><span>Signing in...</span></div>
   <div class="error" id="error"></div>
-  <p class="domain">Restricted to @spyne.ai accounts</p>
+  <div class="divider">Dashboard features</div>
+  <div class="features">
+    <div class="feat">
+      <span class="feat-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
+      </span>
+      <span class="feat-label">Operations</span>
+    </div>
+    <div class="feat">
+      <span class="feat-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent2)" stroke-width="2" stroke-linecap="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+      </span>
+      <span class="feat-label">Performance</span>
+    </div>
+    <div class="feat">
+      <span class="feat-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+      </span>
+      <span class="feat-label">Hourly</span>
+    </div>
+  </div>
+  <p class="domain">
+    <svg class="lock" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+    Restricted to @spyne.ai
+  </p>
 </div>
 
 <script>
-const GOOGLE_CLIENT_ID = window.__GOOGLE_CLIENT_ID || '';
-
 async function handleCredentialResponse(response) {
   const errEl = document.getElementById('error');
   const loadEl = document.getElementById('loading');
@@ -78,7 +148,6 @@ async function handleCredentialResponse(response) {
   }
 }
 
-// Fetch the client ID from server config, then init Google Sign-In
 async function initAuth() {
   try {
     const res = await fetch('/api/auth-config?_t=' + Date.now());
@@ -103,7 +172,7 @@ function initGoogle(clientId) {
   });
   google.accounts.id.renderButton(
     document.getElementById('gBtnWrap'),
-    { theme: 'outline', size: 'large', width: 300, text: 'signin_with', shape: 'rectangular' }
+    { theme: 'filled_blue', size: 'large', width: 320, text: 'signin_with', shape: 'pill' }
   );
   google.accounts.id.prompt();
 }
@@ -114,7 +183,6 @@ function showConfigError() {
   errEl.classList.add('show');
 }
 
-// Wait for Google Identity Services to load, then init
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => setTimeout(initAuth, 100));
 } else {

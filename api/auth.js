@@ -9,7 +9,7 @@ const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '';
 const AUTH_SECRET = process.env.AUTH_SECRET || 'change-me-in-production';
 const ALLOWED_DOMAIN = 'spyne.ai';
 const COOKIE_NAME = 'ops_session';
-const COOKIE_MAX_AGE = 7 * 24 * 60 * 60; // 7 days
+const COOKIE_MAX_AGE = 60 * 60; // 1 hour auto-logout
 
 // ── Google Sheets login logging (optional) ──────────────────────────
 const GS_EMAIL = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL || '';
