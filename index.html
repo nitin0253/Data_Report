@@ -4059,7 +4059,7 @@ $('themeBtn').addEventListener('click', ()=> applyTheme(!isDark));
 // page. Best-effort — even if the POST fails (network), we still navigate
 // because the cookie is httpOnly and we can't clear it from JS anyway.
 $('logoutBtn').addEventListener('click', async () => {
-  try { await fetch('/api/auth/logout', { method: 'POST' }); }
+  try { await fetch('/api/auth', { method: 'DELETE' }); }
   catch (e) { /* network failed; navigate anyway */ }
   window.location.replace('/login.html');
 });

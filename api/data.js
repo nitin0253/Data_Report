@@ -226,8 +226,34 @@ async function loadRows() {
   return cache;
 }
 
+// ── Auth check ──────────────────────────────────────────────────────
+const AUTH_SECRET = process.env.AUTH_SECRET || 'change-me-in-production';
+const COOKIE_NAME = 'ops_session';
+
+function verifySession(cookieHeader) {
+  const match = (cookieHeader || '').match(new RegExp(`(?:^|;\\s*)${COOKIE_NAME}=([^;]+)`));
+  if (!match) return null;
+  const [data, sig] = match[1].split('.');
+  if (!data || !sig) return null;
+  const crypto = require('crypto');
+  const expected = crypto.createHmac('sha256', AUTH_SECRET).update(data).digest()
+    .toString('base64').replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
+  if (sig !== expected) return null;
+  try {
+    const payload = JSON.parse(Buffer.from(data, 'base64').toString());
+    if (payload.exp && Date.now() / 1000 > payload.exp) return null;
+    return payload;
+  } catch { return null; }
+}
+
 export default async function handler(req, res) {
   try {
+    // Verify auth (skip for debug endpoint to allow health checks)
+    if (req.query.debug !== '1') {
+      const user = verifySession(req.headers.cookie);
+      if (!user) return res.status(401).json({ error: 'not authenticated' });
+    }
+
     if (req.query.force === '1') { cache = null; cachedMeta = null; lastFetch = 0; }
     const rows = await loadRows();
 

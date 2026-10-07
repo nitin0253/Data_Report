@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<title>Sign in · Ops Dashboard</title>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://accounts.google.com/gsi/client" async></script>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;}
+  :root{--bg:#f6f5f1;--surface:#ffffff;--ink:#0b0b0c;--ink2:#404045;--muted:#8a8a90;--line:#e8e6df;--accent:#1f3f72;--red:#b3261e;--shadow:rgba(0,0,0,0.08);}
+  @media(prefers-color-scheme:dark){
+    :root{--bg:#111113;--surface:#1c1c1f;--ink:#f0efe9;--ink2:#b0b0b8;--muted:#76767e;--line:#2a2a2f;--accent:#6b9eff;--red:#f87171;--shadow:rgba(0,0,0,0.4);}
+  }
+  body{background:var(--bg);color:var(--ink);font-family:'Inter',system-ui,sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:48px 40px;max-width:420px;width:100%;text-align:center;box-shadow:0 8px 32px var(--shadow);}
+  .brand{font-family:'Bricolage Grotesque',serif;font-size:28px;font-weight:700;letter-spacing:-.02em;margin-bottom:6px;}
+  .tag{font-size:12px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;margin-bottom:32px;display:block;}
+  .desc{font-size:14px;color:var(--ink2);line-height:1.5;margin-bottom:32px;}
+  .google-btn-wrap{display:flex;justify-content:center;margin-bottom:20px;min-height:44px;}
+  .error{color:var(--red);font-size:13px;font-weight:500;margin-top:16px;display:none;}
+  .error.show{display:block;}
+  .loading{display:none;align-items:center;justify-content:center;gap:10px;font-size:14px;color:var(--muted);margin-top:16px;}
+  .loading.show{display:flex;}
+  .loading .dot{width:8px;height:8px;border-radius:50%;background:var(--accent);animation:pulse .8s ease-in-out infinite alternate;}
+  .loading .dot:nth-child(2){animation-delay:.15s;}
+  .loading .dot:nth-child(3){animation-delay:.3s;}
+  @keyframes pulse{from{opacity:.3;transform:scale(.8);}to{opacity:1;transform:scale(1);}}
+  .domain{font-size:12px;color:var(--muted);margin-top:24px;}
+  @media(max-width:480px){.card{margin:16px;padding:36px 24px;}}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="brand">Ops Dashboard</div>
+  <span class="tag">QC · Throughput · SLA</span>
+  <p class="desc">Sign in with your Spyne Google account to access the dashboard.</p>
+  <div class="google-btn-wrap" id="gBtnWrap"></div>
+  <div class="loading" id="loading"><div class="dot"></div><div class="dot"></div><div class="dot"></div><span>Signing in…</span></div>
+  <div class="error" id="error"></div>
+  <p class="domain">Restricted to @spyne.ai accounts</p>
+</div>
+
+<script>
+const GOOGLE_CLIENT_ID = window.__GOOGLE_CLIENT_ID || '';
+
+async function handleCredentialResponse(response) {
+  const errEl = document.getElementById('error');
+  const loadEl = document.getElementById('loading');
+  errEl.classList.remove('show');
+  loadEl.classList.add('show');
+
+  try {
+    const res = await fetch('/api/auth', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ credential: response.credential }),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      loadEl.classList.remove('show');
+      errEl.textContent = data.error || 'Authentication failed';
+      errEl.classList.add('show');
+      return;
+    }
+
+    const params = new URLSearchParams(window.location.search);
+    const next = params.get('next') || '/';
+    window.location.replace(next);
+  } catch (e) {
+    loadEl.classList.remove('show');
+    errEl.textContent = 'Network error — please try again';
+    errEl.classList.add('show');
+  }
+}
+
+// Fetch the client ID from server config, then init Google Sign-In
+async function initAuth() {
+  try {
+    const res = await fetch('/api/auth-config');
+    if (res.ok) {
+      const cfg = await res.json();
+      if (cfg.clientId) initGoogle(cfg.clientId);
+      else showConfigError();
+    } else {
+      showConfigError();
+    }
+  } catch {
+    showConfigError();
+  }
+}
+
+function initGoogle(clientId) {
+  google.accounts.id.initialize({
+    client_id: clientId,
+    callback: handleCredentialResponse,
+    auto_select: true,
+    hosted_domain: 'spyne.ai',
+  });
+  google.accounts.id.renderButton(
+    document.getElementById('gBtnWrap'),
+    { theme: 'outline', size: 'large', width: 300, text: 'signin_with', shape: 'rectangular' }
+  );
+  google.accounts.id.prompt();
+}
+
+function showConfigError() {
+  const errEl = document.getElementById('error');
+  errEl.textContent = 'Google SSO not configured — set GOOGLE_CLIENT_ID env var';
+  errEl.classList.add('show');
+}
+
+// Wait for Google Identity Services to load, then init
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => setTimeout(initAuth, 100));
+} else {
+  setTimeout(initAuth, 100);
+}
+</script>
+</body>
+</html>
