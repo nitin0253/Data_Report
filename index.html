@@ -4341,17 +4341,27 @@ function renderHourlyThroughput(){
   }
 
   const clk = (user, hr) => `onclick="openHourlyDrill('${esc(user).replace(/'/g,"\\'")}',${hr})" style="cursor:pointer"`;
-  const thCells = HOUR_LABELS.map(l => `<th>${esc(l)}</th>`).join('');
-  let html = `<table class="hourly-table"><thead><tr><th>QC User</th>${thCells}<th>Total</th></tr></thead><tbody>`;
-  for (const u of users){
-    const row = userMap[u];
-    const rowTotal = row.reduce((s,v)=>s+v,0);
-    const cells = row.map((v,h) => v ? `<td class="hour-cell" ${clk(u,h)}>${v}</td>` : `<td class="hour-cell zero">–</td>`).join('');
-    html += `<tr><td class="user-cell">${esc(u)}</td>${cells}<td class="total-cell" ${clk(u,-1)}>${num(rowTotal)}</td></tr>`;
+
+  function buildHalfTable(label, startHr, endHr){
+    const hrs = [];
+    for (let h=startHr;h<endHr;h++) hrs.push(h);
+    const thCells = hrs.map(h => `<th>${esc(HOUR_LABELS[h])}</th>`).join('');
+    let tbl = `<div style="margin-bottom:6px;font-family:'JetBrains Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);padding:4px 0;">${esc(label)}</div>`;
+    tbl += `<table class="hourly-table"><thead><tr><th>QC User</th>${thCells}<th>Total</th></tr></thead><tbody>`;
+    for (const u of users){
+      const row = userMap[u];
+      const halfTotal = hrs.reduce((s,h)=>s+row[h],0);
+      const cells = hrs.map(h => row[h] ? `<td class="hour-cell" ${clk(u,h)}>${row[h]}</td>` : `<td class="hour-cell zero">–</td>`).join('');
+      tbl += `<tr><td class="user-cell">${esc(u)}</td>${cells}<td class="total-cell" ${clk(u,-1)}>${halfTotal||'–'}</td></tr>`;
+    }
+    const halfColTotals = hrs.map(h => colTotals[h]);
+    const halfGrand = halfColTotals.reduce((s,v)=>s+v,0);
+    const footCells = hrs.map(h => colTotals[h] ? `<td onclick="openHourlyDrill(null,${h})" style="cursor:pointer">${num(colTotals[h])}</td>` : `<td>–</td>`).join('');
+    tbl += `</tbody><tfoot><tr><td>Total (${num(users.length)} users)</td>${footCells}<td onclick="openHourlyDrill(null,-1)" style="cursor:pointer">${num(halfGrand)}</td></tr></tfoot></table>`;
+    return tbl;
   }
-  const footCells = colTotals.map((v,h) => v ? `<td onclick="openHourlyDrill(null,${h})" style="cursor:pointer">${num(v)}</td>` : `<td>–</td>`).join('');
-  html += `</tbody><tfoot><tr><td>Total (${num(users.length)} users)</td>${footCells}<td onclick="openHourlyDrill(null,-1)" style="cursor:pointer">${num(grandTotal)}</td></tr></tfoot></table>`;
-  wrap.innerHTML = html;
+
+  wrap.innerHTML = buildHalfTable('AM · 12:00 AM – 11:59 AM', 0, 12) + '<div style="height:20px;"></div>' + buildHalfTable('PM · 12:00 PM – 11:59 PM', 12, 24);
   $('hourlyMeta').textContent = `${num(qcDone.length)} QC-done records · ${num(users.length)} users`;
 }
 
