@@ -8,6 +8,7 @@ const crypto = require('crypto');
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '';
 const AUTH_SECRET = process.env.AUTH_SECRET || 'change-me-in-production';
 const ALLOWED_DOMAIN = 'spyne.ai';
+const ALLOWED_EMAILS = (process.env.ALLOWED_EMAILS || '').split(',').map(e => e.trim().toLowerCase()).filter(Boolean);
 const COOKIE_NAME = 'ops_session';
 const COOKIE_MAX_AGE = 60 * 60; // 1 hour auto-logout
 
@@ -188,6 +189,11 @@ export default async function handler(req, res) {
     // Check domain
     if (info.hd !== ALLOWED_DOMAIN) {
       return res.status(403).json({ error: `only @${ALLOWED_DOMAIN} accounts allowed` });
+    }
+
+    // Check email allowlist (if configured)
+    if (ALLOWED_EMAILS.length && !ALLOWED_EMAILS.includes(info.email.toLowerCase())) {
+      return res.status(403).json({ error: 'your account is not authorized to access this dashboard' });
     }
 
     const user = {
