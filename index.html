@@ -114,6 +114,7 @@
   .hourly-table td.user-cell{font-weight:600;color:var(--ink);}
   .hourly-table td.hour-cell{font-family:'JetBrains Mono',monospace;font-size:12px;}
   .hourly-table td.hour-cell.zero{color:var(--muted);opacity:.4;}
+  .hourly-table td.hour-cell[onclick]:hover,.hourly-table td.total-cell[onclick]:hover,.hourly-table tfoot td[onclick]:hover{background:color-mix(in srgb,var(--accent) 14%,transparent);text-decoration:underline;}
   .hourly-table td.total-cell{font-weight:700;font-family:'JetBrains Mono',monospace;background:color-mix(in srgb,var(--accent) 6%,transparent);}
   .hourly-table tr:hover td{background:color-mix(in srgb,var(--accent) 4%,transparent);}
   .hourly-table tr:hover td:first-child{background:color-mix(in srgb,var(--accent) 8%,var(--bg));}
@@ -4303,6 +4304,8 @@ const HOUR_LABELS = [
   '6–7 PM','7–8 PM','8–9 PM','9–10 PM','10–11 PM','11–12 AM',
 ];
 
+let _hourlyQcDone = [];
+
 function renderHourlyThroughput(){
   const filtered = RAW.filter(r => {
     if (!passesNonDateFilters(r)) return false;
@@ -4310,6 +4313,7 @@ function renderHourlyThroughput(){
     return dateInRange(rowDate);
   });
   const qcDone = filtered.filter(r => r.crm === 'qc_done' && r._updated);
+  _hourlyQcDone = qcDone;
 
   const userMap = {};
   for (const r of qcDone){
@@ -4336,18 +4340,62 @@ function renderHourlyThroughput(){
     return;
   }
 
-  const thCells = HOUR_LABELS.map((l,i) => `<th>${esc(l)}</th>`).join('');
+  const clk = (user, hr) => `onclick="openHourlyDrill('${esc(user).replace(/'/g,"\\'")}',${hr})" style="cursor:pointer"`;
+  const thCells = HOUR_LABELS.map(l => `<th>${esc(l)}</th>`).join('');
   let html = `<table class="hourly-table"><thead><tr><th>QC User</th>${thCells}<th>Total</th></tr></thead><tbody>`;
   for (const u of users){
     const row = userMap[u];
     const rowTotal = row.reduce((s,v)=>s+v,0);
-    const cells = row.map(v => `<td class="hour-cell${v===0?' zero':''}">${v||'–'}</td>`).join('');
-    html += `<tr><td class="user-cell">${esc(u)}</td>${cells}<td class="total-cell">${num(rowTotal)}</td></tr>`;
+    const cells = row.map((v,h) => v ? `<td class="hour-cell" ${clk(u,h)}>${v}</td>` : `<td class="hour-cell zero">–</td>`).join('');
+    html += `<tr><td class="user-cell">${esc(u)}</td>${cells}<td class="total-cell" ${clk(u,-1)}>${num(rowTotal)}</td></tr>`;
   }
-  const footCells = colTotals.map(v => `<td>${num(v)}</td>`).join('');
-  html += `</tbody><tfoot><tr><td>Total (${num(users.length)} users)</td>${footCells}<td>${num(grandTotal)}</td></tr></tfoot></table>`;
+  const footCells = colTotals.map((v,h) => v ? `<td onclick="openHourlyDrill(null,${h})" style="cursor:pointer">${num(v)}</td>` : `<td>–</td>`).join('');
+  html += `</tbody><tfoot><tr><td>Total (${num(users.length)} users)</td>${footCells}<td onclick="openHourlyDrill(null,-1)" style="cursor:pointer">${num(grandTotal)}</td></tr></tfoot></table>`;
   wrap.innerHTML = html;
   $('hourlyMeta').textContent = `${num(qcDone.length)} QC-done records · ${num(users.length)} users`;
+}
+
+function openHourlyDrill(user, hr){
+  let rows = _hourlyQcDone;
+  if (user) rows = rows.filter(r => (r.qc||'(unknown)') === user);
+  if (hr >= 0) rows = rows.filter(r => r._updated.getHours() === hr);
+
+  const label = user
+    ? (hr >= 0 ? `${user} · ${HOUR_LABELS[hr]}` : `${user} · All hours`)
+    : (hr >= 0 ? `All users · ${HOUR_LABELS[hr]}` : 'All users · All hours');
+
+  const agg = {};
+  for (const r of rows){
+    const key = `${r.ent||'(unknown)'}|||${r.eid||'–'}|||${r.team||'(unknown)'}|||${r.tid||'–'}`;
+    if (!agg[key]) agg[key] = { ent:r.ent||'(unknown)', eid:r.eid||'–', team:r.team||'(unknown)', tid:r.tid||'–', approved:0, rejected:0, total:0 };
+    if (isDelivered(r)) agg[key].approved++;
+    else if (isRejected(r)) agg[key].rejected++;
+    agg[key].total++;
+  }
+  const sorted = Object.values(agg).sort((a,b) => b.total - a.total);
+  const totApproved = sorted.reduce((s,r)=>s+r.approved,0);
+  const totRejected = sorted.reduce((s,r)=>s+r.rejected,0);
+  const totOther    = rows.length - totApproved - totRejected;
+
+  $('modalTitle').textContent = label;
+  $('modalSub').textContent   = `${num(rows.length)} QC-done records`;
+  $('modalChips').innerHTML   = '';
+  $('modalStats').innerHTML   = [
+    ['Total',    num(rows.length), ''],
+    ['Approved', num(totApproved), 'green'],
+    ['Rejected', num(totRejected), 'red'],
+    ['Auto QC',  num(totOther),    ''],
+  ].map(([l,v,c])=>`<div class="modal-stat"><span class="modal-stat-label">${esc(l)}</span><span class="modal-stat-value ${c}">${v}</span></div>`).join('');
+
+  $('modalBody').innerHTML = `<div class="table-scroll"><table><thead><tr><th>Enterprise</th><th class="mono">Ent ID</th><th>Team</th><th class="mono">Team ID</th><th class="num-cell">Approved</th><th class="num-cell">Rejected</th><th class="num-cell">Auto QC</th><th class="num-cell">Total</th></tr></thead><tbody>${
+    sorted.map(r => {
+      const other = r.total - r.approved - r.rejected;
+      return `<tr><td>${esc(r.ent)}</td><td class="mono">${esc(r.eid)}</td><td>${esc(r.team)}</td><td class="mono">${esc(r.tid)}</td><td class="num-cell" style="color:var(--green)">${r.approved||'–'}</td><td class="num-cell" style="color:var(--red)">${r.rejected||'–'}</td><td class="num-cell">${other||'–'}</td><td class="num-cell" style="font-weight:600">${r.total}</td></tr>`;
+    }).join('')
+  }<tr style="font-weight:700;border-top:2px solid var(--line)"><td colspan="4">Total</td><td class="num-cell" style="color:var(--green)">${num(totApproved)}</td><td class="num-cell" style="color:var(--red)">${num(totRejected)}</td><td class="num-cell">${num(totOther)}</td><td class="num-cell">${num(rows.length)}</td></tr></tbody></table></div>`;
+  $('modalCount').textContent = `${num(rows.length)} records`;
+  $('modal').classList.add('show');
+  _modalCtx = null;
 }
 
 // ─────────────────────────────────────────────────────────────
