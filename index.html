@@ -95,6 +95,31 @@
   body.view-performance #msVerifiedWrap,
   body.view-performance #msSlaWrap{display:none;}
 
+  /* HOURLY THROUGHPUT VIEW */
+  #viewHourly{display:none;}
+  body.view-hourly #viewOperations{display:none;}
+  body.view-hourly #viewHourly{display:block;}
+  body.view-hourly .filters{padding-top:10px;padding-bottom:10px;}
+  body.view-hourly #msPocObWrap,
+  body.view-hourly #msPocCsWrap,
+  body.view-hourly #msVerifiedWrap,
+  body.view-hourly #msSlaWrap,
+  body.view-hourly #msTempTypeWrap{display:none;}
+  .hourly-table-wrap{overflow-x:auto;margin-top:8px;}
+  .hourly-table{width:100%;border-collapse:collapse;font-size:13px;}
+  .hourly-table th,.hourly-table td{padding:7px 8px;text-align:center;border-bottom:1px solid var(--line);white-space:nowrap;}
+  .hourly-table th{background:var(--surface);font-family:'JetBrains Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);position:sticky;top:0;z-index:1;}
+  .hourly-table th:first-child,.hourly-table td:first-child{text-align:left;position:sticky;left:0;background:var(--bg);z-index:2;min-width:180px;}
+  .hourly-table th:first-child{z-index:3;background:var(--surface);}
+  .hourly-table td.user-cell{font-weight:600;color:var(--ink);}
+  .hourly-table td.hour-cell{font-family:'JetBrains Mono',monospace;font-size:12px;}
+  .hourly-table td.hour-cell.zero{color:var(--muted);opacity:.4;}
+  .hourly-table td.total-cell{font-weight:700;font-family:'JetBrains Mono',monospace;background:color-mix(in srgb,var(--accent) 6%,transparent);}
+  .hourly-table tr:hover td{background:color-mix(in srgb,var(--accent) 4%,transparent);}
+  .hourly-table tr:hover td:first-child{background:color-mix(in srgb,var(--accent) 8%,var(--bg));}
+  .hourly-table tfoot td{font-weight:700;border-top:2px solid var(--line);background:var(--surface);font-family:'JetBrains Mono',monospace;}
+  .hourly-table tfoot td:first-child{background:var(--surface);}
+
   /* User picker — large, prominent */
   .user-picker-block{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px 22px;margin-bottom:22px;display:flex;flex-wrap:wrap;align-items:center;gap:18px;}
   .user-picker-label{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;flex-shrink:0;}
@@ -443,6 +468,10 @@
         <button data-view="performance" title="QC Performance view">
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="8" cy="5" r="3"/><path d="M2 14c0-3.3 2.7-6 6-6s6 2.7 6 6"/></svg>
           QC Performance
+        </button>
+        <button data-view="hourly" title="Hourly Throughput view">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="8" cy="8" r="6"/><path d="M8 4v4l3 2"/></svg>
+          Hourly Throughput
         </button>
       </div>
       <span class="autosync-badge" id="autoSyncBadge">Next sync in —</span>
@@ -1076,6 +1105,22 @@
       </div>
     </div>
   </div><!-- /#viewPerformance -->
+
+  <div id="viewHourly">
+    <div class="section-label">Hourly Throughput · QC videos per hour</div>
+    <div class="panel" style="padding:16px 18px;">
+      <div class="panel-header" style="padding:0 0 12px;border-bottom:1px solid var(--line);margin-bottom:0;">
+        <div class="panel-title-wrap">
+          <h3>QC Hourly Breakdown</h3>
+          <div class="panel-sub" id="hourlySub2">videos QC'd per hour by updated_on (IST) · rows = QC users · columns = hourly brackets</div>
+        </div>
+        <span class="sync-info" id="hourlyMeta" style="margin-left:auto;"></span>
+      </div>
+      <div class="hourly-table-wrap" id="hourlyTableWrap">
+        <div class="empty" style="padding:40px 0;text-align:center;color:var(--muted);">Loading data…</div>
+      </div>
+    </div>
+  </div><!-- /#viewHourly -->
 </main>
 
 <div class="modal-backdrop" id="modal">
@@ -1332,7 +1377,7 @@ let lastSynced = null;
 let isDark = false;
 let editMode = false;
 let trendRange = 'months';      // '15days' | 'this_month' | 'months' | 'year'
-let currentView = 'operations'; // 'operations' | 'performance'
+let currentView = 'operations'; // 'operations' | 'performance' | 'hourly'
 const charts = {};
 
 // Default filter = This Month
@@ -2866,6 +2911,7 @@ function paint(){
 
 function refresh(){
   if (currentView === 'performance') renderPerformance();
+  else if (currentView === 'hourly') renderHourlyThroughput();
   else paint();
 }
 
@@ -4248,6 +4294,63 @@ async function downloadReport(){
 $('downloadBtn').addEventListener('click', downloadReport);
 
 // ─────────────────────────────────────────────────────────────
+// HOURLY THROUGHPUT VIEW
+// ─────────────────────────────────────────────────────────────
+const HOUR_LABELS = [
+  '12–1 AM','1–2 AM','2–3 AM','3–4 AM','4–5 AM','5–6 AM',
+  '6–7 AM','7–8 AM','8–9 AM','9–10 AM','10–11 AM','11–12 PM',
+  '12–1 PM','1–2 PM','2–3 PM','3–4 PM','4–5 PM','5–6 PM',
+  '6–7 PM','7–8 PM','8–9 PM','9–10 PM','10–11 PM','11–12 AM',
+];
+
+function renderHourlyThroughput(){
+  const filtered = RAW.filter(r => {
+    if (!passesNonDateFilters(r)) return false;
+    const rowDate = r._created || r._mediaProcessed || r._updated;
+    return dateInRange(rowDate);
+  });
+  const qcDone = filtered.filter(r => r.crm === 'qc_done' && r._updated);
+
+  const userMap = {};
+  for (const r of qcDone){
+    const user = r.qc || '(unknown)';
+    if (!userMap[user]) userMap[user] = new Array(24).fill(0);
+    const hr = r._updated.getHours();
+    userMap[user][hr]++;
+  }
+
+  const users = Object.keys(userMap).sort((a,b) => {
+    const ta = userMap[a].reduce((s,v)=>s+v,0);
+    const tb = userMap[b].reduce((s,v)=>s+v,0);
+    return tb - ta;
+  });
+
+  const colTotals = new Array(24).fill(0);
+  for (const u of users) for (let h=0;h<24;h++) colTotals[h] += userMap[u][h];
+  const grandTotal = colTotals.reduce((s,v)=>s+v,0);
+
+  const wrap = $('hourlyTableWrap');
+  if (!users.length){
+    wrap.innerHTML = '<div class="empty" style="padding:40px 0;text-align:center;color:var(--muted);">No QC-done records match the current filters.</div>';
+    $('hourlyMeta').textContent = '';
+    return;
+  }
+
+  const thCells = HOUR_LABELS.map((l,i) => `<th>${esc(l)}</th>`).join('');
+  let html = `<table class="hourly-table"><thead><tr><th>QC User</th>${thCells}<th>Total</th></tr></thead><tbody>`;
+  for (const u of users){
+    const row = userMap[u];
+    const rowTotal = row.reduce((s,v)=>s+v,0);
+    const cells = row.map(v => `<td class="hour-cell${v===0?' zero':''}">${v||'–'}</td>`).join('');
+    html += `<tr><td class="user-cell">${esc(u)}</td>${cells}<td class="total-cell">${num(rowTotal)}</td></tr>`;
+  }
+  const footCells = colTotals.map(v => `<td>${num(v)}</td>`).join('');
+  html += `</tbody><tfoot><tr><td>Total (${num(users.length)} users)</td>${footCells}<td>${num(grandTotal)}</td></tr></tfoot></table>`;
+  wrap.innerHTML = html;
+  $('hourlyMeta').textContent = `${num(qcDone.length)} QC-done records · ${num(users.length)} users`;
+}
+
+// ─────────────────────────────────────────────────────────────
 // PERFORMANCE VIEW — user-centric analytics
 // ─────────────────────────────────────────────────────────────
 // State for the performance view. Independent from the operations F state,
@@ -4261,15 +4364,17 @@ const PV = {
 
 function switchView(view){
   currentView = view;
-  document.body.classList.toggle('view-performance', view === 'performance');
+  document.body.classList.remove('view-performance', 'view-hourly');
+  if (view === 'performance') document.body.classList.add('view-performance');
+  if (view === 'hourly')      document.body.classList.add('view-hourly');
   document.querySelectorAll('#viewSwitch button').forEach(b=>{
     b.classList.toggle('sel', b.dataset.view === view);
   });
-  // Hide filter bar in performance view? — keep visible but it's only used by operations.
-  // Refresh the active view to ensure charts size correctly.
   if (view === 'performance'){
     populatePerfUserList();
     renderPerformance();
+  } else if (view === 'hourly'){
+    renderHourlyThroughput();
   } else {
     refresh();
   }
