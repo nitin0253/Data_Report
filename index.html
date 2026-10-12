@@ -236,7 +236,8 @@
   .section-label{font-family:'JetBrains Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.14em;color:var(--muted);margin-bottom:14px;font-weight:500;display:flex;align-items:center;gap:10px;}
 
   /* KPI CARDS */
-  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:28px;}
+  .kpis{display:grid;grid-template-columns:repeat(9,1fr);gap:12px;margin-bottom:28px;}
+  @media(max-width:1280px){.kpis{grid-template-columns:repeat(auto-fit,minmax(150px,1fr));}}
   .kpi{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px 20px;cursor:pointer;position:relative;transition:transform .15s ease,box-shadow .15s ease,border-color .15s ease;display:flex;flex-direction:column;gap:0;}
   .kpi:hover{transform:translateY(-2px);box-shadow:0 6px 20px var(--shadow-md);border-color:var(--line-2);}
   .kpi:active{transform:translateY(0);}
