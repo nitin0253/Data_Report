@@ -1222,6 +1222,16 @@ function fmtTatHrs(h){
   return (v/24).toFixed(1)+'d';
 }
 
+// Hours-only variant: used by the tail percentiles (P99 TAT / P99 ETE)
+// where values commonly exceed 24h and showing them in days ("7.2d") makes
+// them harder to compare against the adjacent P95/Avg cards shown in hours.
+function fmtHrsOnly(h){
+  if(h==null||isNaN(+h)) return '—';
+  const v = +h;
+  if (v < 1) return (v*60).toFixed(0)+'m';
+  return v.toFixed(1)+'h';
+}
+
 // Render a video_url cell as a small clickable link.
 // Falls back to a plain dash when missing. Truncates the visible text but keeps
 // the full URL in the title attribute for hover preview, and opens in a new tab.
@@ -2681,7 +2691,7 @@ function openOpsEntDrill(entName, rows){
     ['SLA %',       k.slaCompliance!=null?k.slaCompliance.toFixed(1)+'%':'—', ''],
     ['Avg TAT',     fmtTatHrs(k.avgTat),                 ''],
     ['P95 TAT',     fmtTatHrs(k.p95Tat),                 'blue'],
-    ['P99 TAT',     fmtTatHrs(k.p99Tat),                 'blue'],
+    ['P99 TAT',     fmtHrsOnly(k.p99Tat),                'blue'],
     ['Avg ETE TAT', fmtTatHrs(k.avgEte),                 'purple'],
   ].map(([l,v,c])=>`<div class="modal-stat"><span class="modal-stat-label">${esc(l)}</span><span class="modal-stat-value ${c}">${v}</span></div>`).join('');
 
@@ -2732,9 +2742,9 @@ function paint(){
   $('kv-pct6h').textContent   = k.pct6h != null ? k.pct6h.toFixed(1) + '%' : '—';
   $('kv-pct12h').textContent  = k.pct12h != null ? k.pct12h.toFixed(1) + '%' : '—';
   $('kv-p95tat').textContent  = fmtTatHrs(k.p95Tat);
-  $('kv-p99tat').textContent  = fmtTatHrs(k.p99Tat);
+  $('kv-p99tat').textContent  = fmtHrsOnly(k.p99Tat);
   $('kv-p95ete').textContent  = fmtTatHrs(kMedia.p95Ete);
-  $('kv-p99ete').textContent  = fmtTatHrs(kMedia.p99Ete);
+  $('kv-p99ete').textContent  = fmtHrsOnly(kMedia.p99Ete);
   const setSub = (id, txt) => { const el = $(id); if (el) el.textContent = txt; };
   setSub('kvs-delivered', pctOf(k.totalDelivered));
   setSub('kvs-rejected',  pctOf(k.totalRejected));
@@ -3561,10 +3571,10 @@ function openDrill(kpi){
     ['SLA %',       statsK.slaCompliance!=null?statsK.slaCompliance.toFixed(1)+'%':'—', ''],
     ['Avg TAT',     fmtTatHrs(statsK.avgTat),                 ''],
     ['P95 TAT',     fmtTatHrs(statsK.p95Tat),                 'blue'],
-    ['P99 TAT',     fmtTatHrs(statsK.p99Tat),                 'blue'],
+    ['P99 TAT',     fmtHrsOnly(statsK.p99Tat),                'blue'],
     ['Avg ETE TAT', fmtTatHrs(statsK.avgEte),                 'purple'],
     ['P95 ETE TAT', fmtTatHrs(statsK.p95Ete),                 'purple'],
-    ['P99 ETE TAT', fmtTatHrs(statsK.p99Ete),                 'purple'],
+    ['P99 ETE TAT', fmtHrsOnly(statsK.p99Ete),                'purple'],
   ].map(([l,v,c])=>`<div class="modal-stat"><span class="modal-stat-label">${esc(l)}</span><span class="modal-stat-value ${c}">${v}</span></div>`).join('');
 
   _modalCtx = { type:'records', kpi, rows, sort:{col:null, dir:null} };
