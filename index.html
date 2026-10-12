@@ -1536,7 +1536,11 @@ function passesFilters(r){
 // would apply them. This is a DIFFERENT date anchor than passesFilters' own
 // chain (which prefers created_on) — used specifically for the four metrics
 // that measure elapsed time starting FROM media_processed_at:
-//   Avg End-to-End TAT, P95 TAT, P99 TAT, P95 End-to-End TAT, P99 End-to-End TAT.
+//   Avg End-to-End TAT, P95 End-to-End TAT, P99 End-to-End TAT.
+// P95/P99 TAT (created→updated) are anchored on created_on like Avg TAT and
+// the %-within-N-hrs cards, not on media_processed_at — they describe the
+// video's turnaround, so the date filter should pick videos BY WHEN THEY
+// WERE RECEIVED, not by when their media was processed.
 // Rationale: those metrics are only meaningful relative to when the media was
 // actually updated, so "This month" should mean "media processed this month",
 // not "video record created this month" — a video created last month whose
@@ -2727,8 +2731,8 @@ function paint(){
   $('kv-pct3h').textContent   = k.pct3h != null ? k.pct3h.toFixed(1) + '%' : '—';
   $('kv-pct6h').textContent   = k.pct6h != null ? k.pct6h.toFixed(1) + '%' : '—';
   $('kv-pct12h').textContent  = k.pct12h != null ? k.pct12h.toFixed(1) + '%' : '—';
-  $('kv-p95tat').textContent  = fmtTatHrs(kMedia.p95Tat);
-  $('kv-p99tat').textContent  = fmtTatHrs(kMedia.p99Tat);
+  $('kv-p95tat').textContent  = fmtTatHrs(k.p95Tat);
+  $('kv-p99tat').textContent  = fmtTatHrs(k.p99Tat);
   $('kv-p95ete').textContent  = fmtTatHrs(kMedia.p95Ete);
   $('kv-p99ete').textContent  = fmtTatHrs(kMedia.p99Ete);
   const setSub = (id, txt) => { const el = $(id); if (el) el.textContent = txt; };
@@ -2740,8 +2744,8 @@ function paint(){
   setSub('kvs-pct6h',  k.deliveredWithTat ? `${num(k.within6hCount)} of ${num(k.deliveredWithTat)} delivered` : '');
   setSub('kvs-pct12h', k.deliveredWithTat ? `${num(k.within12hCount)} of ${num(k.deliveredWithTat)} delivered` : '');
   setSub('kvs-ete',    kMedia.eteRecordCount ? `${num(kMedia.eteRecordCount)} records · by media_processed_at` : '');
-  setSub('kvs-p95tat', kMedia.deliveredWithTat ? `across ${num(kMedia.deliveredWithTat)} delivered · by media_processed_at` : '');
-  setSub('kvs-p99tat', kMedia.deliveredWithTat ? `across ${num(kMedia.deliveredWithTat)} delivered · by media_processed_at` : '');
+  setSub('kvs-p95tat', k.deliveredWithTat ? `across ${num(k.deliveredWithTat)} delivered` : '');
+  setSub('kvs-p99tat', k.deliveredWithTat ? `across ${num(k.deliveredWithTat)} delivered` : '');
   setSub('kvs-p95ete', kMedia.deliveredWithEte ? `across ${num(kMedia.deliveredWithEte)} delivered · by media_processed_at` : '');
   setSub('kvs-p99ete', kMedia.deliveredWithEte ? `across ${num(kMedia.deliveredWithEte)} delivered · by media_processed_at` : '');
 
@@ -3541,7 +3545,7 @@ function openDrill(kpi){
   // population so every number in the modal describes one consistent set —
   // otherwise "In view: 40" next to "Avg ETE TAT: 6.2h" computed from a
   // different 500-row population would look like a bug.
-  const MEDIA_SCOPED_VIEWS = new Set(['ete', 'p95', 'p99', 'p95_ete', 'p99_ete']);
+  const MEDIA_SCOPED_VIEWS = new Set(['ete', 'p95_ete', 'p99_ete']);
   const useMediaScope = MEDIA_SCOPED_VIEWS.has(kpi.view);
   const baseRows = useMediaScope ? mediaScopedRows() : filtered;
   const statsK   = useMediaScope ? aggregate(baseRows) : k;
