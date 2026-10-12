@@ -1535,7 +1535,7 @@ function passesFilters(r){
 // would apply them. This is a DIFFERENT date anchor than passesFilters' own
 // chain (which prefers created_on) — used specifically for the four metrics
 // that measure elapsed time starting FROM media_processed_at:
-//   Avg End-to-End TAT, P95 TAT, P95 End-to-End TAT, P99 End-to-End TAT.
+//   Avg End-to-End TAT, P95 TAT, P99 TAT, P95 End-to-End TAT, P99 End-to-End TAT.
 // Rationale: those metrics are only meaningful relative to when the media was
 // actually updated, so "This month" should mean "media processed this month",
 // not "video record created this month" — a video created last month whose
@@ -1735,6 +1735,12 @@ function aggregate(rows){
       const idx = Math.min(sorted.length - 1, Math.max(0, Math.ceil(sorted.length * 0.95) - 1));
       return +sorted[idx].toFixed(2);
     })(),
+    p99Tat: (() => {
+      if (!deliveredTats.length) return null;
+      const sorted = deliveredTats.slice().sort((a, b) => a - b);
+      const idx = Math.min(sorted.length - 1, Math.max(0, Math.ceil(sorted.length * 0.99) - 1));
+      return +sorted[idx].toFixed(2);
+    })(),
     p95Ete: (() => {
       if (!deliveredEtes.length) return null;
       const sorted = deliveredEtes.slice().sort((a, b) => a - b);
@@ -1871,6 +1877,7 @@ const KPIS = [
   { id:'pct6h',     label:'% within 6 Hrs',    sub:'delivered ≤ 6h TAT',      color:'green',  kind:'records', view:'within_6h' },
   { id:'pct12h',    label:'% within 12 Hrs',   sub:'delivered ≤ 12h TAT',     color:'green',  kind:'records', view:'within_12h' },
   { id:'p95tat',    label:'P95 TAT',           sub:'95th percentile delivered',color:'blue',  kind:'records', view:'p95'       },
+  { id:'p99tat',    label:'P99 TAT',           sub:'99th percentile delivered',color:'blue',  kind:'records', view:'p99'       },
   { id:'p95ete',    label:'P95 End-to-End TAT',sub:'95th percentile delivered (ete)', color:'purple', kind:'records', view:'p95_ete' },
   { id:'p99ete',    label:'P99 End-to-End TAT',sub:'99th percentile delivered (ete)', color:'purple', kind:'records', view:'p99_ete' },
 ];
@@ -2669,6 +2676,7 @@ function openOpsEntDrill(entName, rows){
     ['SLA %',       k.slaCompliance!=null?k.slaCompliance.toFixed(1)+'%':'—', ''],
     ['Avg TAT',     fmtTatHrs(k.avgTat),                 ''],
     ['P95 TAT',     fmtTatHrs(k.p95Tat),                 'blue'],
+    ['P99 TAT',     fmtTatHrs(k.p99Tat),                 'blue'],
     ['Avg ETE TAT', fmtTatHrs(k.avgEte),                 'purple'],
   ].map(([l,v,c])=>`<div class="modal-stat"><span class="modal-stat-label">${esc(l)}</span><span class="modal-stat-value ${c}">${v}</span></div>`).join('');
 
@@ -2719,6 +2727,7 @@ function paint(){
   $('kv-pct6h').textContent   = k.pct6h != null ? k.pct6h.toFixed(1) + '%' : '—';
   $('kv-pct12h').textContent  = k.pct12h != null ? k.pct12h.toFixed(1) + '%' : '—';
   $('kv-p95tat').textContent  = fmtTatHrs(kMedia.p95Tat);
+  $('kv-p99tat').textContent  = fmtTatHrs(kMedia.p99Tat);
   $('kv-p95ete').textContent  = fmtTatHrs(kMedia.p95Ete);
   $('kv-p99ete').textContent  = fmtTatHrs(kMedia.p99Ete);
   const setSub = (id, txt) => { const el = $(id); if (el) el.textContent = txt; };
@@ -2731,6 +2740,7 @@ function paint(){
   setSub('kvs-pct12h', k.deliveredWithTat ? `${num(k.within12hCount)} of ${num(k.deliveredWithTat)} delivered` : '');
   setSub('kvs-ete',    kMedia.eteRecordCount ? `${num(kMedia.eteRecordCount)} records · by media_processed_at` : '');
   setSub('kvs-p95tat', kMedia.deliveredWithTat ? `across ${num(kMedia.deliveredWithTat)} delivered · by media_processed_at` : '');
+  setSub('kvs-p99tat', kMedia.deliveredWithTat ? `across ${num(kMedia.deliveredWithTat)} delivered · by media_processed_at` : '');
   setSub('kvs-p95ete', kMedia.deliveredWithEte ? `across ${num(kMedia.deliveredWithEte)} delivered · by media_processed_at` : '');
   setSub('kvs-p99ete', kMedia.deliveredWithEte ? `across ${num(kMedia.deliveredWithEte)} delivered · by media_processed_at` : '');
 
@@ -3469,6 +3479,15 @@ function drillSubset(rows, view){
       return rows.filter(r => isDelivered(r) && typeof r.tat === 'number' && r.tat >= threshold)
                  .sort((a, b) => (b.tat||0) - (a.tat||0));
     }
+    case 'p99': {
+      const tats = rows.filter(r => isDelivered(r) && typeof r.tat === 'number')
+                       .map(r => r.tat).sort((a, b) => a - b);
+      if (!tats.length) return [];
+      const idx = Math.min(tats.length - 1, Math.max(0, Math.ceil(tats.length * 0.99) - 1));
+      const threshold = tats[idx];
+      return rows.filter(r => isDelivered(r) && typeof r.tat === 'number' && r.tat >= threshold)
+                 .sort((a, b) => (b.tat||0) - (a.tat||0));
+    }
     // P95/P99 ETE drills follow the same pattern as P95 TAT — recompute the
     // percentile from the filtered set and show only rows at or above it,
     // sorted slowest-first. These are the rows that are pulling the percentile
@@ -3521,7 +3540,7 @@ function openDrill(kpi){
   // population so every number in the modal describes one consistent set —
   // otherwise "In view: 40" next to "Avg ETE TAT: 6.2h" computed from a
   // different 500-row population would look like a bug.
-  const MEDIA_SCOPED_VIEWS = new Set(['ete', 'p95', 'p95_ete', 'p99_ete']);
+  const MEDIA_SCOPED_VIEWS = new Set(['ete', 'p95', 'p99', 'p95_ete', 'p99_ete']);
   const useMediaScope = MEDIA_SCOPED_VIEWS.has(kpi.view);
   const baseRows = useMediaScope ? mediaScopedRows() : filtered;
   const statsK   = useMediaScope ? aggregate(baseRows) : k;
@@ -3537,6 +3556,7 @@ function openDrill(kpi){
     ['SLA %',       statsK.slaCompliance!=null?statsK.slaCompliance.toFixed(1)+'%':'—', ''],
     ['Avg TAT',     fmtTatHrs(statsK.avgTat),                 ''],
     ['P95 TAT',     fmtTatHrs(statsK.p95Tat),                 'blue'],
+    ['P99 TAT',     fmtTatHrs(statsK.p99Tat),                 'blue'],
     ['Avg ETE TAT', fmtTatHrs(statsK.avgEte),                 'purple'],
     ['P95 ETE TAT', fmtTatHrs(statsK.p95Ete),                 'purple'],
     ['P99 ETE TAT', fmtTatHrs(statsK.p99Ete),                 'purple'],
