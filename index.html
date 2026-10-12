@@ -75,6 +75,9 @@
   .dp-preview{padding:8px 12px;background:var(--bg);border:1px solid var(--line);border-radius:6px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--ink);min-height:34px;display:flex;align-items:center;justify-content:space-between;gap:8px;}
   .dp-preview .dp-clear{background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer;padding:2px 6px;border-radius:4px;}
   .dp-preview .dp-clear:hover{background:var(--surface);color:var(--ink);}
+  .dp-times{display:flex;gap:14px;align-items:center;margin-top:8px;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;}
+  .dp-time-lbl{display:flex;align-items:center;gap:6px;}
+  .dp-time-lbl input[type="time"]{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:4px;padding:3px 6px;}
 
   /* VIEW SWITCHER (in header) */
   .view-switch{display:inline-flex;background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:3px;gap:2px;flex-shrink:0;margin-right:8px;}
@@ -530,6 +533,10 @@
             <div class="cal-days" id="calDays"></div>
           </div>
           <div class="dp-preview" id="dpPreview"><span id="dpPreviewText">Pick a date to begin</span><button class="dp-clear" id="dpClear" type="button">Clear</button></div>
+          <div class="dp-times">
+            <label class="dp-time-lbl">From <input type="time" id="dpFromTime" value="00:00" step="60"></label>
+            <label class="dp-time-lbl">To <input type="time" id="dpToTime" value="23:59" step="60"></label>
+          </div>
         </div>
       </div>
     </div>
@@ -1175,6 +1182,22 @@ const esc = s => String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>
 const num = n => (n==null||isNaN(+n))?'—':(+n).toLocaleString();
 const isoDate = d => d?d.toISOString().slice(0,10):'';
 const fmtShort = d => d?d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}):'';
+// Date + time, but only when the time is non-default. Defaults (silent): 00:00
+// for a 'from' bound and 23:59 for a 'to' bound — those mean "whole day", and
+// we keep the label clean for the common case.
+const _hasCustomTime = (d, isEnd) => {
+  if (!d) return false;
+  return isEnd ? !(d.getHours()===23 && d.getMinutes()===59)
+               : !(d.getHours()===0  && d.getMinutes()===0);
+};
+const fmtShortDT = (d, isEnd) => {
+  if (!d) return '';
+  const base = fmtShort(d);
+  if (!_hasCustomTime(d, isEnd)) return base;
+  const hh = String(d.getHours()).padStart(2,'0');
+  const mm = String(d.getMinutes()).padStart(2,'0');
+  return base + ' ' + hh + ':' + mm;
+};
 // fmtDate can take either a raw timestamp string or a parsed Date object.
 // When given a string it uses parseTs() so the displayed time is the same IST
 // value the rest of the dashboard uses for filtering / bucketing.
@@ -1451,16 +1474,21 @@ const PLABELS={all:'All time',today:'Today',yesterday:'Yesterday',this_week:'Thi
 function presetRange(p){
   const now=new Date(),tod=new Date(now.getFullYear(),now.getMonth(),now.getDate());
   const ago=n=>{const d=new Date(tod);d.setDate(tod.getDate()-n);return d;};
-  if(p==='all')           return{from:null,to:null};
-  if(p==='today')         return{from:new Date(tod),to:new Date(tod)};
-  if(p==='yesterday'){    const y=ago(1);return{from:y,to:y};}
-  if(p==='this_week'){    const day=tod.getDay(),diff=day===0?-6:1-day,mon=new Date(tod);mon.setDate(tod.getDate()+diff);return{from:mon,to:new Date(tod)};}
-  if(p==='last_week'){    const day=tod.getDay(),diff=day===0?-6:1-day,to2=new Date(tod);to2.setDate(tod.getDate()+diff-1);const fr=new Date(to2);fr.setDate(to2.getDate()-6);return{from:fr,to:to2};}
-  if(p==='this_month')    return{from:new Date(now.getFullYear(),now.getMonth(),1),to:new Date(tod)};
-  if(p==='last_month')    return{from:new Date(now.getFullYear(),now.getMonth()-1,1),to:new Date(now.getFullYear(),now.getMonth(),0)};
-  if(p==='last_30')       return{from:ago(29),to:new Date(tod)};
-  if(p==='last_3_months') return{from:new Date(now.getFullYear(),now.getMonth()-3,1),to:new Date(tod)};
-  return{from:null,to:null};
+  let r;
+  if(p==='all')                r={from:null,to:null};
+  else if(p==='today')         r={from:new Date(tod),to:new Date(tod)};
+  else if(p==='yesterday'){    const y=ago(1);r={from:y,to:y};}
+  else if(p==='this_week'){    const day=tod.getDay(),diff=day===0?-6:1-day,mon=new Date(tod);mon.setDate(tod.getDate()+diff);r={from:mon,to:new Date(tod)};}
+  else if(p==='last_week'){    const day=tod.getDay(),diff=day===0?-6:1-day,to2=new Date(tod);to2.setDate(tod.getDate()+diff-1);const fr=new Date(to2);fr.setDate(to2.getDate()-6);r={from:fr,to:to2};}
+  else if(p==='this_month')    r={from:new Date(now.getFullYear(),now.getMonth(),1),to:new Date(tod)};
+  else if(p==='last_month')    r={from:new Date(now.getFullYear(),now.getMonth()-1,1),to:new Date(now.getFullYear(),now.getMonth(),0)};
+  else if(p==='last_30')       r={from:ago(29),to:new Date(tod)};
+  else if(p==='last_3_months') r={from:new Date(now.getFullYear(),now.getMonth()-3,1),to:new Date(tod)};
+  else                         r={from:null,to:null};
+  // Normalize whole-day presets: 'to' is pinned to end-of-day so the inclusive
+  // comparison in dateInRange() covers the full last day.
+  if (r.to) r.to = new Date(r.to.getFullYear(), r.to.getMonth(), r.to.getDate(), 23, 59, 59, 999);
+  return r;
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -1513,14 +1541,16 @@ function passesNonDateFilters(r){
 // F.to range. Takes a Date, not a row, so callers can pass whichever
 // timestamp anchor is appropriate for their metric.
 function dateInRange(rowDate){
+  // F.from and F.to carry a specific instant (date + time). Both bounds are
+  // inclusive. Whole-day presets set F.to to 23:59:59.999 of the end day, so
+  // existing date-only ranges behave the same as before.
   if (F.from){
     if (!rowDate) return false;
     if (rowDate.getTime() < F.from.getTime()) return false;
   }
   if (F.to){
     if (!rowDate) return false;
-    const toExclusive = F.to.getTime() + 86400000;
-    if (rowDate.getTime() >= toExclusive) return false;
+    if (rowDate.getTime() > F.to.getTime()) return false;
   }
   return true;
 }
@@ -3250,11 +3280,11 @@ $('resetSortBtn').addEventListener('click', resetSort);
 function syncDateUI(){
   const {preset, from, to} = F;
   $('dtLabel').textContent = preset!=='custom' ? PLABELS[preset]||'All time' :
-    (from && to) ? fmtShort(from)+' → '+fmtShort(to) :
-    from ? 'From '+fmtShort(from) : 'Custom';
+    (from && to) ? fmtShortDT(from,false)+' → '+fmtShortDT(to,true) :
+    from ? 'From '+fmtShortDT(from,false) : 'Custom';
   document.querySelectorAll('.dp-preset').forEach(b=>b.classList.toggle('sel', b.dataset.p===preset));
-  $('dpPreviewText').textContent = (from && to) ? fmtShort(from)+'  →  '+fmtShort(to) :
-    from ? 'From '+fmtShort(from) : 'Pick a date to begin';
+  $('dpPreviewText').textContent = (from && to) ? fmtShortDT(from,false)+'  →  '+fmtShortDT(to,true) :
+    from ? 'From '+fmtShortDT(from,false) : 'Pick a date to begin';
 }
 
 const dtTrigger=$('dateTrigger'), dtPanel=$('datePanel');
@@ -3266,6 +3296,10 @@ dtTrigger.addEventListener('click', e=>{
   if (opening){
     cal.rangeStart = F.from ? midnight(F.from) : null;
     cal.rangeEnd   = F.to   ? midnight(F.to)   : null;
+    const pad2 = n => String(n).padStart(2,'0');
+    const ft = $('dpFromTime'), tt = $('dpToTime');
+    if (ft) ft.value = F.from ? pad2(F.from.getHours())+':'+pad2(F.from.getMinutes()) : '00:00';
+    if (tt) tt.value = F.to   ? pad2(F.to.getHours())  +':'+pad2(F.to.getMinutes())   : '23:59';
     const ref = cal.rangeStart || new Date();
     cal.view = new Date(ref.getFullYear(), ref.getMonth(), 1);
     calRender();
@@ -3294,6 +3328,11 @@ document.querySelectorAll('.dp-preset').forEach(btn=>{
     }
     const r = presetRange(p);
     F.preset = p; F.from = r.from; F.to = r.to;
+    // Presets are whole-day ranges — reset the time inputs so they match what
+    // the picker will show if the user opens it again.
+    const ft = $('dpFromTime'), tt = $('dpToTime');
+    if (ft) ft.value = '00:00';
+    if (tt) tt.value = '23:59';
     syncDateUI();
     dtPanel.classList.remove('open'); dtTrigger.classList.remove('open');
     refresh();
@@ -3303,6 +3342,9 @@ document.querySelectorAll('.dp-preset').forEach(btn=>{
 $('dpClear').addEventListener('click', e=>{
   e.stopPropagation();
   cal.rangeStart = null; cal.rangeEnd = null;
+  const ft = $('dpFromTime'), tt = $('dpToTime');
+  if (ft) ft.value = '00:00';
+  if (tt) tt.value = '23:59';
   calRender(); $('dpPreviewText').textContent = 'Pick a date to begin';
 });
 
@@ -3374,8 +3416,19 @@ function onCalDayClick(e){
       cal.rangeEnd = day;
     }
     calRender();
-    // Apply
-    F.preset = 'custom'; F.from = new Date(cal.rangeStart); F.to = new Date(cal.rangeEnd);
+    // Apply with hours/minutes from the time inputs. Second click to end is
+    // inclusive through end of that minute (:59.999) so a 23:59 bound covers
+    // the whole minute, matching how the whole-day presets work.
+    const parseHM = (s, defH, defM) => {
+      const m = /^(\d{1,2}):(\d{2})$/.exec((s||'').trim());
+      if (!m) return [defH, defM];
+      return [Math.min(23, +m[1]), Math.min(59, +m[2])];
+    };
+    const [h1, m1] = parseHM($('dpFromTime')?.value, 0, 0);
+    const [h2, m2] = parseHM($('dpToTime')?.value, 23, 59);
+    F.preset = 'custom';
+    F.from = new Date(cal.rangeStart.getFullYear(), cal.rangeStart.getMonth(), cal.rangeStart.getDate(), h1, m1, 0, 0);
+    F.to   = new Date(cal.rangeEnd.getFullYear(),   cal.rangeEnd.getMonth(),   cal.rangeEnd.getDate(),   h2, m2, 59, 999);
     syncDateUI();
     dtPanel.classList.remove('open'); dtTrigger.classList.remove('open');
     refresh();
@@ -3446,7 +3499,7 @@ function activeFilterChips(){
     else if (sel.size === 1) chips.push(`<span class="chip">${label} <strong>${esc([...sel][0]||'(blank)')}</strong></span>`);
     else chips.push(`<span class="chip">${label} <strong>${sel.size} selected</strong></span>`);
   };
-  if(F.from||F.to)        chips.push(`<span class="chip">Date <strong>${esc(F.preset==='custom'?(F.from?fmtShort(F.from):'')+(F.from&&F.to?' → ':'')+(F.to?fmtShort(F.to):''):PLABELS[F.preset]||'')}</strong></span>`);
+  if(F.from||F.to)        chips.push(`<span class="chip">Date <strong>${esc(F.preset==='custom'?(F.from?fmtShortDT(F.from,false):'')+(F.from&&F.to?' → ':'')+(F.to?fmtShortDT(F.to,true):''):PLABELS[F.preset]||'')}</strong></span>`);
   setChip('Enterprise', F.ent);
   setChip('Team',       F.team);
   setChip('User',       F.user);
@@ -4247,7 +4300,7 @@ async function downloadReport(){
     const filters = [];
     if (F.from || F.to){
       filters.push('Date: ' + (F.preset === 'custom'
-        ? (F.from ? fmtShort(F.from) : '') + (F.from && F.to ? ' → ' : '') + (F.to ? fmtShort(F.to) : '')
+        ? (F.from ? fmtShortDT(F.from,false) : '') + (F.from && F.to ? ' → ' : '') + (F.to ? fmtShortDT(F.to,true) : '')
         : PLABELS[F.preset] || ''));
     }
     const summarizeSet = (label, sel) => {
