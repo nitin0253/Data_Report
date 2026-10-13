@@ -3019,6 +3019,18 @@ async function syncFromServer({silent=false, force=false}={}){
       r._updated      = parseTs(r.u);
       r._qcUpdated    = parseTs(r.qu);
       r._mediaProcessed = parseTs(r.mc);   // when the media asset was processed at the source
+      // Recompute TAT client-side as qc_updated_on − created_on (hours), the
+      // same formula video-metrics uses for qc_tat (src/build_metrics.py:452).
+      // The SQL TAT_Hrs column is anchored on updated_on, which trails
+      // qc_updated_on and inflates the P99 tail; recomputing here keeps every
+      // downstream metric (Avg TAT, SLA, %-within-N, P95/P99 TAT) on the same
+      // qc-based definition as the delivery-metrics report.
+      if (r._qcUpdated && r._created){
+        const h = (r._qcUpdated.getTime() - r._created.getTime()) / 3600000;
+        r.tat = h >= 0 ? h : null;
+      } else {
+        r.tat = null;
+      }
       // SLA: 6hrs from created_on (overrides enterprise-specific SLA_Flag from API)
       if (typeof r.tat === 'number') r.sla = r.tat <= 6 ? 1 : 0;
       RAW.push(r);
