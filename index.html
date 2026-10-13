@@ -1209,26 +1209,17 @@ const fmtDate = v => {
          d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
 };
 
-// Source data is UTC (ISO timestamps with Z suffix). The dashboard displays IST
-// across the board, so we convert once here and every downstream consumer
-// (filters, bucketing, tables) gets IST wall-clock values for free.
-//
-// Implementation: parse the UTC calendar parts → compute the UTC epoch via
-// Date.UTC() → add 5h30m → read back the result's UTC fields and construct a
-// "naive" Date from them. The returned Date's .getHours() / .getDate() etc.
-// return IST values regardless of the browser timezone. The internal epoch
-// won't match real wall-clock UTC, but no consumer in this app uses it for
-// absolute-moment comparisons — everything is calendar-arithmetic.
-const IST_OFFSET_MS = 5.5 * 3600 * 1000;
+// Source timestamps come wrapped like "2026-05-11T08:54:58Z" but the digits
+// are already in the DB's session timezone (IST) — the Z suffix is misleading.
+// video-metrics (src/build_metrics.py:180) treats them the same way: naive,
+// no shift. Parse the calendar parts as-is so .getHours() / .getDate() return
+// the IST wall-clock values the source already carries. new Date() with the
+// raw ISO string would wrongly treat the Z as UTC and shift records across
+// day/month boundaries (e.g. 306 rows from Apr 30 landing in May in IST).
 function parseTs(s){
   if (!s) return null;
   const m = /^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2}):(\d{2})/.exec(s);
-  if (m){
-    const utcMs = Date.UTC(+m[1], +m[2]-1, +m[3], +m[4], +m[5], +m[6]);
-    const ist   = new Date(utcMs + IST_OFFSET_MS);
-    return new Date(ist.getUTCFullYear(), ist.getUTCMonth(), ist.getUTCDate(),
-                    ist.getUTCHours(),    ist.getUTCMinutes(), ist.getUTCSeconds());
-  }
+  if (m) return new Date(+m[1], +m[2]-1, +m[3], +m[4], +m[5], +m[6]);
   // Date-only fallback "YYYY-MM-DD" — no time component, no conversion needed
   const m2 = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
   if (m2) return new Date(+m2[1], +m2[2]-1, +m2[3]);
