@@ -1216,6 +1216,22 @@ const fmtDate = v => {
 // the IST wall-clock values the source already carries. new Date() with the
 // raw ISO string would wrongly treat the Z as UTC and shift records across
 // day/month boundaries (e.g. 306 rows from Apr 30 landing in May in IST).
+// Current moment as a naive IST Date — .getFullYear() / .getMonth() /
+// .getDate() / .getHours() return IST wall-clock values regardless of the
+// viewer's browser timezone. Date filters, trend/hourly buckets, and the
+// calendar's "today" all pin to IST so a US-based viewer sees the same
+// "This month" window as someone in India. Mirrors parseTs' convention
+// for row timestamps so filter/row comparisons stay apples-to-apples.
+function istNow(){
+  const n = new Date();
+  const istMs = Date.UTC(n.getUTCFullYear(), n.getUTCMonth(), n.getUTCDate(),
+                         n.getUTCHours(),    n.getUTCMinutes(), n.getUTCSeconds())
+                + 5.5 * 3600 * 1000;
+  const ist = new Date(istMs);
+  return new Date(ist.getUTCFullYear(), ist.getUTCMonth(), ist.getUTCDate(),
+                  ist.getUTCHours(),    ist.getUTCMinutes(), ist.getUTCSeconds());
+}
+
 function parseTs(s){
   if (!s) return null;
   const m = /^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2}):(\d{2})/.exec(s);
@@ -1463,7 +1479,7 @@ const saveLayout = ()=>{try{localStorage.setItem('opsDash_layout_v7',JSON.string
 const PLABELS={all:'All time',today:'Today',yesterday:'Yesterday',this_week:'This week',last_week:'Last week',this_month:'This month',last_month:'Last month',last_30:'Last 30 days',last_3_months:'Last 3 months',custom:'Custom range'};
 
 function presetRange(p){
-  const now=new Date(),tod=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+  const now=istNow(),tod=new Date(now.getFullYear(),now.getMonth(),now.getDate());
   const ago=n=>{const d=new Date(tod);d.setDate(tod.getDate()-n);return d;};
   let r;
   if(p==='all')                r={from:null,to:null};
@@ -1842,7 +1858,7 @@ function aggregate(rows){
 // TREND BUCKETING  (independent of date filter)
 // ─────────────────────────────────────────────────────────────
 function bucketTrend(rows, range){
-  const now = new Date();
+  const now = istNow();
   const buckets = [];
 
   if (range === '15days'){
@@ -2127,7 +2143,7 @@ function bucketHourly(rows, range){
   // Answers "what hours of the day get the most throughput?" rather than
   // "what was throughput at noon on May 14?" — that's a 24-tick chart, not a
   // 2000-tick chart, and the question fits the operational mental model.
-  const now = new Date();
+  const now = istNow();
   let startMs, endMs;   // [startMs, endMs) — exclusive end so today's hours still count
 
   if (range === 'today'){
@@ -3326,7 +3342,7 @@ dtTrigger.addEventListener('click', e=>{
     const ft = $('dpFromTime'), tt = $('dpToTime');
     if (ft) ft.value = F.from ? pad2(F.from.getHours())+':'+pad2(F.from.getMinutes()) : '00:00';
     if (tt) tt.value = F.to   ? pad2(F.to.getHours())  +':'+pad2(F.to.getMinutes())   : '23:59';
-    const ref = cal.rangeStart || new Date();
+    const ref = cal.rangeStart || istNow();
     cal.view = new Date(ref.getFullYear(), ref.getMonth(), 1);
     calRender();
   }
@@ -3375,7 +3391,7 @@ $('dpClear').addEventListener('click', e=>{
 });
 
 // ── Calendar ──
-const cal = { view: new Date(), rangeStart: null, rangeEnd: null, _cells: [] };
+const cal = { view: istNow(), rangeStart: null, rangeEnd: null, _cells: [] };
 function midnight(d){ return new Date(d.getFullYear(), d.getMonth(), d.getDate()); }
 
 function calRender(){
@@ -3395,7 +3411,7 @@ function calRender(){
     const last = cells[cells.length-1].date;
     cells.push({ date:new Date(last.getFullYear(),last.getMonth(),last.getDate()+1), muted:true });
   }
-  const today = midnight(new Date());
+  const today = midnight(istNow());
   const F0 = cal.rangeStart, T0 = cal.rangeEnd;
 
   $('calDays').innerHTML = cells.map((c,i)=>{
@@ -4711,7 +4727,7 @@ document.querySelectorAll('.gran-tab').forEach(btn=>{
 
 // Build buckets for a given granularity (anchored on "now")
 function buildPerfBuckets(gran){
-  const now = new Date();
+  const now = istNow();
   const buckets = [];
 
   if (gran === '15days'){
