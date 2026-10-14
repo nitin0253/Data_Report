@@ -1548,16 +1548,18 @@ function dateInRange(rowDate){
 
 function passesFilters(r){
   if (!passesNonDateFilters(r)) return false;
-  // Date anchor falls through three timestamps in priority order:
-  //   1. created_on        — set when the QC pipeline accepted the video
-  //   2. media_processed_at  — when the media asset was processed at the source
-  //   3. updated_on        — set on every row at the moment of last status change
-  // For normal rows, (1) is virtually always present so behavior is unchanged.
-  // Failed videos may lack both (1) and (2) (processing aborted before either
-  // timestamp could be written), so (3) ensures they still land in a date bucket.
-  // updated_on is reliably present because every status transition — including
-  // the transition INTO 'failed' — writes it.
-  const rowDate = r._created || r._mediaProcessed || r._updated;
+  // Date anchor falls through four timestamps in priority order:
+  //   1. last_reprocessed_on — when a reprocessed video's clock restarted
+  //   2. created_on         — set when the QC pipeline accepted the video
+  //   3. media_processed_at — when the media asset was processed at the source
+  //   4. updated_on         — set on every row at the moment of last status change
+  // (1) only exists on videos that were reprocessed due to a price change;
+  // when present it overrides created_on so a video reprocessed in October
+  // lands in October's bucket (same anchor used for TAT/SLA/P95/P99).
+  // Failed videos may lack (1)-(3) (processing aborted before either timestamp
+  // could be written), so (4) ensures they still land in a date bucket;
+  // updated_on is reliably present because every status transition writes it.
+  const rowDate = r._lastReprocessed || r._created || r._mediaProcessed || r._updated;
   return dateInRange(rowDate);
 }
 
@@ -3010,14 +3012,21 @@ async function syncFromServer({silent=false, force=false}={}){
       r._updated      = parseTs(r.u);
       r._qcUpdated    = parseTs(r.qu);
       r._mediaProcessed = parseTs(r.mc);   // when the media asset was processed at the source
-      // Recompute TAT client-side as qc_updated_on − created_on (hours), the
-      // same formula video-metrics uses for qc_tat (src/build_metrics.py:452).
-      // The SQL TAT_Hrs column is anchored on updated_on, which trails
-      // qc_updated_on and inflates the P99 tail; recomputing here keeps every
-      // downstream metric (Avg TAT, SLA, %-within-N, P95/P99 TAT) on the same
-      // qc-based definition as the delivery-metrics report.
-      if (r._qcUpdated && r._created){
-        const h = (r._qcUpdated.getTime() - r._created.getTime()) / 3600000;
+      r._lastReprocessed = parseTs(r.lrp); // Last_Reprocessed_ON: present only for videos reprocessed due to a price change
+      // Effective TAT anchor: when a video has been reprocessed, its
+      // Last_Reprocessed_ON replaces created_on as the clock start. All
+      // downstream metrics (Avg TAT, SLA, %-within-N, P95/P99 TAT) use this
+      // anchor so a reprocessed video's TAT isn't inflated by the original
+      // created_on.
+      r._effCreated = r._lastReprocessed || r._created;
+      // Recompute TAT client-side as qc_updated_on − effective_created_on
+      // (hours) — same formula as video-metrics' qc_tat
+      // (src/build_metrics.py:452), with the reprocess override applied.
+      // The SQL TAT_Hrs column is anchored on updated_on and ignores reprocess,
+      // which inflates the tail; recomputing here keeps every downstream
+      // metric on the same qc-based, reprocess-aware definition.
+      if (r._qcUpdated && r._effCreated){
+        const h = (r._qcUpdated.getTime() - r._effCreated.getTime()) / 3600000;
         r.tat = h >= 0 ? h : null;
       } else {
         r.tat = null;
